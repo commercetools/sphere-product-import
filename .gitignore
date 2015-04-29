@@ -1,0 +1,11 @@
+.DS_Store
+node_modules
+*.log
+lib
+test
+tmp
+config.js
+.coveralls.yml
+coverage
+package
+sftp-credentials.json
