@@ -9,3 +9,5 @@ config.js
 coverage
 package
 sftp-credentials.json
+sphere-product-sync.iml
+.idea
