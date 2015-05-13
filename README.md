@@ -6,4 +6,4 @@ TBD
 
 Process Flow:
 
-![Process Flow Diagram](https://github.com/sphereio/sphere-product-sync/blob/product-sync-ver1/document/Product%20Importer_processFlow.png)
+![Process Flow Diagram](https://github.com/sphereio/sphere-product-sync/blob/product-sync-ver1/document/productimporter_processFlow.png)
