@@ -1,0 +1,108 @@
+{
+  "products": [
+    {
+      "masterVariant": {
+        "id": 1,
+        "sku": "B3-717597",
+        "attributes": [
+          {
+            "name": "masterId",
+            "value": "B3-717597"
+          },
+          {
+            "name": "itemERPNumber",
+            "value": 717597
+          }
+        ]
+      },
+      "variants": [
+        {
+          "id": 2,
+          "sku": "B3-717487",
+          "attributes": [
+            {
+              "name": "masterId",
+              "value": "B3-717597"
+            },
+            {
+              "name": "itemERPNumber",
+              "value": 717487
+            }
+          ]
+        },
+        {
+          "id": 3,
+          "sku": "B3-717489",
+          "attributes": [
+            {
+              "name": "masterId",
+              "value": "B3-717597"
+            },
+            {
+              "name": "itemERPNumber",
+              "value": 717489
+            }
+          ]
+        }
+      ],
+      "hasStagedChanges": true,
+      "published": false,
+      "taxCategory": {
+        "typeId": "tax-category",
+        "id": "059d2066-7cde-4007-ad3e-c012ff9f139d"
+      }
+    },
+    {
+      "masterVariant": {
+        "id": 1,
+        "sku": "C42-345678",
+        "attributes": [
+          {
+            "name": "masterId",
+            "value": "C42-345678"
+          },
+          {
+            "name": "itemERPNumber",
+            "value": 345678
+          }
+        ]
+      },
+      "variants": [
+        {
+          "id": 2,
+          "sku": "C42-345987",
+          "attributes": [
+            {
+              "name": "masterId",
+              "value": "C42-345678"
+            },
+            {
+              "name": "itemERPNumber",
+              "value": 717487
+            }
+          ]
+        },
+        {
+          "id": 3,
+          "sku": "C42-345988",
+          "attributes": [
+            {
+              "name": "masterId",
+              "value": "C42-345678"
+            },
+            {
+              "name": "itemERPNumber",
+              "value": 45988
+            }
+          ]
+        }
+      ],
+      "hasStagedChanges": true,
+      "published": false,
+      "taxCategory": {
+        "typeId": "tax-category",
+        "id": "059d2066-7cde-4007-ad3e-c012ff9f139d"
+      }
+    }
+  ]
+}

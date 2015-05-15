@@ -1,0 +1,137 @@
+{
+  "productType": {
+    "typeId": "product-type",
+    "id": "76ee55a1-e6c8-47be-b147-4cb7cbe866c4"
+  },
+  "name": {
+    "de": "Ja! Milk"
+  },
+  "description": {
+    "de": "<p>Pure milk from the cow..!!<br></p>"
+  },
+  "categories": [],
+  "slug": {
+    "de": "ja-milk-1429175717826"
+  },
+  "masterVariant": {
+    "id": 1,
+    "sku": "B3-717487",
+    "prices": [
+      {
+        "value": {
+          "currencyCode": "EUR",
+          "centAmount": 99
+        }
+      }
+    ],
+    "images": [],
+    "attributes": [
+      {
+        "name": "masterId",
+        "value": "B3-717487"
+      },
+      {
+        "name": "itemERPNumber",
+        "value": 717487
+      },
+      {
+        "name": "type",
+        "value": "A"
+      },
+      {
+        "name": "itemCompany",
+        "value": "B3"
+      },
+      {
+        "name": "brandName",
+        "value": {
+          "de": "Ja!"
+        }
+      },
+      {
+        "name": "erpTradeGroup",
+        "value": "8325"
+      },
+      {
+        "name": "erpState",
+        "value": "0"
+      },
+      {
+        "name": "height",
+        "value": 6
+      },
+      {
+        "name": "width",
+        "value": 2
+      },
+      {
+        "name": "depth",
+        "value": 1
+      },
+      {
+        "name": "capacity",
+        "value": 100
+      },
+      {
+        "name": "dimension",
+        "value": "g"
+      },
+      {
+        "name": "weight",
+        "value": 100
+      },
+      {
+        "name": "packingCode",
+        "value": "x73kd987"
+      },
+      {
+        "name": "featuredProduct",
+        "value": true
+      },
+      {
+        "name": "category_lvl1",
+        "value": "obst-gemuese"
+      },
+      {
+        "name": "category_lvl2",
+        "value": "gemuese"
+      },
+      {
+        "name": "category_lvl3",
+        "value": "gemuese-tomaten-gurken"
+      },
+      {
+        "name": "category_lvl4",
+        "value": "gemuese-tomaten"
+      },
+      {
+        "name": "B3-54",
+        "value": {
+          "key": "54005",
+          "label": "Vitaminbar"
+        }
+      },
+      {
+        "name": "B3-12",
+        "value": {
+          "label": "rot",
+          "key": "12012"
+        }
+      },
+      {
+        "name": "isOnStock",
+        "value": true
+      }
+    ]
+  },
+  "variants": [],
+  "searchKeywords": {},
+  "hasStagedChanges": true,
+  "published": false,
+  "taxCategory": {
+    "typeId": "tax-category",
+    "id": "059d2066-7cde-4007-ad3e-c012ff9f139d"
+  },
+  "createdAt": "2015-04-16T09:21:39.728Z",
+  "lastModifiedAt": "2015-04-16T09:21:53.246Z"
+}

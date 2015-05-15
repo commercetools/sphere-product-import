@@ -3,6 +3,7 @@ _.mixin require('underscore-mixins')
 {ProductImport} = require '../lib'
 Config = require('../config')
 Promise = require 'bluebird'
+fs = require('fs')
 
 describe 'ProductImport', ->
   beforeEach ->
@@ -25,17 +26,19 @@ describe 'ProductImport', ->
       expect(_.pluck(uniqueProducts, 'sku')).toEqual ['foo', 'bar', 'baz']
 
 
-  describe '::performStream', ->
+#  describe '::performStream', ->
+#
+#    it 'should execute callback after finished processing batches', (done) ->
+#      spyOn(@import, '_processBatches').andCallFake -> Promise.resolve()
+#      @import.performStream [1,2,3], done
+#      .catch (err) -> done(_.prettify err)
 
-    it 'should execute callback after finished processing batches', (done) ->
-      spyOn(@import, '_processBatches').andCallFake -> Promise.resolve()
-      @import.performStream [1,2,3], done
-      .catch (err) -> done(_.prettify err)
 
+  describe '::extractSkus', ->
 
-  describe '::processBatches', ->
-
-    it 'should process list of products in batches', (done) ->
-      chunk = [
-        {sku: 'foo-1', }
-      ]
+    it 'should extract 6 skus from master and variants', ->
+      sampleProducts = JSON.parse(fs.readFileSync('./samples/sampleimportproduct.json').toString())
+      expect(sampleProducts.products.length).toBe 2
+      skus = @import._extractSkus(sampleProducts.products)
+      expect(skus.length).toBe 6
+      expect(skus).toEqual ['B3-717597', 'B3-717487', 'B3-717489', 'C42-345678', 'C42-345987', 'C42-345988']
