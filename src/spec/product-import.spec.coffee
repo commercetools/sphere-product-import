@@ -6,8 +6,10 @@ Promise = require 'bluebird'
 fs = require('fs')
 
 describe 'ProductImport', ->
+
   beforeEach ->
     @import = new ProductImport null, Config
+    @sampleProducts = JSON.parse(fs.readFileSync('./samples/sampleimportproduct.json').toString())
 
   it 'should initialize', ->
     expect(@import).toBeDefined()
@@ -37,8 +39,7 @@ describe 'ProductImport', ->
   describe '::extractSkus', ->
 
     it 'should extract 6 skus from master and variants', ->
-      sampleProducts = JSON.parse(fs.readFileSync('./samples/sampleimportproduct.json').toString())
-      expect(sampleProducts.products.length).toBe 2
-      skus = @import._extractSkus(sampleProducts.products)
+      expect(@sampleProducts.products.length).toBe 2
+      skus = @import._extractSkus(@sampleProducts.products)
       expect(skus.length).toBe 6
       expect(skus).toEqual ['B3-717597', 'B3-717487', 'B3-717489', 'C42-345678', 'C42-345987', 'C42-345988']
