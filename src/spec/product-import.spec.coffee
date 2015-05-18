@@ -4,7 +4,6 @@ _.mixin require('underscore-mixins')
 Config = require('../config')
 Promise = require 'bluebird'
 fs = require 'fs'
-sampleProductProjectionsResponse = require('../samples/product_projection_response.json')
 
 sampleProducts = [
       {
