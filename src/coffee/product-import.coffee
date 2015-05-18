@@ -23,19 +23,11 @@ class ProductImport
   _processBatches: (products) ->
     batchedList = _.batchList(products, 30) # max parallel elem to process
     Promise.map batchedList, (productsToProcess) =>
-      debug 'Chunk: %j', productsToProcess
       # extract all skus from master variant and variants of all jsons in the batch
-
-      debug 'Chunk (unique products): %j', uniqueProductsToProcessBySku
-
-      skus = _.map uniqueProductsToProcessBySku, (s) =>
-        @_summary.emptySKU++ if _.isEmpty s.sku
-        # TODO: query also for channel?
-        "\"#{s.sku}\""
-      predicate = "sku in (#{skus.join(', ')})"
-      # masterVariant(sku="M0E20000000E30L") or variants(sku="M0E20000000E30L")
-      # masterVariant(sku in ("B3-717597", "B3-717487")) or variants(sku in ("B3-717597", "B3-717487"))
-      @client.products
+      skus = @_extractUniqueSkus(productsToProcess)
+      predicate = @_prepareProductFetchBySkuQueryPredicate(skus)
+      # Fetch products from product projections end point by list of skus.
+      @client.productProjections
       .where(predicate)
       .fetch()
       .then (results) =>
