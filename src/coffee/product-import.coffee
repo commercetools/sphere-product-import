@@ -50,13 +50,13 @@ class ProductImport
     ,{concurrency: 1} # run 1 batch at a time
 
 
-  _extractSkus: (products) ->
+  _extractUniqueSkus: (products) ->
     skus = []
     for product in products
       skus.push product.masterVariant?.sku
       for variant in product?.variants
         skus.push variant.sku
-    return skus
+    return _.uniq(skus,false)
 
 
   _uniqueProductsBySku: (products) ->

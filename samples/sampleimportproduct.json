@@ -95,6 +95,20 @@
               "value": 45988
             }
           ]
+        },
+        {
+          "id": 4,
+          "sku": "C42-345988",
+          "attributes": [
+            {
+              "name": "masterId",
+              "value": "C42-345678"
+            },
+            {
+              "name": "itemERPNumber",
+              "value": 45988
+            }
+          ]
         }
       ],
       "hasStagedChanges": true,
