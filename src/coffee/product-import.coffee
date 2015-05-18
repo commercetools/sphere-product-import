@@ -54,7 +54,7 @@ class ProductImport
     skus = []
     for product in products
       skus.push product.masterVariant?.sku
-      for variant in product?.variants
+      for variant in product.variants
         skus.push variant.sku
     return _.uniq(skus,false)
 
