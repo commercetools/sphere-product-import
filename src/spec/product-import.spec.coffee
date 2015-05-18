@@ -3,7 +3,7 @@ _.mixin require('underscore-mixins')
 {ProductImport} = require '../lib'
 Config = require('../config')
 Promise = require 'bluebird'
-fs = require('fs')
+fs = require 'fs'
 sampleProducts = require('../samples/import.json')
 sampleProductProjectionsResponse = require('../samples/product_projection_response.json')
 
@@ -38,11 +38,10 @@ describe 'ProductImport', ->
 
   describe '::_prepareProductFetchBySkuQueryPredicate', ->
 
-    it 'should return predicate with 6 unique skus and of byte size 205', ->
+    it 'should return predicate with 6 unique skus', ->
       skus = @import._extractUniqueSkus(sampleProducts.products)
       predicate = @import._prepareProductFetchBySkuQueryPredicate(skus)
-      expect(predicate.predicateString).toEqual 'masterVariant(sku in ("B3-717597", "B3-717487", "B3-717489", "C42-345678", "C42-345987", "C42-345988")) or variants(sku in ("B3-717597", "B3-717487", "B3-717489", "C42-345678", "C42-345987", "C42-345988"))'
-      expect(predicate.byteSize).toBe 205
+      expect(predicate).toEqual 'masterVariant(sku in ("B3-717597", "B3-717487", "B3-717489", "C42-345678", "C42-345987", "C42-345988")) or variants(sku in ("B3-717597", "B3-717487", "B3-717489", "C42-345678", "C42-345987", "C42-345988"))'
 
   describe '::_isExistingEntry', ->
 

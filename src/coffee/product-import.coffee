@@ -26,6 +26,7 @@ class ProductImport
       # extract all skus from master variant and variants of all jsons in the batch
       skus = @_extractUniqueSkus(productsToProcess)
       predicate = @_prepareProductFetchBySkuQueryPredicate(skus)
+      # Check predicate size by: Buffer.byteLength(predicate,'utf-8')
       # Todo: Handle predicate if predicate size > 8kb
       # Fetch products from product projections end point by list of skus.
       @client.productProjections
@@ -45,11 +46,8 @@ class ProductImport
 
 
   _prepareProductFetchBySkuQueryPredicate: (skus) ->
-    predicate = {}
     skuString = "sku in (\"#{skus.join('", "')}\")"
-    predicate.predicateString = "masterVariant(#{skuString}) or variants(#{skuString})"
-    predicate.byteSize = Buffer.byteLength(predicate.predicateString,'utf-8')
-    return predicate
+    return "masterVariant(#{skuString}) or variants(#{skuString})"
 
   _extractUniqueSkus: (products) ->
     skus = []
