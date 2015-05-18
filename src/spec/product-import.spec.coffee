@@ -23,12 +23,17 @@ sampleProducts = [
         ]
       },
       {
-        masterVariant: { sku: 'd' }
+        masterVariant: { sku: 'e' }
         variants: []
       }
     ]
 
-
+sampleProductProjectionResponse = [
+  {
+    masterVariant : { sku: 'e'},
+    variants: []
+  }
+]
 
 describe 'ProductImport', ->
 
@@ -53,24 +58,23 @@ describe 'ProductImport', ->
 
   describe '::_extractUniqueSkus', ->
 
-    it 'should extract 4 unique skus from master and variants', ->
+    it 'should extract 5 unique skus from master and variants', ->
       skus = @import._extractUniqueSkus(sampleProducts)
-      console.log(skus)
-      expect(skus.length).toBe 4
-      expect(skus).toEqual ['a', 'b', 'c', 'd']
+      expect(skus.length).toBe 5
+      expect(skus).toEqual ['a', 'b', 'c', 'd', 'e']
 
   describe '::_prepareProductFetchBySkuQueryPredicate', ->
 
-    it 'should return predicate with 6 unique skus', ->
+    it 'should return predicate with 5 unique skus', ->
       skus = @import._extractUniqueSkus(sampleProducts)
       predicate = @import._prepareProductFetchBySkuQueryPredicate(skus)
-      expect(predicate).toEqual 'masterVariant(sku in ("a", "b", "c", "d")) or variants(sku in ("a", "b", "c", "d"))'
+      expect(predicate).toEqual 'masterVariant(sku in ("a", "b", "c", "d", "e")) or variants(sku in ("a", "b", "c", "d", "e"))'
 
   describe '::_isExistingEntry', ->
 
     it 'should detect existing entries', ->
-      existingProduct = sampleProducts.products[0]
-      newProduct = sampleProducts.products[1]
-      expect(@import._isExistingEntry(existingProduct,sampleProductProjectionsResponse.results)).toBeDefined()
-      expect(@import._isExistingEntry(existingProduct,sampleProductProjectionsResponse.results).masterVariant.sku).toEqual "B3-717597"
-      expect(@import._isExistingEntry(newProduct,sampleProductProjectionsResponse.results)).toBeUndefined()
+      existingProduct = sampleProducts[2]
+      newProduct = sampleProducts[0]
+      expect(@import._isExistingEntry(existingProduct,sampleProductProjectionResponse)).toBeDefined()
+      expect(@import._isExistingEntry(existingProduct,sampleProductProjectionResponse).masterVariant.sku).toEqual "e"
+      expect(@import._isExistingEntry(newProduct,sampleProductProjectionResponse)).toBeUndefined()
