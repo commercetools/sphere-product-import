@@ -68,29 +68,29 @@ class ProductImport
     , []
 
 
-  _isExistingEntry: (entry, existingEntries) ->
-    entrySkus = @_extractUniqueSkus([entry])
-    _.find existingEntries, (existingEntry) =>
-      existingEntrySkus =  @_extractUniqueSkus([existingEntry])
-      matchingSkus = _.intersection(entrySkus,existingEntrySkus)
+  _isExistingEntry: (prodToProcess, existingProducts) ->
+    prodToProcessSkus = @_extractUniqueSkus([prodToProcess])
+    _.find existingProducts, (existingEntry) =>
+      existingProductSkus =  @_extractUniqueSkus([existingEntry])
+      matchingSkus = _.intersection(prodToProcessSkus,existingProductSkus)
       if matchingSkus.length > 0
         true
       else
         false
 
-  _createOrUpdate: (productsToProcess, existingEntries) ->
-    debug 'Products to process: %j', {toProcess: productsToProcess, existing: existingEntries}
+  _createOrUpdate: (productsToProcess, existingProducts) ->
+    debug 'Products to process: %j', {toProcess: productsToProcess, existing: existingProducts}
 
-    posts = _.map productsToProcess, (entry) =>
-      existingEntry = @_isExistingEntry(entry, existingEntries)
-      if existingEntry?
-        synced = @sync.buildActions(entry, existingEntry)
+    posts = _.map productsToProcess, (prodToProcess) =>
+      existingProduct = @_isExistingEntry(prodToProcess, existingProducts)
+      if existingProduct?
+        synced = @sync.buildActions(prodToProcess, existingProduct)
         if synced.shouldUpdate()
           @client.productsToProcess.byId(synced.getUpdateId()).update(synced.getUpdatePayload())
         else
           Promise.resolve statusCode: 304
       else
-        @client.productsToProcess.create(entry)
+        @client.productsToProcess.create(prodToProcess)
 
     debug 'About to send %s requests', _.size(posts)
     Promise.all(posts)
