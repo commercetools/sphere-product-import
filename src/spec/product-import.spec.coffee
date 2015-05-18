@@ -4,8 +4,31 @@ _.mixin require('underscore-mixins')
 Config = require('../config')
 Promise = require 'bluebird'
 fs = require 'fs'
-sampleProducts = require('../samples/import.json')
 sampleProductProjectionsResponse = require('../samples/product_projection_response.json')
+
+sampleProducts = [
+      {
+        masterVariant: { sku: 'a' }
+        variants: [
+          { id: 2, sku: 'b' },
+          { id: 3 },
+          { id: 4, sku: 'c' },
+        ]
+      },
+      {
+        masterVariant: {}
+        variants: [
+          { id: 2, sku: 'b' },
+          { id: 3, sku: 'd' },
+        ]
+      },
+      {
+        masterVariant: { sku: 'd' }
+        variants: []
+      }
+    ]
+
+
 
 describe 'ProductImport', ->
 
@@ -30,18 +53,18 @@ describe 'ProductImport', ->
 
   describe '::_extractUniqueSkus', ->
 
-    it 'should extract 6 unique skus from master and variants', ->
-      expect(sampleProducts.products.length).toBe 2
-      skus = @import._extractUniqueSkus(sampleProducts.products)
-      expect(skus.length).toBe 6
-      expect(skus).toEqual ['B3-717597', 'B3-717487', 'B3-717489', 'C42-345678', 'C42-345987', 'C42-345988']
+    it 'should extract 4 unique skus from master and variants', ->
+      skus = @import._extractUniqueSkus(sampleProducts)
+      console.log(skus)
+      expect(skus.length).toBe 4
+      expect(skus).toEqual ['a', 'b', 'c', 'd']
 
   describe '::_prepareProductFetchBySkuQueryPredicate', ->
 
     it 'should return predicate with 6 unique skus', ->
-      skus = @import._extractUniqueSkus(sampleProducts.products)
+      skus = @import._extractUniqueSkus(sampleProducts)
       predicate = @import._prepareProductFetchBySkuQueryPredicate(skus)
-      expect(predicate).toEqual 'masterVariant(sku in ("B3-717597", "B3-717487", "B3-717489", "C42-345678", "C42-345987", "C42-345988")) or variants(sku in ("B3-717597", "B3-717487", "B3-717489", "C42-345678", "C42-345987", "C42-345988"))'
+      expect(predicate).toEqual 'masterVariant(sku in ("a", "b", "c", "d")) or variants(sku in ("a", "b", "c", "d"))'
 
   describe '::_isExistingEntry', ->
 
