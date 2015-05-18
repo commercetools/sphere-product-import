@@ -21,15 +21,6 @@ describe 'ProductImport', ->
     expect(@import.sync.constructor.name).toBe 'ProductSync'
 
 
-  describe '::_uniqueProductsBySku', ->
-
-    it 'should filter duplicate skus', ->
-      products = [{sku: 'foo'}, {sku: 'bar'}, {sku: 'baz'}, {sku: 'foo'}]
-      uniqueProducts = @import._uniqueProductsBySku(products)
-      expect(uniqueProducts.length).toBe 3
-      expect(_.pluck(uniqueProducts, 'sku')).toEqual ['foo', 'bar', 'baz']
-
-
 #  describe '::performStream', ->
 #
 #    it 'should execute callback after finished processing batches', (done) ->

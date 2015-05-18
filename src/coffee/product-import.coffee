@@ -60,14 +60,6 @@ class ProductImport
     return _.uniq(skus,false)
 
 
-  _uniqueProductsBySku: (products) ->
-    _.reduce products, (acc, product) ->
-      foundProduct = _.find acc, (p) -> p.sku is product.sku
-      acc.push product unless foundProduct
-      acc
-    , []
-
-
   _isExistingEntry: (prodToProcess, existingProducts) ->
     prodToProcessSkus = @_extractUniqueSkus([prodToProcess])
     _.find existingProducts, (existingEntry) =>
