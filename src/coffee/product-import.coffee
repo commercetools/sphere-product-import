@@ -26,6 +26,7 @@ class ProductImport
       # extract all skus from master variant and variants of all jsons in the batch
       skus = @_extractUniqueSkus(productsToProcess)
       predicate = @_prepareProductFetchBySkuQueryPredicate(skus)
+      # Todo: Handle predicate if predicate size > 8kb
       # Fetch products from product projections end point by list of skus.
       @client.productProjections
       .where(predicate)
@@ -67,9 +68,12 @@ class ProductImport
     , []
 
 
-  _match: (entry, existingEntries) ->
-    _.find existingEntries, (existingEntry) ->
-      if entry.sku is existingEntry.sku
+  _isExistingEntry: (entry, existingEntries) ->
+    entrySkus = @_extractUniqueSkus([entry])
+    _.find existingEntries, (existingEntry) =>
+      existingEntrySkus =  @_extractUniqueSkus([existingEntry])
+      matchingSkus = _.intersection(entrySkus,existingEntrySkus)
+      if matchingSkus.length > 0
         true
       else
         false
@@ -78,7 +82,7 @@ class ProductImport
     debug 'Products to process: %j', {toProcess: productsToProcess, existing: existingEntries}
 
     posts = _.map productsToProcess, (entry) =>
-      existingEntry = @_match(entry, existingEntries)
+      existingEntry = @_isExistingEntry(entry, existingEntries)
       if existingEntry?
         synced = @sync.buildActions(entry, existingEntry)
         if synced.shouldUpdate()

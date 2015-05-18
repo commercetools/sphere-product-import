@@ -6,6 +6,7 @@ Promise = require 'bluebird'
 fs = require('fs')
 #This should be done in beforeAll method.
 sampleProducts = require('../samples/sampleimportproduct.json')
+sampleProductProjectionsResponse = require('../samples/sample_product_projection_response.json')
 
 describe 'ProductImport', ->
 
@@ -52,3 +53,12 @@ describe 'ProductImport', ->
       predicate = @import._prepareProductFetchBySkuQueryPredicate(skus)
       expect(predicate.predicateString).toEqual 'masterVariant(sku in ("B3-717597", "B3-717487", "B3-717489", "C42-345678", "C42-345987", "C42-345988")) or variants(sku in ("B3-717597", "B3-717487", "B3-717489", "C42-345678", "C42-345987", "C42-345988"))'
       expect(predicate.byteSize).toBe 205
+
+  describe '::_isExistingEntry', ->
+
+    it 'should detect existing entries', ->
+      existingProduct = sampleProducts.products[0]
+      newProduct = sampleProducts.products[1]
+      expect(@import._isExistingEntry(existingProduct,sampleProductProjectionsResponse.results)).toBeDefined()
+      expect(@import._isExistingEntry(existingProduct,sampleProductProjectionsResponse.results).masterVariant.sku).toEqual "B3-717597"
+      expect(@import._isExistingEntry(newProduct,sampleProductProjectionsResponse.results)).toBeUndefined()
