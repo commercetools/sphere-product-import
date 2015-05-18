@@ -5,8 +5,8 @@ Config = require('../config')
 Promise = require 'bluebird'
 fs = require('fs')
 #This should be done in beforeAll method.
-sampleProducts = require('../samples/sampleimportproduct.json')
-sampleProductProjectionsResponse = require('../samples/sample_product_projection_response.json')
+sampleProducts = require('../samples/import.json')
+sampleProductProjectionsResponse = require('../samples/product_projection_response.json')
 
 describe 'ProductImport', ->
 
