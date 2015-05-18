@@ -44,3 +44,11 @@ describe 'ProductImport', ->
       skus = @import._extractUniqueSkus(sampleProducts.products)
       expect(skus.length).toBe 6
       expect(skus).toEqual ['B3-717597', 'B3-717487', 'B3-717489', 'C42-345678', 'C42-345987', 'C42-345988']
+
+  describe '::_prepareProductFetchBySkuQueryPredicate', ->
+
+    it 'should return predicate with 6 unique skus and of byte size 205', ->
+      skus = @import._extractUniqueSkus(sampleProducts.products)
+      predicate = @import._prepareProductFetchBySkuQueryPredicate(skus)
+      expect(predicate.predicateString).toEqual 'masterVariant(sku in ("B3-717597", "B3-717487", "B3-717489", "C42-345678", "C42-345987", "C42-345988")) or variants(sku in ("B3-717597", "B3-717487", "B3-717489", "C42-345678", "C42-345987", "C42-345988"))'
+      expect(predicate.byteSize).toBe 205

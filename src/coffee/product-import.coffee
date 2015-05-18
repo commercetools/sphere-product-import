@@ -34,6 +34,7 @@ class ProductImport
         "\"#{s.sku}\""
       predicate = "sku in (#{skus.join(', ')})"
       # masterVariant(sku="M0E20000000E30L") or variants(sku="M0E20000000E30L")
+      # masterVariant(sku in ("B3-717597", "B3-717487")) or variants(sku in ("B3-717597", "B3-717487"))
       @client.products
       .where(predicate)
       .fetch()
@@ -49,6 +50,13 @@ class ProductImport
         Promise.resolve()
     ,{concurrency: 1} # run 1 batch at a time
 
+
+  _prepareProductFetchBySkuQueryPredicate: (skus) ->
+    predicate = {}
+    skuString = "sku in (\"#{skus.join('", "')}\")"
+    predicate.predicateString = "masterVariant(#{skuString}) or variants(#{skuString})"
+    predicate.byteSize = Buffer.byteLength(predicate.predicateString,'utf-8')
+    return predicate
 
   _extractUniqueSkus: (products) ->
     skus = []
