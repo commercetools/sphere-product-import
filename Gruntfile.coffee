@@ -68,7 +68,7 @@ module.exports = (grunt) ->
       coverage:
         command: "./node_modules/.bin/istanbul cover ./node_modules/.bin/jasmine-node --captureExceptions test && cat ./coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js && rm -rf ./coverage"
       jasmine:
-        command: "./node_modules/.bin/jasmine-node --verbose --captureExceptions test"
+        command: "./node_modules/.bin/jasmine-node --verbose --coffee src/spec"
       run:
         command: "node lib/run.js stock.xml"
       publish:
@@ -99,7 +99,7 @@ module.exports = (grunt) ->
 
   # register tasks
   grunt.registerTask "build", ["clean", "coffeelint", "coffee", "concat"]
-  grunt.registerTask "test", ["build", "shell:jasmine"]
+  grunt.registerTask "test", ["shell:jasmine"]
   grunt.registerTask "coverage", ["build", "shell:coverage"]
   grunt.registerTask 'release', 'Release a new version, push it and publish it', (target) ->
     target = 'patch' unless target
