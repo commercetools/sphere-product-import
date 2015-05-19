@@ -6,26 +6,26 @@ Promise = require 'bluebird'
 fs = require 'fs'
 
 sampleProducts = [
-      {
-        masterVariant: { sku: 'a' }
-        variants: [
-          { id: 2, sku: 'b' },
-          { id: 3 },
-          { id: 4, sku: 'c' },
-        ]
-      },
-      {
-        masterVariant: {}
-        variants: [
-          { id: 2, sku: 'b' },
-          { id: 3, sku: 'd' },
-        ]
-      },
-      {
-        masterVariant: { sku: 'e' }
-        variants: []
-      }
+  {
+    masterVariant: { sku: 'a' }
+    variants: [
+      { id: 2, sku: 'b' },
+      { id: 3 },
+      { id: 4, sku: 'c' },
     ]
+  },
+  {
+    masterVariant: {}
+    variants: [
+      { id: 2, sku: 'b' },
+      { id: 3, sku: 'd' },
+    ]
+  },
+  {
+    masterVariant: { sku: 'e' }
+    variants: []
+  }
+]
 
 sampleProductProjectionResponse = [
   {
@@ -46,6 +46,28 @@ sampleProductTypeResponse =
         "attributes": [ ],
         "createdAt": "2015-04-15T15:11:07.175Z",
         "lastModifiedAt": "2015-04-15T15:11:07.175Z"
+      }
+    ]
+
+sampleTaxCategoryResponse =
+  body:
+    results: [
+      {
+        "id": "tax category internal id",
+        "version": 5,
+        "name": "defaultTax_AT",
+        "description": "Steuer Österreich",
+        "rates": [
+          {
+            "name": "20% MwSt",
+            "amount": 0.2,
+            "includedInPrice": true,
+            "country": "AT",
+            "id": "2CV8kXRE"
+          }
+        ],
+        "createdAt": "2015-03-03T10:12:22.136Z",
+        "lastModifiedAt": "2015-04-16T07:36:36.123Z"
       }
     ]
 
@@ -97,17 +119,25 @@ describe 'ProductImport', ->
 
     it 'should resolve product type reference and cache the result', (done) ->
       @import._resetCache()
-      spyOn(@import.client.productTypes, "fetch").and.callFake => Promise.resolve(sampleProductTypeResponse)
+      spyOn(@import.client.productTypes, "fetch").andCallFake => Promise.resolve(sampleProductTypeResponse)
       productTypeRef = { id: 'AGS'}
       @import._resolveReference(@import.client.productTypes, 'productType', productTypeRef, "name=\"#{productTypeRef.id}\"")
         .then (result) =>
-          console.log("Entered")
+          expect(@import.client.productTypes.fetch).toHaveBeenCalled
           expect(result).toEqual sampleProductTypeResponse.body.results[0]
-          console.log("Cached result: ")
-          console.log(@import._cache.productType[productTypeRef.id])
-          console.log(sampleProductTypeResponse.body.results[0])
           expect(@import._cache.productType["AGS"]).toEqual sampleProductTypeResponse.body.results[0]
           done()
-          .catch (err) -> done(err)
+        .catch done
 
+    it 'should resolve tax category reference and cache the result', (done) ->
+      @import._resetCache()
+      spyOn(@import.client.taxCategories, "fetch").andCallFake => Promise.resolve(sampleTaxCategoryResponse)
+      taxCategoryRef = { id: 'defaultTax_AT' }
+      @import._resolveReference(@import.client.taxCategories, 'taxCategory', taxCategoryRef, "name=\"#{taxCategoryRef.id}\"")
+        .then (result) =>
+          expect(@import.client.taxCategories.fetch).toHaveBeenCalled
+          expect(result).toEqual sampleTaxCategoryResponse.body.results[0]
+          expect(@import._cache.taxCategory["defaultTax_AT"]).toEqual sampleTaxCategoryResponse.body.results[0]
+          done()
+        .catch done
 
