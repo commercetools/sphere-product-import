@@ -9,6 +9,7 @@ class ProductImport
   constructor: (@logger, options = {}) ->
     @sync = new ProductSync
     @client = new SphereClient options
+    @_cache = {}
 
   _resetSummary: ->
     @_summary =
@@ -85,7 +86,48 @@ class ProductImport
     debug 'About to send %s requests', _.size(posts)
     Promise.all(posts)
 
+  _prepareNewProduct: (product) ->
+    Promise.all [
+
+    ]
+
+  _resolveProductTypeReference: (productTypeRef) ->
+    new Promise (resolve, reject) =>
+      if not productTypeRef?
+        reject("Product type reference is undefined")
+      if @_cache.productType[productTypeRef.id]
+        resolve(@_cache.productType[productTypeRef.id])
+      else
+        @client.productTypes.where("name=\"#{productTypeRef.id}\"").fetch()
+        .then(result) =>
+          # Todo: Handle multiple response, currently taking first response.
+          @_cache.productType[productTypeRef.id] = result.results[0]
+          resolve(result.results[0])
 
 
+  _resolveCategoriesReference: (categoryRef) ->
+    new Promise (resolve, reject) =>
+      if not categoryRef?
+        reject("Product category is undefined")
+      if @_cache.productCategory[categoryRef.id]
+        resolve(@_cache.productCategory[categoryRef.id])
+      else
+        @client.categories.where("externalId=\"#{categoryRef.id}\"").fetch()
+        .then(result) =>
+          @_cache.productCategory[categoryRef.id] = result.results[0]
+          resolve(result.results[0])
+
+
+  _resolveTaxCategoryReference: (taxCategoryRef) ->
+    new Promise (resolve, reject) =>
+      if not taxCategoryRef?
+        reject("Tax category is undefined")
+      if @_cache.taxCategory[taxCategoryRef.id]
+        resolve(@_cache.taxCategory[taxCategoryRef.id])
+      else
+        @client.taxCategories.where("name=\"#{taxCategoryRef.id}\"").fetch()
+        .then(result) =>
+          @_cache.taxCategory[taxCategoryRef.id] = result.results[0]
+          resolve(result.results[0])
 
 module.exports = ProductImport
