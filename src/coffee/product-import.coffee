@@ -9,7 +9,13 @@ class ProductImport
   constructor: (@logger, options = {}) ->
     @sync = new ProductSync
     @client = new SphereClient options
-    @_cache = {}
+    @_resetCache()
+
+  _resetCache: ->
+    @_cache =
+      productType: {}
+      categories: {}
+      taxCategory: {}
 
   _resetSummary: ->
     @_summary =
@@ -88,9 +94,9 @@ class ProductImport
 
   _prepareNewProduct: (product) ->
     Promise.all [
-      @_resolveProductTypeReference(product.productType?)
+      @_resolveReference(@client.productTypes, 'productType', product.productType?, "name=\"#{productTypeRef.id}\"")
       @_resolveProductCategories(product.categories?)
-      @_resolveTaxCategoryReference(product.taxCategory?)
+      @_resolveReference(@client.taxCategories, 'taxCategory', product.taxCategory?, "name=\"#{taxCategoryRef.id}\"")
     ]
     .spread(prodType, prodCats, taxCat) =>
       if not prodType.isRejected
@@ -100,57 +106,26 @@ class ProductImport
       if not taxCat.isRejected
         product.taxCategory = taxCat.value
 
-
-  _resolveProductTypeReference: (productTypeRef) ->
-    new Promise (resolve, reject) =>
-      if not productTypeRef?
-        reject("Product type reference is undefined")
-      if @_cache.productType[productTypeRef.id]
-        resolve(@_cache.productType[productTypeRef.id])
-      else
-        @client.productTypes.where("name=\"#{productTypeRef.id}\"").fetch()
-        .then(result) =>
-          # Todo: Handle multiple response, currently taking first response.
-          @_cache.productType[productTypeRef.id] = result.results[0]
-          resolve(result.results[0])
-
-
   _resolveProductCategories: (cats) ->
     new Promise (resolve, reject) =>
-      if not cats?
+      if _.isEmpty(cats)
         reject("Product categories are undefined.")
       else
-        Promise.all [
-          for cat in cats
-            @_resolveProductCategories(cat)
-        ].then(result) =>
-          resolve(result)
+        Promise.all cats.map(cat =>
+          @_resolveReference(@client.categories, 'categories', cat, "externalId=\"#{cat.id}\""))
+        .then (result) -> resolve(result)
 
-  _resolveProductCategoryReference: (categoryRef) ->
+  _resolveReference: (service, refKey, ref, predicate) ->
     new Promise (resolve, reject) =>
-      if not categoryRef?
-        reject("Product category is undefined")
-      if @_cache.productCategory[categoryRef.id]
-        resolve(@_cache.productCategory[categoryRef.id])
+      if not ref
+        reject("Missing #{refKey}")
+      else if @_cache[refKey][ref.id]
+        resolve(@_cache[refKey][ref.id])
       else
-        @client.categories.where("externalId=\"#{categoryRef.id}\"").fetch()
-        .then(result) =>
+        service.where(predicate).fetch()
+        .then (result) =>
           # Todo: Handle multiple response, currently taking first response.
-          @_cache.productCategory[categoryRef.id] = result.results[0]
-          resolve(result.results[0])
-
-
-  _resolveTaxCategoryReference: (taxCategoryRef) ->
-    new Promise (resolve, reject) =>
-      if not taxCategoryRef?
-        reject("Tax category is undefined")
-      if @_cache.taxCategory[taxCategoryRef.id]
-        resolve(@_cache.taxCategory[taxCategoryRef.id])
-      else
-        @client.taxCategories.where("name=\"#{taxCategoryRef.id}\"").fetch()
-        .then(result) =>
-          # Todo: Handle multiple response, currently taking first response.
-          @_cache.taxCategory[taxCategoryRef.id] = result.results[0]
-          resolve(result.results[0])
+          @_cache[refKey][ref.id] = result.body.results[0]
+          resolve(result.body.results[0])
 
 module.exports = ProductImport
