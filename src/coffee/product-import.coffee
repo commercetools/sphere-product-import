@@ -77,19 +77,29 @@ class ProductImport
       if existingProduct?
         synced = @sync.buildActions(prodToProcess, existingProduct)
         if synced.shouldUpdate()
-          @client.productsToProcess.byId(synced.getUpdateId()).update(synced.getUpdatePayload())
+          @client.products.byId(synced.getUpdateId()).update(synced.getUpdatePayload())
         else
           Promise.resolve statusCode: 304
       else
-        @client.productsToProcess.create(prodToProcess)
+        @client.products.create(@_prepareNewProduct(prodToProcess))
 
     debug 'About to send %s requests', _.size(posts)
     Promise.all(posts)
 
   _prepareNewProduct: (product) ->
     Promise.all [
-
+      @_resolveProductTypeReference(product.productType?)
+      @_resolveProductCategories(product.categories?)
+      @_resolveTaxCategoryReference(product.taxCategory?)
     ]
+    .spread(prodType, prodCats, taxCat) =>
+      if not prodType.isRejected
+        product.productType = prodType.value
+      if not prodCats.isRejected
+        product.categories = prodCats.value
+      if not taxCat.isRejected
+        product.taxCategory = taxCat.value
+
 
   _resolveProductTypeReference: (productTypeRef) ->
     new Promise (resolve, reject) =>
@@ -105,7 +115,18 @@ class ProductImport
           resolve(result.results[0])
 
 
-  _resolveCategoriesReference: (categoryRef) ->
+  _resolveProductCategories: (cats) ->
+    new Promise (resolve, reject) =>
+      if not cats?
+        reject("Product categories are undefined.")
+      else
+        Promise.all [
+          for cat in cats
+            @_resolveProductCategories(cat)
+        ].then(result) =>
+          resolve(result)
+
+  _resolveProductCategoryReference: (categoryRef) ->
     new Promise (resolve, reject) =>
       if not categoryRef?
         reject("Product category is undefined")
@@ -114,6 +135,7 @@ class ProductImport
       else
         @client.categories.where("externalId=\"#{categoryRef.id}\"").fetch()
         .then(result) =>
+          # Todo: Handle multiple response, currently taking first response.
           @_cache.productCategory[categoryRef.id] = result.results[0]
           resolve(result.results[0])
 
@@ -127,6 +149,7 @@ class ProductImport
       else
         @client.taxCategories.where("name=\"#{taxCategoryRef.id}\"").fetch()
         .then(result) =>
+          # Todo: Handle multiple response, currently taking first response.
           @_cache.taxCategory[taxCategoryRef.id] = result.results[0]
           resolve(result.results[0])
 
