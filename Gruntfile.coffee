@@ -68,7 +68,7 @@ module.exports = (grunt) ->
       coverage:
         command: "./node_modules/.bin/istanbul cover ./node_modules/.bin/jasmine-node --captureExceptions test && cat ./coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js && rm -rf ./coverage"
       jasmine:
-        command: "./node_modules/.bin/jasmine-node --verbose --coffee src/spec"
+        command: "./node_modules/.bin/jasmine-node --verbose --captureExceptions --coffee src/spec"
       run:
         command: "node lib/run.js stock.xml"
       publish:
