@@ -117,8 +117,8 @@ class ProductImport
       if _.isEmpty(cats)
         reject("Product categories are undefined.")
       else
-        Promise.all cats.map(cat =>
-          @_resolveReference(@client.categories, 'categories', cat, "externalId=\"#{cat.id}\""))
+        Promise.all cats.map (cat) =>
+          @_resolveReference(@client.categories, 'categories', cat, "externalId=\"#{cat.id}\"")
         .then (result) -> resolve(result)
 
   _resolveReference: (service, refKey, ref, predicate) ->
@@ -130,7 +130,7 @@ class ProductImport
       else
         service.where(predicate).fetch()
         .then (result) =>
-# Todo: Handle multiple response, currently taking first response.
+          # Todo: Handle multiple response, currently taking first response.
           @_cache[refKey][ref.id] = result.body.results[0].id
           resolve(result.body.results[0].id)
 

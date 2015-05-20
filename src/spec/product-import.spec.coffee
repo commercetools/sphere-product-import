@@ -71,7 +71,7 @@ sampleTaxCategoryResponse =
       }
     ]
 
-sampleCategoriesResponse1 =
+sampleCategoriesResponse =
   body:
     results: [
       {
@@ -84,19 +84,15 @@ sampleCategoriesResponse1 =
       }
     ]
 
-sampleCategoriesResponse2 =
-  body:
-    results: [
-      {
-        id: "category_internal_id2"
-        version: 1
-        name:
-          de: "obst-gemuse2"
-        ancestors: []
-        externalId: "category_external_id2"
-      }
-    ]
-
+sampleReferenceCats =
+  [
+    {
+      id: "category_external_id1"
+    },
+    {
+      id: "category_external_id2"
+    }
+  ]
 
 describe 'ProductImport', ->
 
@@ -171,13 +167,13 @@ describe 'ProductImport', ->
 
     it 'should resolve list of category references and cache the result', (done) ->
       @import._resetCache()
-      spyOn(@import.client.categories, "fetch").andCallFake => Promise.resolve(sampleCategoriesResponse1)
+      spyOn(@import.client.categories, "fetch").andCallFake => Promise.resolve(sampleCategoriesResponse)
       categoryRef = { id: 'category_external_id1' }
       @import._resolveReference(@import.client.categories, 'categories', categoryRef, "externalId=\"#{categoryRef.id}\"")
       .then (result) =>
         expect(@import.client.categories.fetch).toHaveBeenCalled()
-        expect(result).toEqual sampleCategoriesResponse1.body.results[0].id
-        expect(@import._cache.categories["category_external_id1"]).toEqual sampleCategoriesResponse1.body.results[0].id
+        expect(result).toEqual sampleCategoriesResponse.body.results[0].id
+        expect(@import._cache.categories["category_external_id1"]).toEqual sampleCategoriesResponse.body.results[0].id
         done()
       .catch done
 
@@ -203,4 +199,32 @@ describe 'ProductImport', ->
         expect(err).toBe 'Missing taxCategory'
         done()
 
+  describe '::_resolveProductCategories', ->
+
+    it 'should resolve a list of categories', (done) ->
+      spyOn(@import, "_resolveReference").andCallFake => Promise.resolve("foo")
+      @import._resolveProductCategories(sampleReferenceCats)
+      .then (result) =>
+        expect(result.length).toBe 2
+        expect(@import._resolveReference.calls.length).toBe 2
+        expect(@import._resolveReference.calls[0].args[2]).toBe sampleReferenceCats[0]
+        expect(@import._resolveReference.calls[1].args[2]).toBe sampleReferenceCats[1]
+        expect(@import._resolveReference.calls[1].args[3]).toBe "externalId=\"category_external_id2\""
+        expect(@import._resolveReference).toHaveBeenCalledWith(jasmine.any(Object), "categories", jasmine.any(Object), jasmine.any(String))
+        done()
+      .catch done
+
+    it 'should throw error on undefined list of product category references', (done) ->
+      @import._resolveProductCategories(undefined)
+      .then done
+      .catch (err) ->
+        expect(err).toBe "Product categories are undefined."
+        done()
+
+    it 'should throw error on empty list of product category references', (done) ->
+      @import._resolveProductCategories([])
+      .then done
+      .catch (err) ->
+        expect(err).toBe "Product categories are undefined."
+        done()
 
