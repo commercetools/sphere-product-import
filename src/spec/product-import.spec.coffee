@@ -53,7 +53,7 @@ sampleTaxCategoryResponse =
   body:
     results: [
       {
-        "id": "tax category internal id",
+        "id": "tax_category_internal_id",
         "version": 5,
         "name": "defaultTax_AT",
         "description": "Steuer Österreich",
@@ -71,6 +71,33 @@ sampleTaxCategoryResponse =
       }
     ]
 
+sampleCategoriesResponse1 =
+  body:
+    results: [
+      {
+        id: "category_internal_id1"
+        version: 2
+        name:
+          de: "obst-gemuse1"
+        ancestors: []
+        externalId: "category_external_id1"
+      }
+    ]
+
+sampleCategoriesResponse2 =
+  body:
+    results: [
+      {
+        id: "category_internal_id2"
+        version: 1
+        name:
+          de: "obst-gemuse2"
+        ancestors: []
+        externalId: "category_external_id2"
+      }
+    ]
+
+
 describe 'ProductImport', ->
 
   beforeEach ->
@@ -84,12 +111,12 @@ describe 'ProductImport', ->
     expect(@import.sync.constructor.name).toBe 'ProductSync'
 
 
-#  describe '::performStream', ->
-#
-#    it 'should execute callback after finished processing batches', (done) ->
-#      spyOn(@import, '_processBatches').andCallFake -> Promise.resolve()
-#      @import.performStream [1,2,3], done
-#      .catch (err) -> done(_.prettify err)
+  #  describe '::performStream', ->
+  #
+  #    it 'should execute callback after finished processing batches', (done) ->
+  #      spyOn(@import, '_processBatches').andCallFake -> Promise.resolve()
+  #      @import.performStream [1,2,3], done
+  #      .catch (err) -> done(_.prettify err)
 
 
   describe '::_extractUniqueSkus', ->
@@ -122,22 +149,58 @@ describe 'ProductImport', ->
       spyOn(@import.client.productTypes, "fetch").andCallFake => Promise.resolve(sampleProductTypeResponse)
       productTypeRef = { id: 'AGS'}
       @import._resolveReference(@import.client.productTypes, 'productType', productTypeRef, "name=\"#{productTypeRef.id}\"")
-        .then (result) =>
-          expect(@import.client.productTypes.fetch).toHaveBeenCalled
-          expect(result).toEqual sampleProductTypeResponse.body.results[0]
-          expect(@import._cache.productType["AGS"]).toEqual sampleProductTypeResponse.body.results[0]
-          done()
-        .catch done
+      .then (result) =>
+        expect(@import.client.productTypes.fetch).toHaveBeenCalled()
+        expect(result).toEqual sampleProductTypeResponse.body.results[0].id
+        expect(@import._cache.productType["AGS"]).toEqual sampleProductTypeResponse.body.results[0].id
+        done()
+      .catch done
 
     it 'should resolve tax category reference and cache the result', (done) ->
       @import._resetCache()
       spyOn(@import.client.taxCategories, "fetch").andCallFake => Promise.resolve(sampleTaxCategoryResponse)
       taxCategoryRef = { id: 'defaultTax_AT' }
       @import._resolveReference(@import.client.taxCategories, 'taxCategory', taxCategoryRef, "name=\"#{taxCategoryRef.id}\"")
-        .then (result) =>
-          expect(@import.client.taxCategories.fetch).toHaveBeenCalled
-          expect(result).toEqual sampleTaxCategoryResponse.body.results[0]
-          expect(@import._cache.taxCategory["defaultTax_AT"]).toEqual sampleTaxCategoryResponse.body.results[0]
-          done()
-        .catch done
+      .then (result) =>
+        expect(@import.client.taxCategories.fetch).toHaveBeenCalled()
+        expect(result).toEqual sampleTaxCategoryResponse.body.results[0].id
+        expect(@import._cache.taxCategory["defaultTax_AT"]).toEqual sampleTaxCategoryResponse.body.results[0].id
+        done()
+      .catch done
+
+
+    it 'should resolve list of category references and cache the result', (done) ->
+      @import._resetCache()
+      spyOn(@import.client.categories, "fetch").andCallFake => Promise.resolve(sampleCategoriesResponse1)
+      categoryRef = { id: 'category_external_id1' }
+      @import._resolveReference(@import.client.categories, 'categories', categoryRef, "externalId=\"#{categoryRef.id}\"")
+      .then (result) =>
+        expect(@import.client.categories.fetch).toHaveBeenCalled()
+        expect(result).toEqual sampleCategoriesResponse1.body.results[0].id
+        expect(@import._cache.categories["category_external_id1"]).toEqual sampleCategoriesResponse1.body.results[0].id
+        done()
+      .catch done
+
+
+    it 'should resolve reference from cache', (done) ->
+      @import._resetCache()
+      @import._cache.taxCategory['defaultTax_AT'] = "tax_category_internal_id"
+      spyOn(@import.client.taxCategories, "fetch").andCallFake => Promise.resolve(sampleTaxCategoryResponse)
+      taxCategoryRef = { id: 'defaultTax_AT' }
+      @import._resolveReference(@import.client.taxCategories, 'taxCategory', taxCategoryRef, "name=\"#{taxCategoryRef.id}\"")
+      .then (result) =>
+        expect(@import.client.taxCategories.fetch).not.toHaveBeenCalled()
+        expect(result).toEqual sampleTaxCategoryResponse.body.results[0].id
+        expect(result.isRejected).toBeUndefined()
+        done()
+      .catch done
+
+
+    it 'should throw error on undefined reference', (done) ->
+      @import._resolveReference(@import.client.taxCategories, 'taxCategory', undefined , "name=\"#{taxCategoryRef?.id}\"")
+      .then done
+      .catch (err) ->
+        expect(err).toBe 'Missing taxCategory'
+        done()
+
 
