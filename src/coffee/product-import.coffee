@@ -94,17 +94,23 @@ class ProductImport
 
   _prepareNewProduct: (product) ->
     Promise.all [
-      @_resolveReference(@client.productTypes, 'productType', product.productType?, "name=\"#{productTypeRef.id}\"")
+      @_resolveReference(@client.productTypes, 'productType', product.productType?, "name=\"#{product.productType?.id}\"")
       @_resolveProductCategories(product.categories?)
-      @_resolveReference(@client.taxCategories, 'taxCategory', product.taxCategory?, "name=\"#{taxCategoryRef.id}\"")
+      @_resolveReference(@client.taxCategories, 'taxCategory', product.taxCategory?, "name=\"#{product.taxCategory?.id}\"")
     ]
     .spread(prodType, prodCats, taxCat) =>
       if not prodType.isRejected
-        product.productType = prodType.value
+        product.productType =
+          id: prodType.value
+          typeId: 'product-type'
       if not prodCats.isRejected
-        product.categories = prodCats.value
+        product.categories = _.map prodCats.value, (catId) =>
+          id: catId
+          typeId: 'category'
       if not taxCat.isRejected
-        product.taxCategory = taxCat.value
+        product.taxCategory =
+          id: taxCat.value
+          typeId: 'tax-category'
 
   _resolveProductCategories: (cats) ->
     new Promise (resolve, reject) =>
@@ -124,8 +130,8 @@ class ProductImport
       else
         service.where(predicate).fetch()
         .then (result) =>
-          # Todo: Handle multiple response, currently taking first response.
-          @_cache[refKey][ref.id] = result.body.results[0]
-          resolve(result.body.results[0])
+# Todo: Handle multiple response, currently taking first response.
+          @_cache[refKey][ref.id] = result.body.results[0].id
+          resolve(result.body.results[0].id)
 
 module.exports = ProductImport
