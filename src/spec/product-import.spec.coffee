@@ -27,6 +27,58 @@ sampleProducts = [
   }
 ]
 
+sampleNewProduct = {
+
+  productType: { id: "product_type_name" }
+
+  taxCategory: { id: "tax_category_name" }
+
+  categories: [
+    { id: "category_external_id1" },
+    { id: "category_external_id2" }
+  ]
+}
+
+sampleNewPreparedProduct = {
+  productType:
+    id: "product_type_internal_id"
+    typeId: 'product-type'
+
+  taxCategory:
+    id: "tax_category_internal_id"
+    typeId: "tax-category"
+
+  categories: [
+    {
+      id: "category_internal_id1"
+      typeId: 'category'
+    },
+    {
+      id: "category_internal_id1"
+      typeId: 'category'
+    }
+  ]
+
+}
+
+sampleNewProductWithoutProductType = {
+  taxCategory:
+    id: "tax_category_name"
+
+  categories: [
+    id: "category_external_id1"
+    id: "category_external_id2"
+  ]
+}
+
+sampleNewProductWithoutCategories = {
+  productType:
+    id: "product_type_name"
+
+  taxCategory:
+    id: "tax_category_name"
+}
+
 sampleProductProjectionResponse = [
   {
     masterVariant : { sku: 'e'},
@@ -214,17 +266,77 @@ describe 'ProductImport', ->
         done()
       .catch done
 
-    it 'should throw error on undefined list of product category references', (done) ->
+    it 'should resolve with empty array on undefined list of product category references', (done) ->
       @import._resolveProductCategories(undefined)
-      .then done
-      .catch (err) ->
-        expect(err).toBe "Product categories are undefined."
+      .then (result) =>
+        expect(result).toBe undefined
         done()
+      .catch done
 
-    it 'should throw error on empty list of product category references', (done) ->
+    it 'should resolve with empty array on empty list of product category references', (done) ->
       @import._resolveProductCategories([])
-      .then done
-      .catch (err) ->
-        expect(err).toBe "Product categories are undefined."
+      .then (result) =>
+        expect(result).toBe undefined
         done()
+      .catch done
 
+  describe '::_prepareNewProduct', ->
+
+    beforeEach ->
+      spyOn(@import, "_resolveReference").andCallFake (service, refKey, ref, predicate) =>
+        switch refKey
+          when "productType"
+            if ref then Promise.resolve(sampleProductTypeResponse.body.results[0].id) else Promise.resolve()
+
+          when "taxCategory"
+            if ref then Promise.resolve(sampleTaxCategoryResponse.body.results[0].id) else Promise.resolve()
+
+          when "categories"
+            if ref then Promise.resolve("category_internal_id1") else Promise.resolve([])
+
+    it 'should resolve all references in the new product', (done) ->
+
+      @import._prepareNewProduct(_.deepClone(sampleNewProduct))
+      .then (result) =>
+        expect(@import._resolveReference.calls.length).toBe 4
+        expect(result).toEqual sampleNewPreparedProduct
+        done()
+      .catch done
+
+    it 'should resolve all references in the new product without product type', (done) ->
+      newProductWithoutProductType = _.deepClone(sampleNewProduct)
+      delete newProductWithoutProductType.productType
+      @import._prepareNewProduct(newProductWithoutProductType)
+      .then (result) =>
+        preparedWithoutProductType = _.deepClone(sampleNewPreparedProduct)
+        delete preparedWithoutProductType.productType
+        expect(result).toEqual preparedWithoutProductType
+        expect(@import._resolveReference.calls.length).toBe 4
+        expect(@import._resolveReference.calls[0].args[2]).toBe undefined
+        done()
+      .catch done
+
+    it 'should resolve all references in the new product without product categories', (done) ->
+      newProductWithoutProductCategories = _.deepClone(sampleNewProduct)
+      delete newProductWithoutProductCategories.categories
+      @import._prepareNewProduct(newProductWithoutProductCategories)
+      .then (result) =>
+        preparedWithoutProductCategories = _.deepClone(sampleNewPreparedProduct)
+        delete preparedWithoutProductCategories.categories
+        expect(result).toEqual preparedWithoutProductCategories
+        expect(@import._resolveReference.calls.length).toBe 2
+        done()
+      .catch done
+
+    it 'should resolve all references in the new product without tax category', (done) ->
+      newProductWithoutTaxCategory = _.deepClone(sampleNewProduct)
+      delete newProductWithoutTaxCategory.taxCategory
+      @import._prepareNewProduct(newProductWithoutTaxCategory)
+      .then (result) =>
+        preparedWithoutTaxCategory = _.deepClone(sampleNewPreparedProduct)
+        delete preparedWithoutTaxCategory.taxCategory
+        expect(result).toEqual preparedWithoutTaxCategory
+        expect(@import._resolveReference.calls.length).toBe 4
+        expect(@import._resolveReference.calls[3].args[2]).toBe undefined
+        done()
+      .catch done
