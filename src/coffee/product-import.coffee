@@ -107,15 +107,16 @@ class ProductImport
         product.taxCategory =
           id: taxCatId
           typeId: 'tax-category'
-      product.categories = _.map prodCatsIds, (catId) =>
-        id: catId
-        typeId: 'category'
+      if prodCatsIds
+        product.categories = _.map prodCatsIds, (catId) =>
+          id: catId
+          typeId: 'category'
       Promise.resolve product
 
   _resolveProductCategories: (cats) ->
     new Promise (resolve) =>
       if _.isEmpty(cats)
-        resolve([])
+        resolve()
       else
         Promise.all cats.map (cat) =>
           @_resolveReference(@client.categories, 'categories', cat, "externalId=\"#{cat.id}\"")
