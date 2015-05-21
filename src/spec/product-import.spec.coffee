@@ -159,12 +159,12 @@ describe 'ProductImport', ->
     expect(@import.sync.constructor.name).toBe 'ProductSync'
 
 
-  #  describe '::performStream', ->
-  #
-  #    it 'should execute callback after finished processing batches', (done) ->
-  #      spyOn(@import, '_processBatches').andCallFake -> Promise.resolve()
-  #      @import.performStream [1,2,3], done
-  #      .catch (err) -> done(_.prettify err)
+  describe '::performStream', ->
+
+    it 'should execute callback after finished processing batches', (done) ->
+      spyOn(@import, '_processBatches').andCallFake -> Promise.resolve()
+      @import.performStream [1,2,3], done
+      .catch (err) -> done(_.prettify err)
 
 
   describe '::_extractUniqueSkus', ->
