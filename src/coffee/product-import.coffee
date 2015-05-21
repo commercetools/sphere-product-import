@@ -94,37 +94,37 @@ class ProductImport
 
   _prepareNewProduct: (product) ->
     Promise.all [
-      @_resolveReference(@client.productTypes, 'productType', product.productType?, "name=\"#{product.productType?.id}\"")
-      @_resolveProductCategories(product.categories?)
-      @_resolveReference(@client.taxCategories, 'taxCategory', product.taxCategory?, "name=\"#{product.taxCategory?.id}\"")
+      @_resolveReference(@client.productTypes, 'productType', product.productType, "name=\"#{product.productType?.id}\"")
+      @_resolveProductCategories(product.categories)
+      @_resolveReference(@client.taxCategories, 'taxCategory', product.taxCategory, "name=\"#{product.taxCategory?.id}\"")
     ]
-    .spread(prodType, prodCats, taxCat) =>
-      if not prodType.isRejected
+    .spread (prodTypeId, prodCatsIds, taxCatId) =>
+      if prodTypeId
         product.productType =
-          id: prodType.value
+          id: prodTypeId
           typeId: 'product-type'
-      if not prodCats.isRejected
-        product.categories = _.map prodCats.value, (catId) =>
-          id: catId
-          typeId: 'category'
-      if not taxCat.isRejected
+      if taxCatId
         product.taxCategory =
-          id: taxCat.value
-          typeId: 'tax-category'
+            id: taxCatId
+        typeId: 'tax-category'
+      product.categories = _.map prodCatsIds, (catId) =>
+        id: catId
+        typeId: 'category'
+      Promise.resolve product
 
   _resolveProductCategories: (cats) ->
-    new Promise (resolve, reject) =>
+    new Promise (resolve) =>
       if _.isEmpty(cats)
-        reject("Product categories are undefined.")
+        resolve([])
       else
         Promise.all cats.map (cat) =>
           @_resolveReference(@client.categories, 'categories', cat, "externalId=\"#{cat.id}\"")
-        .then (result) -> resolve(result)
+        .then (result) -> resolve(result.filter(c => c))
 
   _resolveReference: (service, refKey, ref, predicate) ->
-    new Promise (resolve, reject) =>
+    new Promise (resolve) =>
       if not ref
-        reject("Missing #{refKey}")
+        resolve()
       else if @_cache[refKey][ref.id]
         resolve(@_cache[refKey][ref.id])
       else
