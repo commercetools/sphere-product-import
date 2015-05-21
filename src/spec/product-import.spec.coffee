@@ -283,7 +283,7 @@ describe 'ProductImport', ->
   describe '::_prepareNewProduct', ->
 
     beforeEach ->
-      spyOn(@import, "_resolveReference").andCallFake (service, refKey, ref, predicate) =>
+      spyOn(@import, "_resolveReference").andCallFake (service, refKey, ref) =>
         switch refKey
           when "productType"
             if ref then Promise.resolve(sampleProductTypeResponse.body.results[0].id) else Promise.resolve()
