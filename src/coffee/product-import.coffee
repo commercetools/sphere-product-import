@@ -105,8 +105,8 @@ class ProductImport
           typeId: 'product-type'
       if taxCatId
         product.taxCategory =
-            id: taxCatId
-        typeId: 'tax-category'
+          id: taxCatId
+          typeId: 'tax-category'
       product.categories = _.map prodCatsIds, (catId) =>
         id: catId
         typeId: 'category'
@@ -119,7 +119,7 @@ class ProductImport
       else
         Promise.all cats.map (cat) =>
           @_resolveReference(@client.categories, 'categories', cat, "externalId=\"#{cat.id}\"")
-        .then (result) -> resolve(result.filter(c => c))
+        .then (result) -> resolve(result.filter (c) => c)
 
   _resolveReference: (service, refKey, ref, predicate) ->
     new Promise (resolve) =>
