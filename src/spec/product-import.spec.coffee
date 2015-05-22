@@ -3,7 +3,6 @@ _.mixin require('underscore-mixins')
 {ProductImport} = require '../coffee'
 Config = require('../../config')
 Promise = require 'bluebird'
-fs = require 'fs'
 
 sampleProducts = [
   {
