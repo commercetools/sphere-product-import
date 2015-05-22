@@ -10,6 +10,7 @@ class ProductImport
     @sync = new ProductSync
     @client = new SphereClient options
     @_resetCache()
+    @_resetSummary()
 
   _resetCache: ->
     @_cache =
