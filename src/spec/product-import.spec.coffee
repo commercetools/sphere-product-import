@@ -97,24 +97,6 @@ sampleNewPreparedProduct = {
 
 }
 
-sampleNewProductWithoutProductType = {
-  taxCategory:
-    id: "tax_category_name"
-
-  categories: [
-    id: "category_external_id1"
-    id: "category_external_id2"
-  ]
-}
-
-sampleNewProductWithoutCategories = {
-  productType:
-    id: "product_type_name"
-
-  taxCategory:
-    id: "tax_category_name"
-}
-
 sampleProductProjectionResponse = [
   {
     masterVariant : { sku: 'e'},
@@ -437,3 +419,25 @@ describe 'ProductImport', ->
         done()
       .catch done
 
+
+  describe '::_processBatches', ->
+
+    it 'should process list of products in batches', (done) ->
+      existingProducts = _.deepClone(sampleProducts)
+      delete existingProducts[1]
+      delete existingProducts[2]
+
+      spyOn(@import, "_extractUniqueSkus").andCallThrough()
+      spyOn(@import, "_prepareProductFetchBySkuQueryPredicate").andCallThrough()
+      spyOn(@import.client.productProjections,"fetch").andCallFake => Promise.resolve({body: {results: existingProducts}})
+      spyOn(@import, "_createOrUpdate").andCallFake -> Promise.all([Promise.resolve({statusCode: 201}), Promise.resolve({statusCode: 200})])
+      @import._processBatches(sampleProducts)
+      .then =>
+        expect(@import._extractUniqueSkus).toHaveBeenCalled()
+        expect(@import._prepareProductFetchBySkuQueryPredicate).toHaveBeenCalled()
+        expect(@import._summary).toEqual
+          emptySKU: 0
+          created: 1
+          updated: 1
+        done()
+      .catch done
