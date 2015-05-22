@@ -380,7 +380,7 @@ describe 'ProductImport', ->
 
   describe '::_createOrUpdate', ->
 
-    it 'should create a new product', (done) ->
+    it 'should create a new product and update an existing product', (done) ->
       newProduct = _.deepClone(sampleNewPreparedProduct)
       newProduct.name = { en: "My new product" }
       newProduct.masterVariant = sampleMasterVariant
@@ -388,38 +388,52 @@ describe 'ProductImport', ->
 
       existingProduct1 = _.deepClone(newProduct)
       existingProduct1.id = "existing_id1"
-      existingProduct1.masterVariant.sku = "9876"
-      existingProduct1.variants[0].sku = "9876_1"
-      existingProduct1.variants[1].sku = "9876_2"
+      existingProduct1.masterVariant.sku = "9876_1"
+      existingProduct1.variants[0].sku = "9876_1_1"
+      existingProduct1.variants[1].sku = "9876_1_2"
 
       existingProduct2 = _.deepClone(newProduct)
       existingProduct2.id = "existing_id2"
-      existingProduct2.masterVariant.sku = "9876_1"
-      existingProduct2.variants[0].sku = "9876_1_1"
-      existingProduct2.variants[1].sku = "9876_1_2"
+      existingProduct2.masterVariant.sku = "9876_2"
+      existingProduct2.variants[0].sku = "9876_2_1"
+      existingProduct2.variants[1].sku = "9876_2_2"
       existingProduct2.version = 1
 
       updateProduct = _.deepClone(existingProduct2)
       sampleVariant3 = _.deepClone(sampleVariant2)
-      sampleVariant3.sku = "9876_1_3"
+      sampleVariant3.sku = "9876_2_3"
       sampleVariant3.id = "9"
-      #updateProduct.variants = []
       updateProduct.variants[2] = sampleVariant3
 
-
-
       existingProducts = [existingProduct1,existingProduct2]
+
+      expectedUpdateActions = {
+        actions: [
+          {
+            action: "addVariant",
+            sku: "9876_2_3",
+            attributes: [
+              {
+                name: "attribute1",
+                value: "attribute1_value3"
+              },
+              {
+                images: []
+              }
+            ]
+          }
+        ],
+        version: 1
+      }
 
       spyOn(@import, "_prepareNewProduct").andCallFake (prepareProduct) => Promise.resolve(prepareProduct)
       spyOn(@import.client._rest, 'POST').andCallFake (endpoint, payload, callback) ->
         callback(null, {statusCode: 200}, {})
-      console.log(existingProducts[1].masterVariant)
-      console.log(updateProduct.masterVariant)
       @import._createOrUpdate([newProduct,updateProduct],existingProducts)
       .then =>
         expect(@import._prepareNewProduct).toHaveBeenCalled()
         expect(@import.client._rest.POST.calls[0].args[1]._settledValue).toEqual newProduct
-        console.log(@import.client._rest.POST.calls[1].args[1])
+        expect(@import.client._rest.POST.calls[1].args[1]).toEqual expectedUpdateActions
         done()
       .catch done
 
