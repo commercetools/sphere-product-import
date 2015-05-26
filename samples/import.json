@@ -1,121 +1,73 @@
 {
   "products": [
     {
+      "name": {
+        "en":"Product_Sync_Test_Product_1"
+      },
+      "slug": {
+        "en":"product-sync-test-product-1"
+      },
+      "productType" : {
+        "id": "AGS"
+      },
       "masterVariant": {
-        "id": 1,
         "sku": "B3-717597",
-        "attributes": [
-          {
-            "name": "masterId",
-            "value": "B3-717597"
-          },
-          {
-            "name": "itemERPNumber",
-            "value": 717597
-          }
-        ]
+        "attributes": []
       },
       "variants": [
         {
-          "id": 2,
           "sku": "B3-717487",
-          "attributes": [
-            {
-              "name": "masterId",
-              "value": "B3-717597"
-            },
-            {
-              "name": "itemERPNumber",
-              "value": 717487
-            }
-          ]
+          "attributes": []
         },
         {
-          "id": 3,
           "sku": "B3-717489",
-          "attributes": [
-            {
-              "name": "masterId",
-              "value": "B3-717597"
-            },
-            {
-              "name": "itemERPNumber",
-              "value": 717489
-            }
-          ]
+          "attributes": []
         }
       ],
       "hasStagedChanges": true,
       "published": false,
       "taxCategory": {
-        "typeId": "tax-category",
-        "id": "059d2066-7cde-4007-ad3e-c012ff9f139d"
-      }
+        "id": "defaultTax_AT"
+      },
+      "categories": [
+        {
+          "typeId": "category",
+          "id": "obst_gemuse"
+        }
+      ]
     },
     {
+      "name": {
+        "en":"Product_Sync_Test_Product_2"
+      },
+      "slug": {
+        "en":"product-sync-test-product-2"
+      },
+      "productType" : {
+        "id": "AGS"
+      },
       "masterVariant": {
-        "id": 1,
         "sku": "C42-345678",
-        "attributes": [
-          {
-            "name": "masterId",
-            "value": "C42-345678"
-          },
-          {
-            "name": "itemERPNumber",
-            "value": 345678
-          }
-        ]
+        "attributes": []
       },
       "variants": [
         {
-          "id": 2,
           "sku": "C42-345987",
-          "attributes": [
-            {
-              "name": "masterId",
-              "value": "C42-345678"
-            },
-            {
-              "name": "itemERPNumber",
-              "value": 717487
-            }
-          ]
+          "attributes": []
         },
         {
-          "id": 3,
           "sku": "C42-345988",
-          "attributes": [
-            {
-              "name": "masterId",
-              "value": "C42-345678"
-            },
-            {
-              "name": "itemERPNumber",
-              "value": 45988
-            }
-          ]
+          "attributes": []
         },
         {
-          "id": 4,
-          "sku": "C42-345988",
-          "attributes": [
-            {
-              "name": "masterId",
-              "value": "C42-345678"
-            },
-            {
-              "name": "itemERPNumber",
-              "value": 45988
-            }
-          ]
+          "sku": "C42-345989",
+          "attributes": []
         }
       ],
       "hasStagedChanges": true,
       "published": false,
       "taxCategory": {
-        "typeId": "tax-category",
-        "id": "059d2066-7cde-4007-ad3e-c012ff9f139d"
+        "id": "defaultTax_AT"
       }
     }
   ]
