@@ -99,7 +99,7 @@ module.exports = (grunt) ->
 
   # register tasks
   grunt.registerTask "build", ["clean", "coffeelint", "coffee", "concat"]
-  grunt.registerTask "test", ["shell:jasmine"]
+  grunt.registerTask "test", ["coffeelint", "shell:jasmine"]
   grunt.registerTask "coverage", ["build", "shell:coverage"]
   grunt.registerTask 'release', 'Release a new version, push it and publish it', (target) ->
     target = 'patch' unless target
