@@ -60,9 +60,13 @@ class ProductImport
   _extractUniqueSkus: (products) ->
     skus = []
     for product in products
-      skus.push(product.masterVariant.sku) if product.masterVariant?.sku
+      if product.masterVariant?.sku
+        skus.push(product.masterVariant.sku)
+      else @_summary.emptySKU++
       for variant in product.variants
-        skus.push(variant.sku) if variant.sku
+        if variant.sku
+          skus.push(variant.sku)
+        else @_summary.emptySKU++
     return _.uniq(skus,false)
 
 
