@@ -1,80 +1,76 @@
 _ = require 'underscore'
-_.mixin require('underscore-mixins')
+_.mixin require 'underscore-mixins'
 {ProductImport} = require '../coffee'
-Config = require('../../config')
+Config = require '../../config'
 Promise = require 'bluebird'
 
 sampleProducts = [
-  {
-    masterVariant: { sku: 'a' }
+    masterVariant:
+      sku: 'a'
     variants: [
-      { id: 2, sku: 'b' },
-      { id: 3 },
-      { id: 4, sku: 'c' },
+      id: 2
+      sku: 'b'
+    ,
+      id: 3
+    ,
+      id: 4
+      sku: 'c'
     ]
-  },
-  {
+  ,
     masterVariant: {}
     variants: [
-      { id: 2, sku: 'b' },
-      { id: 3, sku: 'd' },
+      id: 2
+      sku: 'b'
+    ,
+      id: 3
+      sku: 'd'
     ]
-  },
-  {
-    masterVariant: { sku: 'e' }
+  ,
+    masterVariant:
+      sku: 'e'
     variants: []
-  }
 ]
 
-sampleNewProduct = {
-
-  productType: { id: 'product_type_name' }
-
-  taxCategory: { id: 'tax_category_name' }
-
+sampleNewProduct =
+  productType:
+    id: 'product_type_name'
+  taxCategory:
+    id: 'tax_category_name'
   categories: [
-    { id: 'category_external_id1' },
-    { id: 'category_external_id2' }
+    id: 'category_external_id1'
+  ,
+    id: 'category_external_id2'
   ]
-}
 
-sampleMasterVariant = {
-  sku: '12345',
-  id: 1,
+sampleMasterVariant =
+  sku: '12345'
+  id: 1
   attributes: [
-    {
-      name: 'attribute1',
-      value: 'attribute1_value1'
-    }
-  ],
+     name: 'attribute1'
+     value: 'attribute1_value1'
+  ]
   images: []
-}
 
-sampleVariant1 = {
-  id: '2',
-  sku: '12345_2',
+sampleVariant1 =
+  id: '2'
+  sku: '12345_2'
   attributes: [
-    {
-      name: 'attribute1',
-      value: 'attribute1_value2'
-    },
-    images: []
+    name: 'attribute1'
+    value: 'attribute1_value2'
   ]
-}
+  images: []
 
-sampleVariant2 = {
-  id: '7',
-  sku: '12345_7',
+
+sampleVariant2 =
+  id: '7'
+  sku: '12345_7'
   attributes: [
-    {
-      name: 'attribute1',
-      value: 'attribute1_value3'
-    },
-    images: []
+    name: 'attribute1'
+    value: 'attribute1_value3'
   ]
-}
+  images: []
 
-sampleNewPreparedProduct = {
+sampleNewPreparedProduct =
   productType:
     id: 'product_type_internal_id'
     typeId: 'product-type'
@@ -84,83 +80,66 @@ sampleNewPreparedProduct = {
     typeId: 'tax-category'
 
   categories: [
-    {
-      id: 'category_internal_id1'
-      typeId: 'category'
-    },
-    {
-      id: 'category_internal_id1'
-      typeId: 'category'
-    }
+    id: 'category_internal_id1'
+    typeId: 'category'
+  ,
+    id: 'category_internal_id1'
+    typeId: 'category'
   ]
 
-}
-
 sampleProductProjectionResponse = [
-  {
-    masterVariant : { sku: 'e'},
-    variants: []
-  }
+  masterVariant :
+    sku: 'e'
+  variants: []
 ]
 
 sampleProductTypeResponse =
   body:
     results: [
-      {
-        id: 'product_type_internal_id',
-        version: 1,
-        name: 'AGS',
-        description: 'Gütesiegel',
-        classifier: 'Complex',
-        attributes: [ ],
-        createdAt: '2015-04-15T15:11:07.175Z',
-        lastModifiedAt: '2015-04-15T15:11:07.175Z'
-      }
+      id: 'product_type_internal_id'
+      version: 1
+      name: 'AGS'
+      description: 'Gütesiegel'
+      classifier: 'Complex'
+      attributes: [ ]
+      createdAt: '2015-04-15T15:11:07.175Z'
+      lastModifiedAt: '2015-04-15T15:11:07.175Z'
     ]
 
 sampleTaxCategoryResponse =
   body:
     results: [
-      {
-        id: 'tax_category_internal_id',
-        version: 5,
-        name: 'defaultTax_AT',
-        description: 'Steuer Österreich',
-        rates: [
-          {
-            name: '20% MwSt',
-            amount: 0.2,
-            includedInPrice: true,
-            country: 'AT',
-            id: '2CV8kXRE'
-          }
-        ],
-        createdAt: '2015-03-03T10:12:22.136Z',
-        lastModifiedAt: '2015-04-16T07:36:36.123Z'
-      }
+      id: 'tax_category_internal_id'
+      version: 5
+      name: 'defaultTax_AT'
+      description: 'Steuer Österreich'
+      rates: [
+        name: '20% MwSt'
+        amount: 0.2
+        includedInPrice: true
+        country: 'AT'
+        id: '2CV8kXRE'
+      ]
+      createdAt: '2015-03-03T10:12:22.136Z'
+      lastModifiedAt: '2015-04-16T07:36:36.123Z'
     ]
 
 sampleCategoriesResponse =
   body:
     results: [
-      {
-        id: 'category_internal_id1'
-        version: 2
-        name:
-          de: 'obst-gemuse1'
-        ancestors: []
-        externalId: 'category_external_id1'
-      }
+      id: 'category_internal_id1'
+      version: 2
+      name:
+        de: 'obst-gemuse1'
+      ancestors: []
+      externalId: 'category_external_id1'
     ]
 
 sampleReferenceCats =
   [
-    {
-      id: 'category_external_id1'
-    },
-    {
-      id: 'category_external_id2'
-    }
+    id: 'category_external_id1'
+  ,
+    id: 'category_external_id2'
   ]
 
 describe 'ProductImport', ->
@@ -388,24 +367,16 @@ describe 'ProductImport', ->
 
       existingProducts = [existingProduct1,existingProduct2]
 
-      expectedUpdateActions = {
+      expectedUpdateActions =
         actions: [
-          {
-            action: 'addVariant',
-            sku: '9876_2_3',
-            attributes: [
-              {
-                name: 'attribute1',
-                value: 'attribute1_value3'
-              },
-              {
-                images: []
-              }
-            ]
-          }
+          action: 'addVariant'
+          sku: '9876_2_3'
+          attributes: [
+            name: 'attribute1'
+            value: 'attribute1_value3'
+          ]
         ],
         version: 1
-      }
 
       spyOn(@import, "_prepareNewProduct").andCallFake (prepareProduct) => Promise.resolve(prepareProduct)
       spyOn(@import.client._rest, 'POST').andCallFake (endpoint, payload, callback) ->
