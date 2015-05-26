@@ -88,7 +88,7 @@ sampleNewPreparedProduct =
   ]
 
 sampleProductProjectionResponse = [
-  masterVariant :
+  masterVariant:
     sku: 'e'
   variants: []
 ]
@@ -215,7 +215,7 @@ describe 'ProductImport', ->
 
     it 'should resolve list of category references and cache the result', (done) ->
       @import._resetCache()
-      spyOn(@import.client.categories, "fetch").andCallFake => Promise.resolve(sampleCategoriesResponse)
+      spyOn(@import.client.categories, "fetch").andCallFake -> Promise.resolve(sampleCategoriesResponse)
       categoryRef = { id: 'category_external_id1' }
       @import._resolveReference(@import.client.categories, 'categories', categoryRef, "externalId=\"#{categoryRef.id}\"")
       .then (result) =>
@@ -229,7 +229,7 @@ describe 'ProductImport', ->
     it 'should resolve reference from cache', (done) ->
       @import._resetCache()
       @import._cache.taxCategory['defaultTax_AT'] = "tax_category_internal_id"
-      spyOn(@import.client.taxCategories, "fetch").andCallFake => Promise.resolve(sampleTaxCategoryResponse)
+      spyOn(@import.client.taxCategories, "fetch").andCallFake -> Promise.resolve(sampleTaxCategoryResponse)
       taxCategoryRef = { id: 'defaultTax_AT' }
       @import._resolveReference(@import.client.taxCategories, 'taxCategory', taxCategoryRef, "name=\"#{taxCategoryRef.id}\"")
       .then (result) =>
@@ -250,7 +250,7 @@ describe 'ProductImport', ->
   describe '::_resolveProductCategories', ->
 
     it 'should resolve a list of categories', (done) ->
-      spyOn(@import, "_resolveReference").andCallFake => Promise.resolve("foo")
+      spyOn(@import, "_resolveReference").andCallFake -> Promise.resolve("foo")
       @import._resolveProductCategories(sampleReferenceCats)
       .then (result) =>
         expect(result.length).toBe 2
@@ -264,14 +264,14 @@ describe 'ProductImport', ->
 
     it 'should resolve with empty array on undefined list of product category references', (done) ->
       @import._resolveProductCategories(undefined)
-      .then (result) =>
+      .then (result) ->
         expect(result).toBe undefined
         done()
       .catch done
 
     it 'should resolve with empty array on empty list of product category references', (done) ->
       @import._resolveProductCategories([])
-      .then (result) =>
+      .then (result) ->
         expect(result).toBe undefined
         done()
       .catch done
@@ -279,7 +279,7 @@ describe 'ProductImport', ->
   describe '::_prepareNewProduct', ->
 
     beforeEach ->
-      spyOn(@import, "_resolveReference").andCallFake (service, refKey, ref) =>
+      spyOn(@import, "_resolveReference").andCallFake (service, refKey, ref) ->
         switch refKey
           when "productType"
             if ref then Promise.resolve(sampleProductTypeResponse.body.results[0].id) else Promise.resolve()
@@ -378,7 +378,7 @@ describe 'ProductImport', ->
         ],
         version: 1
 
-      spyOn(@import, "_prepareNewProduct").andCallFake (prepareProduct) => Promise.resolve(prepareProduct)
+      spyOn(@import, "_prepareNewProduct").andCallFake (prepareProduct) -> Promise.resolve(prepareProduct)
       spyOn(@import.client._rest, 'POST').andCallFake (endpoint, payload, callback) ->
         callback(null, {statusCode: 200}, {})
       @import._createOrUpdate([newProduct,updateProduct],existingProducts)
@@ -399,7 +399,7 @@ describe 'ProductImport', ->
 
       spyOn(@import, "_extractUniqueSkus").andCallThrough()
       spyOn(@import, "_prepareProductFetchBySkuQueryPredicate").andCallThrough()
-      spyOn(@import.client.productProjections,"fetch").andCallFake => Promise.resolve({body: {results: existingProducts}})
+      spyOn(@import.client.productProjections,"fetch").andCallFake -> Promise.resolve({body: {results: existingProducts}})
       spyOn(@import, "_createOrUpdate").andCallFake -> Promise.all([Promise.resolve({statusCode: 201}), Promise.resolve({statusCode: 200})])
       @import._processBatches(sampleProducts)
       .then =>
