@@ -190,7 +190,7 @@ describe 'ProductImport', ->
 
     it 'should resolve product type reference and cache the result', (done) ->
       @import._resetCache()
-      spyOn(@import.client.productTypes, "fetch").andCallFake => Promise.resolve(sampleProductTypeResponse)
+      spyOn(@import.client.productTypes, "fetch").andCallFake -> Promise.resolve(sampleProductTypeResponse)
       productTypeRef = { id: 'AGS'}
       @import._resolveReference(@import.client.productTypes, 'productType', productTypeRef, "name=\"#{productTypeRef.id}\"")
       .then (result) =>
@@ -202,7 +202,7 @@ describe 'ProductImport', ->
 
     it 'should resolve tax category reference and cache the result', (done) ->
       @import._resetCache()
-      spyOn(@import.client.taxCategories, "fetch").andCallFake => Promise.resolve(sampleTaxCategoryResponse)
+      spyOn(@import.client.taxCategories, "fetch").andCallFake -> Promise.resolve(sampleTaxCategoryResponse)
       taxCategoryRef = { id: 'defaultTax_AT' }
       @import._resolveReference(@import.client.taxCategories, 'taxCategory', taxCategoryRef, "name=\"#{taxCategoryRef.id}\"")
       .then (result) =>
