@@ -92,7 +92,7 @@ class ProductImport
         else
           Promise.resolve statusCode: 304
       else
-        @client.products.create(@_prepareNewProduct(prodToProcess))
+        @_prepareNewProduct(prodToProcess).then (product) => @client.products.create(product)
 
     debug 'About to send %s requests', _.size(posts)
     Promise.all(posts)
