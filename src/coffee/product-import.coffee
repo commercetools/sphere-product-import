@@ -1,6 +1,6 @@
 debug = require('debug')('sphere-product-sync-import')
 _ = require 'underscore'
-_.mixin require('underscore-mixins')
+_.mixin require 'underscore-mixins'
 Promise = require 'bluebird'
 {SphereClient, ProductSync} = require 'sphere-node-sdk'
 
@@ -99,7 +99,7 @@ class ProductImport
       @_resolveProductCategories(product.categories)
       @_resolveReference(@client.taxCategories, 'taxCategory', product.taxCategory, "name=\"#{product.taxCategory?.id}\"")
     ]
-    .spread (prodTypeId, prodCatsIds, taxCatId) =>
+    .spread (prodTypeId, prodCatsIds, taxCatId) ->
       if prodTypeId
         product.productType =
           id: prodTypeId
@@ -109,7 +109,7 @@ class ProductImport
           id: taxCatId
           typeId: 'tax-category'
       if prodCatsIds
-        product.categories = _.map prodCatsIds, (catId) =>
+        product.categories = _.map prodCatsIds, (catId) ->
           id: catId
           typeId: 'category'
       Promise.resolve product
@@ -121,7 +121,7 @@ class ProductImport
       else
         Promise.all cats.map (cat) =>
           @_resolveReference(@client.categories, 'categories', cat, "externalId=\"#{cat.id}\"")
-        .then (result) -> resolve(result.filter (c) => c)
+        .then (result) -> resolve(result.filter (c) -> c)
 
   _resolveReference: (service, refKey, ref, predicate) ->
     new Promise (resolve) =>
