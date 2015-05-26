@@ -406,7 +406,7 @@ describe 'ProductImport', ->
         expect(@import._extractUniqueSkus).toHaveBeenCalled()
         expect(@import._prepareProductFetchBySkuQueryPredicate).toHaveBeenCalled()
         expect(@import._summary).toEqual
-          emptySKU: 0
+          emptySKU: 2
           created: 1
           updated: 1
         done()
