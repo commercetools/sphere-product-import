@@ -2,6 +2,7 @@ debug = require('debug')('sphere-product-sync-import')
 _ = require 'underscore'
 _.mixin require 'underscore-mixins'
 Promise = require 'bluebird'
+slugify = require 'underscore.string/slugify'
 {SphereClient, ProductSync} = require 'sphere-node-sdk'
 
 class ProductImport
@@ -86,6 +87,9 @@ class ProductImport
     posts = _.map productsToProcess, (prodToProcess) =>
       existingProduct = @_isExistingEntry(prodToProcess, existingProducts)
       if existingProduct?
+        if not prodToProcess.slug
+          debug 'slug missing in product to process, assigning same as existing product: %s', existingProduct.slug
+          prodToProcess.slug = existingProduct.slug # to prevent removing slug from existing product.
         synced = @sync.buildActions(prodToProcess, existingProduct)
         if synced.shouldUpdate()
           @client.products.byId(synced.getUpdateId()).update(synced.getUpdatePayload())
@@ -102,8 +106,9 @@ class ProductImport
       @_resolveReference(@client.productTypes, 'productType', product.productType, "name=\"#{product.productType?.id}\"")
       @_resolveProductCategories(product.categories)
       @_resolveReference(@client.taxCategories, 'taxCategory', product.taxCategory, "name=\"#{product.taxCategory?.id}\"")
+      @_ensureSlug(product)
     ]
-    .spread (prodTypeId, prodCatsIds, taxCatId) ->
+    .spread (prodTypeId, prodCatsIds, taxCatId, slugs) ->
       if prodTypeId
         product.productType =
           id: prodTypeId
@@ -116,7 +121,29 @@ class ProductImport
         product.categories = _.map prodCatsIds, (catId) ->
           id: catId
           typeId: 'category'
+      if slugs
+        product.slug = slugs
       Promise.resolve product
+
+  _ensureSlug: (product) ->
+    new Promise (resolve, reject) =>
+      if product.slug
+        resolve(product.slug)
+      if not product.name
+        reject("Product name is required.")
+      else
+        resolve(@_generateSlug product.name)
+
+  _generateSlug: (name, uniqueToken) ->
+    slugs = _.mapObject name, (val) =>
+      uniqueToken = @_generateUniqueToken unless uniqueToken
+      return slugify(val).concat("-#{uniqueToken}").substring(0, 256)
+    return slugs
+
+  _generateUniqueToken: ->
+    timestamp = new Date().getTime()
+    random = Math.floor(Math.random() * 90 + 10) # two digit random number.
+    return timestamp.concat random # to prevent same timestamp in parallel threads.
 
   _resolveProductCategories: (cats) ->
     new Promise (resolve) =>
