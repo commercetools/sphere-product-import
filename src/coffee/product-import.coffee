@@ -106,9 +106,8 @@ class ProductImport
       @_resolveReference(@client.productTypes, 'productType', product.productType, "name=\"#{product.productType?.id}\"")
       @_resolveProductCategories(product.categories)
       @_resolveReference(@client.taxCategories, 'taxCategory', product.taxCategory, "name=\"#{product.taxCategory?.id}\"")
-      @_ensureSlug(product)
     ]
-    .spread (prodTypeId, prodCatsIds, taxCatId, slugs) ->
+    .spread (prodTypeId, prodCatsIds, taxCatId) =>
       if prodTypeId
         product.productType =
           id: prodTypeId
@@ -121,29 +120,20 @@ class ProductImport
         product.categories = _.map prodCatsIds, (catId) ->
           id: catId
           typeId: 'category'
-      if slugs
-        product.slug = slugs
+      if not product.slug
+        if not product.name
+          Promise.reject 'Product name is required.'
+        product.slug = @_generateSlug product.name
       Promise.resolve product
 
-  _ensureSlug: (product) ->
-    new Promise (resolve, reject) =>
-      if product.slug
-        resolve(product.slug)
-      if not product.name
-        reject("Product name is required.")
-      else
-        resolve(@_generateSlug product.name)
-
-  _generateSlug: (name, uniqueToken) ->
+  _generateSlug: (name) ->
     slugs = _.mapObject name, (val) =>
-      uniqueToken = @_generateUniqueToken unless uniqueToken
+      uniqueToken = @_generateUniqueToken()
       return slugify(val).concat("-#{uniqueToken}").substring(0, 256)
     return slugs
 
   _generateUniqueToken: ->
-    timestamp = new Date().getTime()
-    random = Math.floor(Math.random() * 90 + 10) # two digit random number.
-    return timestamp.concat random # to prevent same timestamp in parallel threads.
+    _.uniqueId "#{new Date().getTime()}"
 
   _resolveProductCategories: (cats) ->
     new Promise (resolve) =>

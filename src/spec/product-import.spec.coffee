@@ -4,6 +4,8 @@ _.mixin require 'underscore-mixins'
 Config = require '../../config'
 Promise = require 'bluebird'
 
+frozenTimeStamp = new Date().getTime()
+
 sampleProducts = [
     masterVariant:
       sku: 'a'
@@ -32,6 +34,8 @@ sampleProducts = [
 ]
 
 sampleNewProduct =
+  name:
+    en: 'sample_product_name'
   productType:
     id: 'product_type_name'
   taxCategory:
@@ -71,6 +75,12 @@ sampleVariant2 =
   images: []
 
 sampleNewPreparedProduct =
+  name:
+    en: 'sample_product_name'
+
+  slug:
+    en: "sample-product-name-#{frozenTimeStamp}"
+
   productType:
     id: 'product_type_internal_id'
     typeId: 'product-type'
@@ -276,6 +286,20 @@ describe 'ProductImport', ->
         done()
       .catch done
 
+  describe '::_generateSlug', ->
+
+    it 'should generate valid slug', ->
+      sampleName =
+        name:
+          en: 'sample_product_name'
+          de: 'sample_product_german_name'
+
+      spyOn(@import, "_generateUniqueToken").andReturn("#{frozenTimeStamp}")
+      slugs = @import._generateSlug(sampleName.name)
+      expect(slugs.en).toBe "sample-product-name-#{frozenTimeStamp}"
+      expect(slugs.de).toBe "sample-product-german-name-#{frozenTimeStamp}"
+
+
   describe '::_prepareNewProduct', ->
 
     beforeEach ->
@@ -289,6 +313,9 @@ describe 'ProductImport', ->
 
           when "categories"
             if ref then Promise.resolve("category_internal_id1") else Promise.resolve([])
+
+      spyOn(@import, "_generateUniqueToken").andReturn("#{frozenTimeStamp}")
+
 
     it 'should resolve all references in the new product', (done) ->
 
@@ -337,6 +364,15 @@ describe 'ProductImport', ->
         done()
       .catch done
 
+    it 'should reject if name is missing', (done) ->
+      newProductWithoutName = _.deepClone(sampleNewProduct)
+      delete newProductWithoutName.name
+      @import._prepareNewProduct(newProductWithoutName)
+      .then done
+      .catch (err) ->
+        expect(err).toBe 'Product name is required.'
+        done()
+
 
   describe '::_createOrUpdate', ->
 
@@ -384,8 +420,8 @@ describe 'ProductImport', ->
       @import._createOrUpdate([newProduct,updateProduct],existingProducts)
       .then =>
         expect(@import._prepareNewProduct).toHaveBeenCalled()
-        expect(@import.client._rest.POST.calls[0].args[1]._settledValue).toEqual newProduct
-        expect(@import.client._rest.POST.calls[1].args[1]).toEqual expectedUpdateActions
+        expect(@import.client._rest.POST.calls[1].args[1]).toEqual newProduct
+        expect(@import.client._rest.POST.calls[0].args[1]).toEqual expectedUpdateActions
         done()
       .catch done
 
