@@ -180,11 +180,11 @@ describe 'ProductImport', ->
       expect(skus.length).toBe 5
       expect(skus).toEqual ['a', 'b', 'c', 'd', 'e']
 
-  describe '::_prepareProductFetchBySkuQueryPredicate', ->
+  describe '::_createProductFetchBySkuQueryPredicate', ->
 
     it 'should return predicate with 5 unique skus', ->
       skus = @import._extractUniqueSkus(sampleProducts)
-      predicate = @import._prepareProductFetchBySkuQueryPredicate(skus)
+      predicate = @import._createProductFetchBySkuQueryPredicate(skus)
       expect(predicate).toEqual 'masterVariant(sku in ("a", "b", "c", "d", "e")) or variants(sku in ("a", "b", "c", "d", "e"))'
 
   describe '::_isExistingEntry', ->
@@ -434,13 +434,13 @@ describe 'ProductImport', ->
       delete existingProducts[2]
 
       spyOn(@import, "_extractUniqueSkus").andCallThrough()
-      spyOn(@import, "_prepareProductFetchBySkuQueryPredicate").andCallThrough()
+      spyOn(@import, "_createProductFetchBySkuQueryPredicate").andCallThrough()
       spyOn(@import.client.productProjections,"fetch").andCallFake -> Promise.resolve({body: {results: existingProducts}})
       spyOn(@import, "_createOrUpdate").andCallFake -> Promise.all([Promise.resolve({statusCode: 201}), Promise.resolve({statusCode: 200})])
       @import._processBatches(sampleProducts)
       .then =>
         expect(@import._extractUniqueSkus).toHaveBeenCalled()
-        expect(@import._prepareProductFetchBySkuQueryPredicate).toHaveBeenCalled()
+        expect(@import._createProductFetchBySkuQueryPredicate).toHaveBeenCalled()
         expect(@import._summary).toEqual
           emptySKU: 2
           created: 1

@@ -34,7 +34,7 @@ class ProductImport
     Promise.map batchedList, (productsToProcess) =>
       # extract all skus from master variant and variants of all jsons in the batch
       skus = @_extractUniqueSkus(productsToProcess)
-      predicate = @_prepareProductFetchBySkuQueryPredicate(skus)
+      predicate = @_createProductFetchBySkuQueryPredicate(skus)
       # Check predicate size by: Buffer.byteLength(predicate,'utf-8')
       # Todo: Handle predicate if predicate size > 8kb
       # Fetch products from product projections end point by list of skus.
@@ -54,7 +54,7 @@ class ProductImport
     ,{concurrency: 1} # run 1 batch at a time
 
 
-  _prepareProductFetchBySkuQueryPredicate: (skus) ->
+  _createProductFetchBySkuQueryPredicate: (skus) ->
     skuString = "sku in (\"#{skus.join('", "')}\")"
     return "masterVariant(#{skuString}) or variants(#{skuString})"
 
