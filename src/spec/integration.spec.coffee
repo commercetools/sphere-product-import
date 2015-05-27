@@ -6,8 +6,9 @@ Config = require '../../config'
 Promise = require 'bluebird'
 {ExtendedLogger} = require 'sphere-node-utils'
 package_json = require '../../package.json'
-slugify = require 'underscore.string/slugify'
 sampleImportJson = require '../../samples/import.json'
+
+frozenTimeStamp = new Date().getTime()
 
 cleanup = (logger, client) ->
   debug "Deleting old product entries..."
@@ -66,7 +67,6 @@ describe 'product sync integration tests', ->
         commonSkus = _.intersection(sampleSkus,fetchedSkus)
         expect(_.size commonSkus).toBe _.size sampleSkus
         predicate = "masterVariant(sku=\"#{sampleImport.products[0].masterVariant.sku}\")"
-        console.log(predicate)
         @client.productProjections.where(predicate).staged(true).fetch()
       .then (result) =>
         fetchedProduct = result.body.results
@@ -76,3 +76,32 @@ describe 'product sync integration tests', ->
         done()
       .catch done
     , 10000
+
+    it 'should do nothing for empty products list', (done) ->
+      @import._processBatches([])
+      .then =>
+        expect(@import._summary.created).toBe 0
+        expect(@import._summary.updated).toBe 0
+        done()
+      .catch done
+    , 10000
+
+    it 'should generate missing slug', (done) ->
+      sampleImport = _.deepClone(sampleImportJson)
+      delete sampleImport.products[0].slug
+      delete sampleImport.products[1].slug
+
+      spyOn(@import, "_generateUniqueToken").andReturn("#{frozenTimeStamp}")
+      @import._processBatches(sampleImport.products)
+      .then =>
+        expect(@import._summary.created).toBe 2
+        expect(@import._summary.updated).toBe 0
+        predicate = "masterVariant(sku=\"#{sampleImport.products[0].masterVariant.sku}\")"
+        @client.productProjections.where(predicate).staged(true).fetch()
+      .then (result) =>
+        fetchedProduct = result.body.results
+        expect(fetchedProduct[0].slug.en).toBe "product-sync-test-product-1-#{frozenTimeStamp}"
+        done()
+      .catch done
+    , 10000
+
