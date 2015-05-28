@@ -27,7 +27,7 @@
       "url": "https://github.com/sphereio/sphere-product-sync/blob/master/LICENSE-MIT"
     }
   ],
-  "main": "./lib",
+  "main": "./dist",
   "engines": {
     "node": ">= 0.10.0"
   },

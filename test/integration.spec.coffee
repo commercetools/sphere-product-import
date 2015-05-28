@@ -1,12 +1,12 @@
 debug = require('debug')('spec:it:sphere-product-sync-import')
 _ = require 'underscore'
 _.mixin require 'underscore-mixins'
-{ProductImport} = require '../coffee'
-Config = require '../../config'
+{ProductImport} = require '../lib'
+Config = require '../config'
 Promise = require 'bluebird'
 {ExtendedLogger} = require 'sphere-node-utils'
-package_json = require '../../package.json'
-sampleImportJson = require '../../samples/import.json'
+package_json = require '../package.json'
+sampleImportJson = require '../samples/import.json'
 
 frozenTimeStamp = new Date().getTime()
 
