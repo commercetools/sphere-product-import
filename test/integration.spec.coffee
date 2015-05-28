@@ -39,7 +39,10 @@ describe 'product sync integration tests', ->
 
     @logger.info 'About to setup...'
     cleanup(@logger, @client)
-    .then -> done()
+    .then ->
+      # TODO: ensure that productType, taxCategory and categories
+      # are created before running the tests
+      done()
     .catch (err) -> done(_.prettify err)
   , 10000 # 10sec
 

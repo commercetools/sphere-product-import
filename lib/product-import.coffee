@@ -192,7 +192,7 @@ class ProductImport
         .then (result) -> resolve(result.filter (c) -> c)
 
   _resolveReference: (service, refKey, ref, predicate) ->
-    new Promise (resolve) =>
+    new Promise (resolve, reject) =>
       if not ref
         resolve()
       else if @_cache[refKey][ref.id]
@@ -200,8 +200,11 @@ class ProductImport
       else
         service.where(predicate).fetch()
         .then (result) =>
-          # Todo: Handle multiple response, currently taking first response.
-          @_cache[refKey][ref.id] = result.body.results[0].id
-          resolve(result.body.results[0].id)
+          if result.body.count is 0
+            reject "Didn't found any match while resolving #{refKey} (#{predicate})"
+          else
+            # Todo: Handle multiple response, currently taking first response.
+            @_cache[refKey][ref.id] = result.body.results[0].id
+            resolve(result.body.results[0].id)
 
 module.exports = ProductImport
