@@ -1,11 +1,13 @@
 .DS_Store
 node_modules
 *.log
-lib
-test
+dist
+dist-test
 tmp
 config.js
 .coveralls.yml
 coverage
 package
 sftp-credentials.json
+sphere-product-sync.iml
+.idea

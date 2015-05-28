@@ -16,11 +16,11 @@ module.exports = (grunt) ->
 
     coffeelint:
       options: grunt.file.readJSON('node_modules/sphere-coffeelint/coffeelint.json')
-      default: ['Gruntfile.coffee', 'src/**/*.coffee']
+      default: ['Gruntfile.coffee', 'lib/**/*.coffee', 'test/**/*.coffee']
 
     clean:
-      default: "lib"
-      test: "test"
+      default: "dist"
+      test: "dist-test"
 
     coffee:
       options:
@@ -28,16 +28,16 @@ module.exports = (grunt) ->
       default:
         expand: true
         flatten: true
-        cwd: "src/coffee"
+        cwd: "lib"
         src: ["*.coffee"]
-        dest: "lib"
+        dest: "dist"
         ext: ".js"
       test:
         expand: true
         flatten: true
-        cwd: "src/spec"
+        cwd: "test"
         src: ["*.spec.coffee"]
-        dest: "test"
+        dest: "dist-test"
         ext: ".spec.js"
 
     concat:
@@ -54,10 +54,10 @@ module.exports = (grunt) ->
     # watching for changes
     watch:
       default:
-        files: ["src/coffee/*.coffee"]
+        files: ["lib/*.coffee"]
         tasks: ["build"]
       test:
-        files: ["src/**/*.coffee"]
+        files: ["test/*.coffee"]
         tasks: ["test"]
 
     shell:
@@ -65,12 +65,8 @@ module.exports = (grunt) ->
         stdout: true
         stderr: true
         failOnError: true
-      coverage:
-        command: "./node_modules/.bin/istanbul cover ./node_modules/.bin/jasmine-node --captureExceptions test && cat ./coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js && rm -rf ./coverage"
       jasmine:
-        command: "./node_modules/.bin/jasmine-node --verbose --captureExceptions test"
-      run:
-        command: "node lib/run.js stock.xml"
+        command: "./node_modules/.bin/jasmine-node --verbose --captureExceptions --coffee test"
       publish:
         command: 'npm publish'
 
@@ -99,8 +95,7 @@ module.exports = (grunt) ->
 
   # register tasks
   grunt.registerTask "build", ["clean", "coffeelint", "coffee", "concat"]
-  grunt.registerTask "test", ["build", "shell:jasmine"]
-  grunt.registerTask "coverage", ["build", "shell:coverage"]
+  grunt.registerTask "test", ["coffeelint", "shell:jasmine"]
   grunt.registerTask 'release', 'Release a new version, push it and publish it', (target) ->
     target = 'patch' unless target
     grunt.task.run "bump-only:#{target}", 'test', 'bump-commit', 'shell:publish'

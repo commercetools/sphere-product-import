@@ -1,0 +1,73 @@
+{
+  "products": [
+    {
+      "name": {
+        "en":"Product_Sync_Test_Product_1"
+      },
+      "slug": {
+        "en":"product-sync-test-product-1"
+      },
+      "productType" : {
+        "id": "AGS"
+      },
+      "masterVariant": {
+        "sku": "B3-717597",
+        "attributes": []
+      },
+      "variants": [
+        {
+          "sku": "B3-717487",
+          "attributes": []
+        },
+        {
+          "sku": "B3-717489",
+          "attributes": []
+        }
+      ],
+      "hasStagedChanges": true,
+      "published": false,
+      "taxCategory": {
+        "id": "defaultTax_AT"
+      },
+      "categories": [
+        {
+          "id": "obst_gemuse"
+        }
+      ]
+    },
+    {
+      "name": {
+        "en":"Product_Sync_Test_Product_2"
+      },
+      "slug": {
+        "en":"product-sync-test-product-2"
+      },
+      "productType" : {
+        "id": "AGS"
+      },
+      "masterVariant": {
+        "sku": "C42-345678",
+        "attributes": []
+      },
+      "variants": [
+        {
+          "sku": "C42-345987",
+          "attributes": []
+        },
+        {
+          "sku": "C42-345988",
+          "attributes": []
+        },
+        {
+          "sku": "C42-345989",
+          "attributes": []
+        }
+      ],
+      "hasStagedChanges": true,
+      "published": false,
+      "taxCategory": {
+        "id": "defaultTax_AT"
+      }
+    }
+  ]
+}

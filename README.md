@@ -3,3 +3,7 @@
 # Product Sync
 
 TBD
+
+Process Flow:
+
+![Process Flow Diagram](https://github.com/sphereio/sphere-product-sync/blob/product-sync-ver1/document/productimporter_processFlow.png)
