@@ -1,0 +1,12 @@
+language: node_js
+node_js:
+  - '0.10'
+before_script:
+  - ./create_config.sh
+script:
+  - npm test
+env:
+  global:
+  - secure: bMeIj3wPlWl+zu3dTXl+P+zGlUwHnJd3mdBqAmLNobYHowvlKUJCe8nL1Xb+YLy13ulsRmz3omgK+gR5qh4FfnsuCQov8WUJDiFkvaS4yi9LYtoCsCbXUMKQ14FQ6yZ8Ttq8XtGOjqIThqHkfBlg5oUZNTce28PxaWmXi0Ydu1Q=
+  - secure: YgyHv59LDz3YwadD2LIKbtMXsuHG6sn7nSW4CScZtYDDF0poJdloKaSWCU33cv6emqVBnQ3VJDUSRbk/KrxOT3Cf3pcxxBtrmdg/fsPfoq406QYVHfMBL4uewD1hfKQqN2cDN6mxZEeOpWRq79s6LXp5Ks7nlY8AcrOXFREgHQ4=
+  - secure: BbESiOle4OYZ3j+TIGuZCBVlElzQg3V+R9GV6LuQEc1jbbxOFbMyPHm3qYA1trtZMBWl5txzcxlAsTgVeM3nYH5qXjhSVs98bIU6aqymxqbP6dONlSvje+55Ah0kqlZ+KKtm5vWyW6EYApFloJWqC+gxol54BzKUMJMhDM5QISw=
