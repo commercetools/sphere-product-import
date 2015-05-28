@@ -124,8 +124,7 @@ describe 'product sync integration tests', ->
         predicate = "masterVariant(sku=\"#{sampleUpdate.products[0].masterVariant.sku}\")"
         @client.productProjections.where(predicate).staged(true).fetch()
       .then (result) ->
-        fetchedProduct = result.body.results
-        expect(_.size fetchedProduct.variants).toBe 2
+        expect(_.size result.body.results[0].variants).toBe 2
         done()
       .catch (err) -> done(_.prettify err.body)
     , 10000

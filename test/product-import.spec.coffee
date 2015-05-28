@@ -423,8 +423,8 @@ describe 'ProductImport', ->
       @import._createOrUpdate([newProduct,updateProduct],existingProducts)
       .then =>
         expect(@import._prepareNewProduct).toHaveBeenCalled()
-        expect(@import.client._rest.POST.calls[1].args[1]).toEqual newProduct
-        expect(@import.client._rest.POST.calls[0].args[1]).toEqual expectedUpdateActions
+        expect(@import.client._rest.POST.calls[0].args[1]).toEqual newProduct
+        expect(@import.client._rest.POST.calls[1].args[1]).toEqual expectedUpdateActions
         done()
       .catch done
 

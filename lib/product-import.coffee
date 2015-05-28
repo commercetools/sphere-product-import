@@ -25,6 +25,18 @@ class ProductImport
       created: 0
       updated: 0
 
+  summaryReport: (filename) ->
+    if @_summary.created is 0 and @_summary.updated is 0
+      message = 'Summary: nothing to do, everything is fine'
+    else
+      message = "Summary: there were #{@_summary.created + @_summary.updated} imported products " +
+        "(#{@_summary.created} were new and #{@_summary.updated} were updates)"
+
+    if @_summary.emptySKU > 0
+      message += "\nFound #{@_summary.emptySKU} empty SKUs from file input"
+      message += " '#{filename}'" if filename
+
+    message
 
   performStream: (chunk, cb) ->
     @_processBatches(chunk).then -> cb()
@@ -88,12 +100,12 @@ class ProductImport
     posts = _.map productsToProcess, (prodToProcess) =>
       existingProduct = @_isExistingEntry(prodToProcess, existingProducts)
       if existingProduct?
-        @_prepareUpdateProduct(prodToProcess,existingProduct).then (preparedProduct) -> prodToProcess = preparedProduct
-        synced = @sync.buildActions(prodToProcess, existingProduct)
-        if synced.shouldUpdate()
-          @client.products.byId(synced.getUpdateId()).update(synced.getUpdatePayload())
-        else
-          Promise.resolve statusCode: 304
+        @_prepareUpdateProduct(prodToProcess, existingProduct).then (preparedProduct) =>
+          synced = @sync.buildActions(preparedProduct, existingProduct)
+          if synced.shouldUpdate()
+            @client.products.byId(synced.getUpdateId()).update(synced.getUpdatePayload())
+          else
+            Promise.resolve statusCode: 304
       else
         @_prepareNewProduct(prodToProcess).then (product) => @client.products.create(product)
 
