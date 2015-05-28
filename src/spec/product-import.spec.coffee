@@ -412,7 +412,7 @@ describe 'ProductImport', ->
             name: 'attribute1'
             value: 'attribute1_value3'
           ],
-          prices : []
+          prices: []
         ],
         version: 1
 

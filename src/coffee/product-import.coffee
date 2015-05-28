@@ -88,7 +88,7 @@ class ProductImport
     posts = _.map productsToProcess, (prodToProcess) =>
       existingProduct = @_isExistingEntry(prodToProcess, existingProducts)
       if existingProduct?
-        @_prepareUpdateProduct(prodToProcess,existingProduct).then (preparedProduct) => prodToProcess = preparedProduct
+        @_prepareUpdateProduct(prodToProcess,existingProduct).then (preparedProduct) -> prodToProcess = preparedProduct
         synced = @sync.buildActions(prodToProcess, existingProduct)
         if synced.shouldUpdate()
           @client.products.byId(synced.getUpdateId()).update(synced.getUpdatePayload())
