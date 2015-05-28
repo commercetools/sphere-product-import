@@ -88,7 +88,7 @@ class ProductImport
     posts = _.map productsToProcess, (prodToProcess) =>
       existingProduct = @_isExistingEntry(prodToProcess, existingProducts)
       if existingProduct?
-        @_prepareUpdateProduct(prodToProcess,existingProduct).then (updatedProduct) => prodToProcess = updatedProduct
+        @_prepareUpdateProduct(prodToProcess,existingProduct).then (preparedProduct) => prodToProcess = preparedProduct
         synced = @sync.buildActions(prodToProcess, existingProduct)
         if synced.shouldUpdate()
           @client.products.byId(synced.getUpdateId()).update(synced.getUpdatePayload())
@@ -117,12 +117,6 @@ class ProductImport
     return product
 
   _prepareUpdateProduct: (productToProcess, existingProduct) ->
-    if not productToProcess.slug
-      debug 'slug missing in product to process, assigning same as existing product: %s', existingProduct.slug
-      productToProcess.slug = existingProduct.slug # to prevent removing slug from existing product.
-
-    productToProcess = @_ensureDefaults(productToProcess)
-
     Promise.all [
       @_resolveProductCategories(productToProcess.categories)
       @_resolveReference(@client.taxCategories, 'taxCategory', productToProcess.taxCategory, "name=\"#{productToProcess.taxCategory?.id}\"")
@@ -136,6 +130,10 @@ class ProductImport
         productToProcess.categories = _.map prodCatsIds, (catId) ->
           id: catId
           typeId: 'category'
+      if not productToProcess.slug
+        debug 'slug missing in product to process, assigning same as existing product: %s', existingProduct.slug
+        productToProcess.slug = existingProduct.slug # to prevent removing slug from existing product.
+      productToProcess = @_ensureDefaults(productToProcess)
       Promise.resolve productToProcess
 
   _prepareNewProduct: (product) ->
