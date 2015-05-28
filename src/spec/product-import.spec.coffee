@@ -364,7 +364,7 @@ describe 'ProductImport', ->
         done()
       .catch done
 
-    it 'should reject if name is missing', (done) ->
+    xit 'should reject if name is missing', (done) ->
       newProductWithoutName = _.deepClone(sampleNewProduct)
       delete newProductWithoutName.name
       @import._prepareNewProduct(newProductWithoutName)
@@ -399,6 +399,7 @@ describe 'ProductImport', ->
       sampleVariant3 = _.deepClone(sampleVariant2)
       sampleVariant3.sku = "9876_2_3"
       sampleVariant3.id = "9"
+      sampleVariant3.prices = []
       updateProduct.variants[2] = sampleVariant3
 
       existingProducts = [existingProduct1,existingProduct2]
@@ -410,11 +411,13 @@ describe 'ProductImport', ->
           attributes: [
             name: 'attribute1'
             value: 'attribute1_value3'
-          ]
+          ],
+          prices : []
         ],
         version: 1
 
       spyOn(@import, "_prepareNewProduct").andCallFake (prepareProduct) -> Promise.resolve(prepareProduct)
+      spyOn(@import,"_prepareUpdateProduct").andCallFake (prepareProduct) -> Promise.resolve(prepareProduct)
       spyOn(@import.client._rest, 'POST').andCallFake (endpoint, payload, callback) ->
         callback(null, {statusCode: 200}, {})
       @import._createOrUpdate([newProduct,updateProduct],existingProducts)
@@ -447,3 +450,23 @@ describe 'ProductImport', ->
           updated: 1
         done()
       .catch done
+
+  describe '::_ensureDefaults', ->
+
+    it 'should add variant defaults to all variants', ->
+      sampleVariantWithoutAttr = _.deepClone(sampleVariant1)
+      delete sampleVariantWithoutAttr.attributes
+
+      sampleProduct = {}
+      sampleProduct.masterVariant = _.deepClone(sampleMasterVariant)
+      sampleProduct.variants =  [ _.deepClone(sampleVariantWithoutAttr),_.deepClone(sampleVariant2)]
+
+      expectedProduct = _.deepClone(sampleProduct)
+      expectedProduct.masterVariant.prices = []
+      expectedProduct.variants[0].prices = []
+      expectedProduct.variants[0].attributes = []
+      expectedProduct.variants[1].prices = []
+
+      updatedProduct = @import._ensureDefaults(sampleProduct)
+      expect(updatedProduct).toEqual expectedProduct
+
