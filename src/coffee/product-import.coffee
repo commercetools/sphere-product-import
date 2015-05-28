@@ -40,6 +40,7 @@ class ProductImport
       # Fetch products from product projections end point by list of skus.
       @client.productProjections
       .where(predicate)
+      .staged(true)
       .fetch()
       .then (results) =>
         debug 'Fetched products: %j', results
@@ -87,9 +88,7 @@ class ProductImport
     posts = _.map productsToProcess, (prodToProcess) =>
       existingProduct = @_isExistingEntry(prodToProcess, existingProducts)
       if existingProduct?
-        if not prodToProcess.slug
-          debug 'slug missing in product to process, assigning same as existing product: %s', existingProduct.slug
-          prodToProcess.slug = existingProduct.slug # to prevent removing slug from existing product.
+        @_prepareUpdateProduct(prodToProcess,existingProduct).then (updatedProduct) => prodToProcess = updatedProduct
         synced = @sync.buildActions(prodToProcess, existingProduct)
         if synced.shouldUpdate()
           @client.products.byId(synced.getUpdateId()).update(synced.getUpdatePayload())
@@ -100,6 +99,44 @@ class ProductImport
 
     debug 'About to send %s requests', _.size(posts)
     Promise.all(posts)
+
+  _ensureVariantDefaults: (variant) ->
+    variantDefaults =
+      attributes: []
+      prices: []
+      images: []
+
+    _.defaults(variant, variantDefaults)
+
+  _ensureDefaults: (product) =>
+    debug 'ensuring default fields in variants.'
+    if product.masterVariant
+      product.masterVariant = @_ensureVariantDefaults(product.masterVariant)
+    if product.variants
+      product.variants = _.map product.variants, (variant) => @_ensureVariantDefaults(variant)
+    return product
+
+  _prepareUpdateProduct: (productToProcess, existingProduct) ->
+    if not productToProcess.slug
+      debug 'slug missing in product to process, assigning same as existing product: %s', existingProduct.slug
+      productToProcess.slug = existingProduct.slug # to prevent removing slug from existing product.
+
+    productToProcess = @_ensureDefaults(productToProcess)
+
+    Promise.all [
+      @_resolveProductCategories(productToProcess.categories)
+      @_resolveReference(@client.taxCategories, 'taxCategory', productToProcess.taxCategory, "name=\"#{productToProcess.taxCategory?.id}\"")
+    ]
+    .spread (prodCatsIds, taxCatId) =>
+      if taxCatId
+        productToProcess.taxCategory =
+          id: taxCatId
+          typeId: 'tax-category'
+      if prodCatsIds
+        productToProcess.categories = _.map prodCatsIds, (catId) ->
+          id: catId
+          typeId: 'category'
+      Promise.resolve productToProcess
 
   _prepareNewProduct: (product) ->
     Promise.all [
