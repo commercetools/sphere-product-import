@@ -68,7 +68,7 @@ describe 'product sync integration tests', ->
         expect(_.size commonSkus).toBe _.size sampleSkus
         predicate = "masterVariant(sku=\"#{sampleImport.products[0].masterVariant.sku}\")"
         @client.productProjections.where(predicate).staged(true).fetch()
-      .then (result) =>
+      .then (result) ->
         fetchedProduct = result.body.results
         expect(_.size fetchedProduct[0].variants).toBe _.size sampleImport.products[0].variants
         expect(fetchedProduct[0].name).toEqual sampleImport.products[0].name
@@ -98,10 +98,36 @@ describe 'product sync integration tests', ->
         expect(@import._summary.updated).toBe 0
         predicate = "masterVariant(sku=\"#{sampleImport.products[0].masterVariant.sku}\")"
         @client.productProjections.where(predicate).staged(true).fetch()
-      .then (result) =>
+      .then (result) ->
         fetchedProduct = result.body.results
         expect(fetchedProduct[0].slug.en).toBe "product-sync-test-product-1-#{frozenTimeStamp}"
         done()
       .catch done
     , 10000
+
+    it 'should update existing product',  (done) ->
+      sampleImport = _.deepClone(sampleImportJson)
+      sampleUpdateRef = _.deepClone(sampleImportJson)
+      sampleUpdate = _.deepClone(sampleImportJson)
+      sampleUpdate.products = _.without(sampleUpdateRef.products,sampleUpdateRef.products[1])
+      sampleUpdate.products[0].variants = _.without(sampleUpdateRef.products[0].variants,sampleUpdateRef.products[0].variants[1])
+
+      @import._processBatches(sampleUpdate.products)
+      .then =>
+        expect(@import._summary.created).toBe 1
+        @import._resetSummary()
+        @import._resetCache()
+        @import._processBatches(sampleImport.products)
+      .then =>
+        expect(@import._summary.created).toBe 1
+        expect(@import._summary.updated).toBe 1
+        predicate = "masterVariant(sku=\"#{sampleUpdate.products[0].masterVariant.sku}\")"
+        @client.productProjections.where(predicate).staged(true).fetch()
+      .then (result) ->
+        fetchedProduct = result.body.results
+        expect(_.size fetchedProduct.variants).toBe 2
+        done()
+      .catch (err) -> done(_.prettify err.body)
+    , 10000
+
 
