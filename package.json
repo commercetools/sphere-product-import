@@ -3,7 +3,7 @@
   "description": "Manage product data",
   "version": "0.1.0",
   "homepage": "https://github.com/sphereio/sphere-product-sync",
-  "private": false,
+  "private": true,
   "author": {
     "name": "Nicola Molinari",
     "email": "nicola.molinari@commercetools.de"
