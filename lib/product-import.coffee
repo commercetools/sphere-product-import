@@ -1,4 +1,4 @@
-debug = require('debug')('sphere-product-sync-import')
+debug = require('debug')('sphere-product-import')
 _ = require 'underscore'
 _.mixin require 'underscore-mixins'
 Promise = require 'bluebird'

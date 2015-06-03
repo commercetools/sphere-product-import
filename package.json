@@ -1,8 +1,8 @@
 {
-  "name": "sphere-product-sync",
+  "name": "sphere-product-import",
   "description": "Manage product data",
   "version": "0.1.0",
-  "homepage": "https://github.com/sphereio/sphere-product-sync",
+  "homepage": "https://github.com/sphereio/sphere-product-import",
   "private": true,
   "author": {
     "name": "Nicola Molinari",
@@ -16,15 +16,15 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/sphereio/sphere-product-sync.git"
+    "url": "https://github.com/sphereio/sphere-product-import.git"
   },
   "bugs": {
-    "url": "https://github.com/sphereio/sphere-product-sync/issues"
+    "url": "https://github.com/sphereio/sphere-product-import/issues"
   },
   "licenses": [
     {
       "type": "MIT",
-      "url": "https://github.com/sphereio/sphere-product-sync/blob/master/LICENSE-MIT"
+      "url": "https://github.com/sphereio/sphere-product-import/blob/master/LICENSE-MIT"
     }
   ],
   "main": "./dist",

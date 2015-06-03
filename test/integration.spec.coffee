@@ -1,4 +1,4 @@
-debug = require('debug')('spec:it:sphere-product-sync-import')
+debug = require('debug')('spec:it:sphere-product-import')
 _ = require 'underscore'
 _.mixin require 'underscore-mixins'
 {ProductImport} = require '../lib'
@@ -21,7 +21,7 @@ cleanup = (logger, client) ->
     Promise.resolve()
 
 
-describe 'product sync integration tests', ->
+describe 'Product import integration tests', ->
 
   beforeEach (done) ->
     @logger = new ExtendedLogger
@@ -131,5 +131,3 @@ describe 'product sync integration tests', ->
         done()
       .catch (err) -> done(_.prettify err.body)
     , 10000
-
-
