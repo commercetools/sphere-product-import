@@ -201,32 +201,34 @@ class ProductImport
   _fetchAndResolveCustomReferencesByVariant: (variant) =>
     new Promise (resolve) =>
       if variant.attributes
-        for attribute in variant.attributes
+        _.map variant.attributes, (attribute) =>
           if attribute and _.isArray(attribute.value)
             if _.every(attribute.value, @_isReferenceTypeAttribute) # all elements in the attribute array should be a ref.
               @_resolveCustomReferenceSet(attribute.value)
               .then (result) ->
                 attribute.value = result
+                resolve(variant)
           else
             if attribute and @_isReferenceTypeAttribute(attribute.value)
               @_resolveCustomReference(attribute.value)
-              .then (result) ->
+              .then (result) =>
                 attribute.value = result
-      resolve(variant)
+                resolve(variant)
 
 
   _resolveCustomReferenceSet: (attribute) =>
     # resolve all references and return a list of resolved values.
     new Promise (resolve, reject) =>
       values = []
-      Promise.map attribute.value, (referenceObject) =>
+      Promise.map attribute, (referenceObject) =>
         @_resolveCustomReference(referenceObject)
         .then (result) ->
           values.push(result)
+          if _.size(values) is _.size(attribute)
+            resolve(values)
           Promise.resolve()
         .catch (err) ->
           reject err
-      resolve(values)
 
 
   _isReferenceTypeAttribute: (attributeValue) ->
@@ -234,8 +236,7 @@ class ProductImport
 
 
   _resolveCustomReference: (referenceObject) =>
-    new Promise(resolve, reject) =>
-      # resolve according to predicate and endpoint
+    new Promise (resolve, reject) =>
       service = @client["#{referenceObject.endpoint}"]
       refKey = referenceObject.endpoint
       ref = _.deepClone referenceObject
@@ -261,16 +262,19 @@ class ProductImport
     new Promise (resolve, reject) =>
       if not ref
         resolve()
-      else if @_cache[refKey][ref.id]
-        resolve(@_cache[refKey][ref.id])
       else
-        service.where(predicate).fetch()
-        .then (result) =>
-          if result.body.count is 0
-            reject "Didn't find any match while resolving #{refKey} (#{predicate})"
-          else
-            # Todo: Handle multiple response, currently taking first response.
-            @_cache[refKey][ref.id] = result.body.results[0].id
-            resolve(result.body.results[0].id)
+        if not @_cache[refKey]
+          @_cache[refKey] = {}
+        if @_cache[refKey][ref.id]
+          resolve(@_cache[refKey][ref.id])
+        else
+          service.where(predicate).fetch()
+          .then (result) =>
+            if result.body.count is 0
+              reject "Didn't find any match while resolving #{refKey} (#{predicate})"
+            else
+              # Todo: Handle multiple response, currently taking first response.
+              @_cache[refKey][ref.id] = result.body.results[0].id
+              resolve(result.body.results[0].id)
 
 module.exports = ProductImport
