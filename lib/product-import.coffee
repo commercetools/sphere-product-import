@@ -132,6 +132,7 @@ class ProductImport
     Promise.all [
       @_resolveProductCategories(productToProcess.categories)
       @_resolveReference(@client.taxCategories, 'taxCategory', productToProcess.taxCategory, "name=\"#{productToProcess.taxCategory?.id}\"")
+      @_fetchAndResolveCustomReferences(productToProcess)
     ]
     .spread (prodCatsIds, taxCatId) =>
       if taxCatId
@@ -153,6 +154,7 @@ class ProductImport
       @_resolveReference(@client.productTypes, 'productType', product.productType, "name=\"#{product.productType?.id}\"")
       @_resolveProductCategories(product.categories)
       @_resolveReference(@client.taxCategories, 'taxCategory', product.taxCategory, "name=\"#{product.taxCategory?.id}\"")
+      @_fetchAndResolveCustomReferences(product)
     ]
     .spread (prodTypeId, prodCatsIds, taxCatId) =>
       if prodTypeId
@@ -173,6 +175,7 @@ class ProductImport
         product.slug = @_generateSlug product.name
       Promise.resolve product
 
+
   _generateSlug: (name) ->
     slugs = _.mapObject name, (val) =>
       uniqueToken = @_generateUniqueToken()
@@ -181,6 +184,69 @@ class ProductImport
 
   _generateUniqueToken: ->
     _.uniqueId "#{new Date().getTime()}"
+
+  _fetchAndResolveCustomReferences: (product) =>
+    new Promise (resolve) =>
+      if product.masterVariant
+        @_fetchAndResolveCustomReferencesByVariant(product.masterVariant).then (result) -> product.masterVariant = result
+
+      if product.variants
+        Promise.map product.variants, (variant) =>
+          @_fetchAndResolveCustomReferencesByVariant(variant)
+          .then ->
+            Promise.resolve()
+        ,{concurrency: 5}
+      resolve(product)
+
+  _fetchAndResolveCustomReferencesByVariant: (variant) =>
+    new Promise (resolve) =>
+      if variant.attributes
+        for attribute in variant.attributes
+          if attribute and _.isArray(attribute.value)
+            if _.every(attribute.value, @_isReferenceTypeAttribute) # all elements in the attribute array should be a ref.
+              @_resolveCustomReferenceSet(attribute.value)
+              .then (result) ->
+                attribute.value = result
+          else
+            if attribute and @_isReferenceTypeAttribute(attribute.value)
+              @_resolveCustomReference(attribute.value)
+              .then (result) ->
+                attribute.value = result
+      resolve(variant)
+
+
+  _resolveCustomReferenceSet: (attribute) =>
+    # resolve all references and return a list of resolved values.
+    new Promise (resolve, reject) =>
+      values = []
+      Promise.map attribute.value, (referenceObject) =>
+        @_resolveCustomReference(referenceObject)
+        .then (result) ->
+          values.push(result)
+          Promise.resolve()
+        .catch (err) ->
+          reject err
+      resolve(values)
+
+
+  _isReferenceTypeAttribute: (attributeValue) ->
+    _.has(attributeValue, 'resolvePredicate') and _.has(attributeValue, 'endpoint')
+
+
+  _resolveCustomReference: (referenceObject) =>
+    new Promise(resolve, reject) =>
+      # resolve according to predicate and endpoint
+      service = @client["#{referenceObject.endpoint}"]
+      refKey = referenceObject.endpoint
+      ref = _.deepClone referenceObject
+      ref.id = referenceObject.value
+      predicate = referenceObject.resolvePredicate
+      @_resolveReference(service,refKey,ref,predicate)
+      .then (result) ->
+        resolve(result)
+      .catch (err) ->
+        reject err
+
 
   _resolveProductCategories: (cats) ->
     new Promise (resolve) =>
@@ -201,7 +267,7 @@ class ProductImport
         service.where(predicate).fetch()
         .then (result) =>
           if result.body.count is 0
-            reject "Didn't found any match while resolving #{refKey} (#{predicate})"
+            reject "Didn't find any match while resolving #{refKey} (#{predicate})"
           else
             # Todo: Handle multiple response, currently taking first response.
             @_cache[refKey][ref.id] = result.body.results[0].id

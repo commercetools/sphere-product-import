@@ -470,3 +470,21 @@ describe 'ProductImport', ->
       updatedProduct = @import._ensureDefaults(sampleProduct)
       expect(updatedProduct).toEqual expectedProduct
 
+  describe ':: Custom reference resolution', ->
+
+    it ' :: should detect reference type attribute', ->
+      sampleReferenceAttribute =
+        name: 'foobar'
+        value:
+          value: 'some value'
+          resolvePredicate: 'some predicate query'
+          endpoint: 'some endpoint'
+
+      sampleNonReferenceAttribute =
+        name: 'some non reference attribute'
+        value: 'some value'
+
+      expect(@import._isReferenceTypeAttribute(sampleReferenceAttribute.value)).toBeTruthy()
+      expect(@import._isReferenceTypeAttribute(sampleNonReferenceAttribute.value)).toBeFalsy()
+
+
