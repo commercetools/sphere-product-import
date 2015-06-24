@@ -560,7 +560,7 @@ describe 'ProductImport', ->
       .catch (err) ->
         done(err)
 
-    it ' :: should resolve custom reference set in a variable', (done) ->
+    it ' :: should resolve custom reference set in a variant', (done) ->
       sampleVariantWithResolveableAttr = _.deepClone sampleMasterVariant
 
       sampleReferenceAttribute =
@@ -594,6 +594,28 @@ describe 'ProductImport', ->
       @import._fetchAndResolveCustomReferencesByVariant(sampleVariantWithResolveableAttr)
       .then (result) ->
         expect(result).toEqual expectedResolvedVariant
+        done()
+      .catch (err) ->
+        done(err)
+
+    it ' :: should not throw error in case of variant with no attributes', (done) ->
+      sampleVariantWithoutAttributes =
+        sku: '12345'
+        id: 1
+        images: []
+
+      sampleVariantWithEmptyAttributes =
+        sku: '12345'
+        id: 1
+        attributes: []
+        images: []
+
+      @import._fetchAndResolveCustomReferencesByVariant(sampleVariantWithoutAttributes)
+      .then (result) ->
+        expect(result).toEqual sampleVariantWithoutAttributes
+      @import._fetchAndResolveCustomReferencesByVariant(sampleVariantWithEmptyAttributes)
+      .then (result) ->
+        expect(result).toEqual sampleVariantWithEmptyAttributes
         done()
       .catch (err) ->
         done(err)

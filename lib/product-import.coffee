@@ -200,7 +200,7 @@ class ProductImport
 
   _fetchAndResolveCustomReferencesByVariant: (variant) =>
     new Promise (resolve) =>
-      if variant.attributes
+      if variant.attributes and not _.isEmpty(variant.attributes)
         _.map variant.attributes, (attribute) =>
           if attribute and _.isArray(attribute.value)
             if _.every(attribute.value, @_isReferenceTypeAttribute) # all elements in the attribute array should be a ref.
@@ -214,6 +214,8 @@ class ProductImport
               .then (result) ->
                 attribute.value = result
                 resolve(variant)
+      else
+        resolve(variant)
 
 
   _resolveCustomReferenceSet: (attribute) =>
