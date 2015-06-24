@@ -554,7 +554,7 @@ describe 'ProductImport', ->
       sampleVariantWithResolveableAttr.attributes.push(sampleReferenceAttribute)
       spyOn(@import.client.productProjections, "fetch").andCallFake -> Promise.resolve(expectedClientResponse)
       @import._fetchAndResolveCustomReferencesByVariant(sampleVariantWithResolveableAttr)
-      .then (result) =>
+      .then (result) ->
         expect(result).toEqual expectedResolvedVariant
         done()
       .catch (err) ->
@@ -592,7 +592,7 @@ describe 'ProductImport', ->
       sampleVariantWithResolveableAttr.attributes.push(sampleReferenceAttribute)
       spyOn(@import.client.productProjections, "fetch").andCallFake -> Promise.resolve(expectedClientResponse)
       @import._fetchAndResolveCustomReferencesByVariant(sampleVariantWithResolveableAttr)
-      .then (result) =>
+      .then (result) ->
         expect(result).toEqual expectedResolvedVariant
         done()
       .catch (err) ->

@@ -211,14 +211,14 @@ class ProductImport
           else
             if attribute and @_isReferenceTypeAttribute(attribute.value)
               @_resolveCustomReference(attribute.value)
-              .then (result) =>
+              .then (result) ->
                 attribute.value = result
                 resolve(variant)
 
 
   _resolveCustomReferenceSet: (attribute) =>
     # resolve all references and return a list of resolved values.
-    new Promise (resolve, reject) =>
+    new Promise (resolve) =>
       values = []
       Promise.map attribute, (referenceObject) =>
         @_resolveCustomReference(referenceObject)
@@ -227,8 +227,7 @@ class ProductImport
           if _.size(values) is _.size(attribute)
             resolve(values)
           Promise.resolve()
-        .catch (err) ->
-          reject err
+
 
 
   _isReferenceTypeAttribute: (attributeValue) ->
@@ -244,7 +243,7 @@ class ProductImport
       predicate = referenceObject.resolvePredicate
       @_resolveReference(service,refKey,ref,predicate)
       .then (result) ->
-        resolve(result)
+        resolve result
       .catch (err) ->
         reject err
 
@@ -262,19 +261,19 @@ class ProductImport
     new Promise (resolve, reject) =>
       if not ref
         resolve()
+      if not @_cache[refKey]
+        @_cache[refKey] = {}
+      if @_cache[refKey][ref.id]
+        resolve(@_cache[refKey][ref.id])
       else
-        if not @_cache[refKey]
-          @_cache[refKey] = {}
-        if @_cache[refKey][ref.id]
-          resolve(@_cache[refKey][ref.id])
-        else
-          service.where(predicate).fetch()
-          .then (result) =>
-            if result.body.count is 0
-              reject "Didn't find any match while resolving #{refKey} (#{predicate})"
-            else
-              # Todo: Handle multiple response, currently taking first response.
-              @_cache[refKey][ref.id] = result.body.results[0].id
-              resolve(result.body.results[0].id)
+        service.where(predicate).fetch()
+        .then (result) =>
+          if result.body.count is 0
+            reject "Didn't find any match while resolving #{refKey} (#{predicate})"
+          else
+            if _.size(result.body.results) > 1
+              @logger.warn "Found more than 1 #{refKey} for #{ref.id}"
+            @_cache[refKey][ref.id] = result.body.results[0].id
+            resolve(result.body.results[0].id)
 
 module.exports = ProductImport
