@@ -243,7 +243,7 @@ class ProductImport
       ref = _.deepClone referenceObject
       ref.id = referenceObject.value
       predicate = referenceObject.resolvePredicate
-      @_resolveReference(service,refKey,ref,predicate)
+      @_resolveReference service, refKey, ref, predicate
       .then (result) ->
         resolve result
       .catch (err) ->
