@@ -77,10 +77,11 @@ class ProductImport
       if product.masterVariant?.sku
         skus.push(product.masterVariant.sku)
       else @_summary.emptySKU++
-      for variant in product.variants
-        if variant.sku
-          skus.push(variant.sku)
-        else @_summary.emptySKU++
+      if product.variants and not _.isEmpty(product.variants)
+        for variant in product.variants
+          if variant.sku
+            skus.push(variant.sku)
+          else @_summary.emptySKU++
     return _.uniq(skus,false)
 
 
@@ -268,7 +269,10 @@ class ProductImport
       if @_cache[refKey][ref.id]
         resolve(@_cache[refKey][ref.id])
       else
-        service.where(predicate).fetch()
+        request = service.where(predicate)
+        if refKey is 'productProjections'
+          request.staged(true)
+        request.fetch()
         .then (result) =>
           if result.body.count is 0
             reject "Didn't find any match while resolving #{refKey} (#{predicate})"
