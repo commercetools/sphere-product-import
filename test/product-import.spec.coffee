@@ -322,7 +322,7 @@ describe 'ProductImport', ->
       @import._prepareNewProduct(_.deepClone(sampleNewProduct))
       .then (result) =>
         expect(@import._resolveReference.calls.length).toBe 4
-        expect(result).toEqual sampleNewPreparedProduct
+        expect(result).toEqual @import._ensureDefaults(sampleNewPreparedProduct)
         done()
       .catch done
 
@@ -469,4 +469,160 @@ describe 'ProductImport', ->
 
       updatedProduct = @import._ensureDefaults(sampleProduct)
       expect(updatedProduct).toEqual expectedProduct
+
+  describe ':: Custom reference resolution', ->
+
+    it ' :: should detect reference type attribute', ->
+      sampleReferenceAttribute =
+        name: 'foobar'
+        value:
+          value: 'some value'
+          resolvePredicate: 'some predicate query'
+          endpoint: 'some endpoint'
+
+      sampleNonReferenceAttribute =
+        name: 'some non reference attribute'
+        value: 'some value'
+
+      expect(@import._isReferenceTypeAttribute(sampleReferenceAttribute.value)).toBeTruthy()
+      expect(@import._isReferenceTypeAttribute(sampleNonReferenceAttribute.value)).toBeFalsy()
+
+    it ' :: should resolve to correct reference value', (done) ->
+      sampleReferenceObject =
+        value: 'xyz'
+        resolvePredicate: 'masterVariant(sku="xyz")'
+        endpoint: 'productProjections'
+
+      expectedResult = 'some uuid'
+
+      spyOn(@import, '_resolveReference').andCallFake -> Promise.resolve('some uuid')
+      @import._resolveCustomReference(sampleReferenceObject)
+      .then (result) ->
+        expect(result).toEqual expectedResult
+        done()
+      .catch (err) ->
+        done(err)
+
+    it ' :: should resolve the reference correctly', (done) ->
+      sampleReferenceObject =
+        value: 'xyz'
+        resolvePredicate: 'masterVariant(sku="xyz")'
+        endpoint: 'productProjections'
+
+      expectedResponse =
+        body:
+          results: [
+            id: 'some uuid'
+          ]
+
+      @import._resetCache()
+      spyOn(@import.client.productProjections, "fetch").andCallFake -> Promise.resolve(expectedResponse)
+      @import._resolveCustomReference(sampleReferenceObject)
+      .then (result) ->
+        expect(result).toEqual 'some uuid'
+        done()
+      .catch (err) ->
+        done(err)
+
+
+    it ' :: should fetch and resolve the custom reference in a variant', (done) ->
+      sampleVariantWithResolveableAttr = _.deepClone sampleMasterVariant
+
+      sampleReferenceAttribute =
+        name: 'sample reference attribute'
+        value:
+          value: 'xyz'
+          resolvePredicate: 'masterVariant(sku="xyz")'
+          endpoint: 'productProjections'
+
+      expectedClientResponse =
+        body:
+          results: [
+            id: 'some uuid'
+          ]
+
+      expectedResolvedVariant = _.deepClone sampleMasterVariant
+
+      sampleResolvedReference =
+        name: 'sample reference attribute'
+        value: 'some uuid'
+
+      expectedResolvedVariant.attributes.push(sampleResolvedReference)
+      expectedResolvedVariant.attributes.push(sampleResolvedReference)
+
+      sampleVariantWithResolveableAttr.attributes.push(sampleReferenceAttribute)
+      sampleVariantWithResolveableAttr.attributes.push(sampleReferenceAttribute)
+      spyOn(@import.client.productProjections, "fetch").andCallFake -> Promise.resolve(expectedClientResponse)
+      @import._fetchAndResolveCustomReferencesByVariant(sampleVariantWithResolveableAttr)
+      .then (result) ->
+        expect(result).toEqual expectedResolvedVariant
+        done()
+      .catch (err) ->
+        done(err)
+
+    it ' :: should resolve custom reference set in a variant', (done) ->
+      sampleVariantWithResolveableAttr = _.deepClone sampleMasterVariant
+
+      sampleReferenceAttribute =
+        name: 'sample reference attribute'
+        value: [
+          value: 'xyz'
+          resolvePredicate: 'masterVariant(sku="xyz")'
+          endpoint: 'productProjections'
+        ,
+          value: 'xyz'
+          resolvePredicate: 'masterVariant(sku="xyz")'
+          endpoint: 'productProjections'
+        ]
+
+      expectedClientResponse =
+        body:
+          results: [
+            id: 'some uuid'
+          ]
+
+      expectedResolvedVariant = _.deepClone sampleMasterVariant
+
+      sampleResolvedReference =
+        name: 'sample reference attribute'
+        value: ['some uuid','some uuid']
+
+      expectedResolvedVariant.attributes.push(sampleResolvedReference)
+
+      sampleVariantWithResolveableAttr.attributes.push(sampleReferenceAttribute)
+      spyOn(@import.client.productProjections, "fetch").andCallFake -> Promise.resolve(expectedClientResponse)
+      @import._fetchAndResolveCustomReferencesByVariant(sampleVariantWithResolveableAttr)
+      .then (result) ->
+        expect(result).toEqual expectedResolvedVariant
+        done()
+      .catch (err) ->
+        done(err)
+
+    it ' :: should not throw error in case of variant with no attributes', (done) ->
+      sampleVariantWithoutAttributes =
+        sku: '12345'
+        id: 1
+        images: []
+
+      sampleVariantWithEmptyAttributes =
+        sku: '12345'
+        id: 1
+        attributes: []
+        images: []
+
+      @import._fetchAndResolveCustomReferencesByVariant(sampleVariantWithoutAttributes)
+      .then (result) ->
+        expect(result).toEqual sampleVariantWithoutAttributes
+      @import._fetchAndResolveCustomReferencesByVariant(sampleVariantWithEmptyAttributes)
+      .then (result) ->
+        expect(result).toEqual sampleVariantWithEmptyAttributes
+        done()
+      .catch (err) ->
+        done(err)
+
+
+
+
+
+
 

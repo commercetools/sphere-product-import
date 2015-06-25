@@ -77,10 +77,11 @@ class ProductImport
       if product.masterVariant?.sku
         skus.push(product.masterVariant.sku)
       else @_summary.emptySKU++
-      for variant in product.variants
-        if variant.sku
-          skus.push(variant.sku)
-        else @_summary.emptySKU++
+      if product.variants and not _.isEmpty(product.variants)
+        for variant in product.variants
+          if variant.sku
+            skus.push(variant.sku)
+          else @_summary.emptySKU++
     return _.uniq(skus,false)
 
 
@@ -112,7 +113,7 @@ class ProductImport
     debug 'About to send %s requests', _.size(posts)
     Promise.all(posts)
 
-  _ensureVariantDefaults: (variant) ->
+  _ensureVariantDefaults: (variant = {}) ->
     variantDefaults =
       attributes: []
       prices: []
@@ -122,18 +123,19 @@ class ProductImport
 
   _ensureDefaults: (product) =>
     debug 'ensuring default fields in variants.'
-    if product.masterVariant
-      product.masterVariant = @_ensureVariantDefaults(product.masterVariant)
-    if product.variants
-      product.variants = _.map product.variants, (variant) => @_ensureVariantDefaults(variant)
+    _.defaults product,
+      masterVariant: @_ensureVariantDefaults(product.masterVariant)
+      variants: _.map product.variants, (variant) => @_ensureVariantDefaults(variant)
     return product
 
   _prepareUpdateProduct: (productToProcess, existingProduct) ->
+    productToProcess = @_ensureDefaults(productToProcess)
     Promise.all [
       @_resolveProductCategories(productToProcess.categories)
       @_resolveReference(@client.taxCategories, 'taxCategory', productToProcess.taxCategory, "name=\"#{productToProcess.taxCategory?.id}\"")
+      @_fetchAndResolveCustomReferences(productToProcess)
     ]
-    .spread (prodCatsIds, taxCatId) =>
+    .spread (prodCatsIds, taxCatId) ->
       if taxCatId
         productToProcess.taxCategory =
           id: taxCatId
@@ -145,14 +147,15 @@ class ProductImport
       if not productToProcess.slug
         debug 'slug missing in product to process, assigning same as existing product: %s', existingProduct.slug
         productToProcess.slug = existingProduct.slug # to prevent removing slug from existing product.
-      productToProcess = @_ensureDefaults(productToProcess)
       Promise.resolve productToProcess
 
   _prepareNewProduct: (product) ->
+    product = @_ensureDefaults(product)
     Promise.all [
       @_resolveReference(@client.productTypes, 'productType', product.productType, "name=\"#{product.productType?.id}\"")
       @_resolveProductCategories(product.categories)
       @_resolveReference(@client.taxCategories, 'taxCategory', product.taxCategory, "name=\"#{product.taxCategory?.id}\"")
+      @_fetchAndResolveCustomReferences(product)
     ]
     .spread (prodTypeId, prodCatsIds, taxCatId) =>
       if prodTypeId
@@ -173,6 +176,7 @@ class ProductImport
         product.slug = @_generateSlug product.name
       Promise.resolve product
 
+
   _generateSlug: (name) ->
     slugs = _.mapObject name, (val) =>
       uniqueToken = @_generateUniqueToken()
@@ -181,6 +185,57 @@ class ProductImport
 
   _generateUniqueToken: ->
     _.uniqueId "#{new Date().getTime()}"
+
+  _fetchAndResolveCustomReferences: (product) =>
+    Promise.all [
+      @_fetchAndResolveCustomReferencesByVariant(product.masterVariant),
+      Promise.map product.variants, (variant) =>
+        @_fetchAndResolveCustomReferencesByVariant(variant)
+      ,{concurrency: 5}
+    ]
+    .spread (masterVariant, variants) ->
+      Promise.resolve _.extend(product, { masterVariant, variants })
+
+  _fetchAndResolveCustomReferencesByVariant: (variant) ->
+    if variant.attributes and not _.isEmpty(variant.attributes)
+      Promise.map variant.attributes, (attribute) =>
+        if attribute and _.isArray(attribute.value)
+          if _.every(attribute.value, @_isReferenceTypeAttribute)
+            @_resolveCustomReferenceSet(attribute.value)
+            .then (result) ->
+              attribute.value = result
+              Promise.resolve(attribute)
+          else Promise.resolve(attribute)
+        else
+          if attribute and @_isReferenceTypeAttribute(attribute.value)
+            @_resolveCustomReference(attribute.value)
+            .then (result) ->
+              attribute.value = result
+              Promise.resolve(attribute)
+          else Promise.resolve(attribute)
+      .then (attributes) ->
+        Promise.resolve _.extend(variant, { attributes })
+    else
+      Promise.resolve(variant)
+
+
+  _resolveCustomReferenceSet: (attributeValue) ->
+    Promise.map attributeValue, (referenceObject) =>
+      @_resolveCustomReference(referenceObject)
+
+
+  _isReferenceTypeAttribute: (attributeValue) ->
+    _.has(attributeValue, 'resolvePredicate') and _.has(attributeValue, 'endpoint')
+
+
+  _resolveCustomReference: (referenceObject) ->
+    service = @client["#{referenceObject.endpoint}"]
+    refKey = referenceObject.endpoint
+    ref = _.deepClone referenceObject
+    ref.id = referenceObject.value
+    predicate = referenceObject.resolvePredicate
+    @_resolveReference service, refKey, ref, predicate
+
 
   _resolveProductCategories: (cats) ->
     new Promise (resolve) =>
@@ -195,15 +250,21 @@ class ProductImport
     new Promise (resolve, reject) =>
       if not ref
         resolve()
-      else if @_cache[refKey][ref.id]
+      if not @_cache[refKey]
+        @_cache[refKey] = {}
+      if @_cache[refKey][ref.id]
         resolve(@_cache[refKey][ref.id])
       else
-        service.where(predicate).fetch()
+        request = service.where(predicate)
+        if refKey is 'productProjections'
+          request.staged(true)
+        request.fetch()
         .then (result) =>
           if result.body.count is 0
-            reject "Didn't found any match while resolving #{refKey} (#{predicate})"
+            reject "Didn't find any match while resolving #{refKey} (#{predicate})"
           else
-            # Todo: Handle multiple response, currently taking first response.
+            if _.size(result.body.results) > 1
+              @logger.warn "Found more than 1 #{refKey} for #{ref.id}"
             @_cache[refKey][ref.id] = result.body.results[0].id
             resolve(result.body.results[0].id)
 
