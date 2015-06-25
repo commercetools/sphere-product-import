@@ -8,7 +8,7 @@
         "en":"product-sync-test-product-1"
       },
       "productType" : {
-        "id": "AGS"
+        "id": "Sample Product Type"
       },
       "masterVariant": {
         "sku": "B3-717597",
@@ -27,11 +27,11 @@
       "hasStagedChanges": true,
       "published": false,
       "taxCategory": {
-        "id": "defaultTax_AT"
+        "id": "Standard tax category"
       },
       "categories": [
         {
-          "id": "obst_gemuse"
+          "id": "snowboard-equipment"
         }
       ]
     },
@@ -43,7 +43,7 @@
         "en":"product-sync-test-product-2"
       },
       "productType" : {
-        "id": "AGS"
+        "id": "Sample Product Type"
       },
       "masterVariant": {
         "sku": "C42-345678",
@@ -66,7 +66,7 @@
       "hasStagedChanges": true,
       "published": false,
       "taxCategory": {
-        "id": "defaultTax_AT"
+        "id": "Standard tax category"
       }
     }
   ]
