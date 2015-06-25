@@ -1,12 +1,12 @@
 language: node_js
 node_js:
-  - '0.10'
+- '0.10'
 before_script:
-  - ./create_config.sh
+- ./create_config.sh
 script:
-  - npm test
+- npm test
 env:
   global:
-  - secure: bMeIj3wPlWl+zu3dTXl+P+zGlUwHnJd3mdBqAmLNobYHowvlKUJCe8nL1Xb+YLy13ulsRmz3omgK+gR5qh4FfnsuCQov8WUJDiFkvaS4yi9LYtoCsCbXUMKQ14FQ6yZ8Ttq8XtGOjqIThqHkfBlg5oUZNTce28PxaWmXi0Ydu1Q=
-  - secure: YgyHv59LDz3YwadD2LIKbtMXsuHG6sn7nSW4CScZtYDDF0poJdloKaSWCU33cv6emqVBnQ3VJDUSRbk/KrxOT3Cf3pcxxBtrmdg/fsPfoq406QYVHfMBL4uewD1hfKQqN2cDN6mxZEeOpWRq79s6LXp5Ks7nlY8AcrOXFREgHQ4=
-  - secure: BbESiOle4OYZ3j+TIGuZCBVlElzQg3V+R9GV6LuQEc1jbbxOFbMyPHm3qYA1trtZMBWl5txzcxlAsTgVeM3nYH5qXjhSVs98bIU6aqymxqbP6dONlSvje+55Ah0kqlZ+KKtm5vWyW6EYApFloJWqC+gxol54BzKUMJMhDM5QISw=
+  - secure: SjuwZay5HewV8IqlzzL4FFylQV3iptP+ryCMRo6qXgGve/qB4h2lFPWUdKE2fvqSGfXSc/LlFT8maUOuLli4qELBLH1RNFbQMKRkXVtJXg4evgGMAVSz3SeSowW8XT7YSUCP8jK5QzAdBXLg17e4eIcW5hkH/wz3dIGz6a0dsxU=
+  - secure: AoqFbH1w8uu5vMLh2USnKFkJxskiT5XRZGpI6JDjSJ6rkm2KhDsUfM8s5FmXZMp2sCHHrPCavsfE3xpOLhc/6ppTJl1xWMoSRb+2idIUKUrIPcqmzvtL8cqxeOQcZKn2DvD8mI0ha7BK3u/eJxDgsEZsj7cNAE+IitYnqvXtUQ0=
+  - secure: PVOsVz87Hv9gNhDB1O7ssWUt8Z4J63ywY9A+EUJCptl9T+z5CwlIxCmYHWm5sa2Ee2dsm93fUVsq7ZYOj+lAu0hhd3nUHSTqI4JZENneMUPj8Kw6/B8axpSt991Pb9Z7UFSksot9OcjeGGShaB4mf+oMiD64VRcWb+7x9+LuBic=
