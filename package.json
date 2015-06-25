@@ -1,9 +1,9 @@
 {
   "name": "sphere-product-import",
   "description": "Manage product data",
-  "version": "0.1.0",
+  "version": "0.0.1",
   "homepage": "https://github.com/sphereio/sphere-product-import",
-  "private": true,
+  "private": false,
   "author": {
     "name": "Nicola Molinari",
     "email": "nicola.molinari@commercetools.de"
