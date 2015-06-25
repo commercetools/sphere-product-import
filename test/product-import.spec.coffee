@@ -322,7 +322,7 @@ describe 'ProductImport', ->
       @import._prepareNewProduct(_.deepClone(sampleNewProduct))
       .then (result) =>
         expect(@import._resolveReference.calls.length).toBe 4
-        expect(result).toEqual sampleNewPreparedProduct
+        expect(result).toEqual @import._ensureDefaults(sampleNewPreparedProduct)
         done()
       .catch done
 

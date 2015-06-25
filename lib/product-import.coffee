@@ -113,7 +113,7 @@ class ProductImport
     debug 'About to send %s requests', _.size(posts)
     Promise.all(posts)
 
-  _ensureVariantDefaults: (variant) ->
+  _ensureVariantDefaults: (variant = {}) ->
     variantDefaults =
       attributes: []
       prices: []
@@ -123,19 +123,19 @@ class ProductImport
 
   _ensureDefaults: (product) =>
     debug 'ensuring default fields in variants.'
-    if product.masterVariant
-      product.masterVariant = @_ensureVariantDefaults(product.masterVariant)
-    if product.variants
-      product.variants = _.map product.variants, (variant) => @_ensureVariantDefaults(variant)
+    _.defaults product,
+      masterVariant: @_ensureVariantDefaults(product.masterVariant)
+      variants: _.map product.variants, (variant) => @_ensureVariantDefaults(variant)
     return product
 
   _prepareUpdateProduct: (productToProcess, existingProduct) ->
+    productToProcess = @_ensureDefaults(productToProcess)
     Promise.all [
       @_resolveProductCategories(productToProcess.categories)
       @_resolveReference(@client.taxCategories, 'taxCategory', productToProcess.taxCategory, "name=\"#{productToProcess.taxCategory?.id}\"")
       @_fetchAndResolveCustomReferences(productToProcess)
     ]
-    .spread (prodCatsIds, taxCatId) =>
+    .spread (prodCatsIds, taxCatId) ->
       if taxCatId
         productToProcess.taxCategory =
           id: taxCatId
@@ -147,10 +147,10 @@ class ProductImport
       if not productToProcess.slug
         debug 'slug missing in product to process, assigning same as existing product: %s', existingProduct.slug
         productToProcess.slug = existingProduct.slug # to prevent removing slug from existing product.
-      productToProcess = @_ensureDefaults(productToProcess)
       Promise.resolve productToProcess
 
   _prepareNewProduct: (product) ->
+    product = @_ensureDefaults(product)
     Promise.all [
       @_resolveReference(@client.productTypes, 'productType', product.productType, "name=\"#{product.productType?.id}\"")
       @_resolveProductCategories(product.categories)
@@ -187,68 +187,54 @@ class ProductImport
     _.uniqueId "#{new Date().getTime()}"
 
   _fetchAndResolveCustomReferences: (product) =>
-    new Promise (resolve) =>
-      if product.masterVariant
-        @_fetchAndResolveCustomReferencesByVariant(product.masterVariant).then (result) -> product.masterVariant = result
+    Promise.all [
+      @_fetchAndResolveCustomReferencesByVariant(product.masterVariant),
+      Promise.map product.variants, (variant) =>
+        @_fetchAndResolveCustomReferencesByVariant(variant)
+      ,{concurrency: 5}
+    ]
+    .spread (masterVariant, variants) ->
+      Promise.resolve _.extend(product, { masterVariant, variants })
 
-      if product.variants
-        Promise.map product.variants, (variant) =>
-          @_fetchAndResolveCustomReferencesByVariant(variant)
-          .then ->
-            Promise.resolve()
-        ,{concurrency: 5}
-      resolve(product)
-
-  _fetchAndResolveCustomReferencesByVariant: (variant) =>
-    new Promise (resolve) =>
-      if variant.attributes and not _.isEmpty(variant.attributes)
-        _.map variant.attributes, (attribute) =>
-          if attribute and _.isArray(attribute.value)
-            if _.every(attribute.value, @_isReferenceTypeAttribute) # all elements in the attribute array should be a ref.
-              @_resolveCustomReferenceSet(attribute.value)
-              .then (result) ->
-                attribute.value = result
-                resolve(variant)
-          else
-            if attribute and @_isReferenceTypeAttribute(attribute.value)
-              @_resolveCustomReference(attribute.value)
-              .then (result) ->
-                attribute.value = result
-                resolve(variant)
-      else
-        resolve(variant)
+  _fetchAndResolveCustomReferencesByVariant: (variant) ->
+    if variant.attributes and not _.isEmpty(variant.attributes)
+      Promise.map variant.attributes, (attribute) =>
+        if attribute and _.isArray(attribute.value)
+          if _.every(attribute.value, @_isReferenceTypeAttribute)
+            @_resolveCustomReferenceSet(attribute.value)
+            .then (result) ->
+              attribute.value = result
+              Promise.resolve(attribute)
+          else Promise.resolve(attribute)
+        else
+          if attribute and @_isReferenceTypeAttribute(attribute.value)
+            @_resolveCustomReference(attribute.value)
+            .then (result) ->
+              attribute.value = result
+              Promise.resolve(attribute)
+          else Promise.resolve(attribute)
+      .then (attributes) ->
+        Promise.resolve _.extend(variant, { attributes })
+    else
+      Promise.resolve(variant)
 
 
-  _resolveCustomReferenceSet: (attributeValue) =>
-    # resolve all references and return a list of resolved values.
-    new Promise (resolve) =>
-      values = []
-      Promise.map attributeValue, (referenceObject) =>
-        @_resolveCustomReference(referenceObject)
-        .then (result) ->
-          values.push(result)
-          if _.size(values) is _.size(attributeValue)
-            resolve(values)
-          Promise.resolve()
-
+  _resolveCustomReferenceSet: (attributeValue) ->
+    Promise.map attributeValue, (referenceObject) =>
+      @_resolveCustomReference(referenceObject)
 
 
   _isReferenceTypeAttribute: (attributeValue) ->
     _.has(attributeValue, 'resolvePredicate') and _.has(attributeValue, 'endpoint')
 
 
-  _resolveCustomReference: (referenceObject) =>
-    new Promise (resolve, reject) =>
-      service = @client["#{referenceObject.endpoint}"]
-      refKey = referenceObject.endpoint
-      ref = _.deepClone referenceObject
-      ref.id = referenceObject.value
-      predicate = referenceObject.resolvePredicate
-      @_resolveReference service, refKey, ref, predicate
-      .then (result) ->
-        resolve result
-      .catch (err) ->
-        reject err
+  _resolveCustomReference: (referenceObject) ->
+    service = @client["#{referenceObject.endpoint}"]
+    refKey = referenceObject.endpoint
+    ref = _.deepClone referenceObject
+    ref.id = referenceObject.value
+    predicate = referenceObject.resolvePredicate
+    @_resolveReference service, refKey, ref, predicate
 
 
   _resolveProductCategories: (cats) ->
