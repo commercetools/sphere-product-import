@@ -219,15 +219,15 @@ class ProductImport
         resolve(variant)
 
 
-  _resolveCustomReferenceSet: (attribute) =>
+  _resolveCustomReferenceSet: (attributeValue) =>
     # resolve all references and return a list of resolved values.
     new Promise (resolve) =>
       values = []
-      Promise.map attribute, (referenceObject) =>
+      Promise.map attributeValue, (referenceObject) =>
         @_resolveCustomReference(referenceObject)
         .then (result) ->
           values.push(result)
-          if _.size(values) is _.size(attribute)
+          if _.size(values) is _.size(attributeValue)
             resolve(values)
           Promise.resolve()
 
