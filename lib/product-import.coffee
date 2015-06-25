@@ -200,6 +200,7 @@ class ProductImport
     if variant.attributes and not _.isEmpty(variant.attributes)
       Promise.map variant.attributes, (attribute) =>
         if attribute and _.isArray(attribute.value)
+          # TODO: check that it works!
           if _.every(attribute.value, @_isReferenceTypeAttribute)
             @_resolveCustomReferenceSet(attribute.value)
             .then (result) ->
@@ -207,11 +208,14 @@ class ProductImport
               Promise.resolve(attribute)
           else Promise.resolve(attribute)
         else
-          if attribute and @_isReferenceTypeAttribute(attribute.value)
-            @_resolveCustomReference(attribute.value)
-            .then (result) ->
-              attribute.value = result
-              Promise.resolve(attribute)
+          if attribute and @_isReferenceTypeAttribute(attribute)
+            @_resolveCustomReference(attribute)
+            .then (refId) ->
+              Promise.resolve
+                name: attribute.name
+                value:
+                  id: refId
+                  typeId: attribute.type.referenceTypeId
           else Promise.resolve(attribute)
       .then (attributes) ->
         Promise.resolve _.extend(variant, { attributes })
@@ -224,16 +228,18 @@ class ProductImport
       @_resolveCustomReference(referenceObject)
 
 
-  _isReferenceTypeAttribute: (attributeValue) ->
-    _.has(attributeValue, 'resolvePredicate') and _.has(attributeValue, 'endpoint')
+  _isReferenceTypeAttribute: (attribute) ->
+    _.has(attribute, 'type') and attribute.type.name is 'reference'
 
 
   _resolveCustomReference: (referenceObject) ->
-    service = @client["#{referenceObject.endpoint}"]
-    refKey = referenceObject.endpoint
+    service = switch referenceObject.type.referenceTypeId
+      when 'product' then @client.productProjections
+      # TODO: map also other references
+    refKey = referenceObject.type.referenceTypeId
     ref = _.deepClone referenceObject
     ref.id = referenceObject.value
-    predicate = referenceObject.resolvePredicate
+    predicate = referenceObject._custom.predicate
     @_resolveReference service, refKey, ref, predicate
 
 
@@ -256,7 +262,7 @@ class ProductImport
         resolve(@_cache[refKey][ref.id])
       else
         request = service.where(predicate)
-        if refKey is 'productProjections'
+        if refKey is 'product'
           request.staged(true)
         request.fetch()
         .then (result) =>
