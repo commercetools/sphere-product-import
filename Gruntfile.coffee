@@ -98,4 +98,4 @@ module.exports = (grunt) ->
   grunt.registerTask "test", ["coffeelint", "shell:jasmine"]
   grunt.registerTask 'release', 'Release a new version, push it and publish it', (target) ->
     target = 'patch' unless target
-    grunt.task.run "bump-only:#{target}", 'test', 'bump-commit', 'shell:publish'
+    grunt.task.run "bump-only:#{target}", 'build', 'test', 'bump-commit', 'shell:publish'
