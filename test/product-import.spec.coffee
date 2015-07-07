@@ -364,23 +364,26 @@ describe 'ProductImport', ->
         done()
       .catch done
 
-    xit 'should reject if name is missing', (done) ->
-      newProductWithoutName = _.deepClone(sampleNewProduct)
-      delete newProductWithoutName.name
-      @import._prepareNewProduct(newProductWithoutName)
-      .then done
-      .catch (err) ->
-        expect(err).toBe 'Product name is required.'
-        done()
 
 
   describe '::_createOrUpdate', ->
 
     it 'should create a new product and update an existing product', (done) ->
+
+      samplePrice =
+        country: 'DE'
+        value:
+          currencyCode: 'EUR'
+          centAmount: 8900
+        validFrom: '2012-06-30T22:00:00.000Z'
+        validUntil: '2099-12-30T23:00:00.000Z'
+
+
       newProduct = _.deepClone(sampleNewPreparedProduct)
       newProduct.name = { en: "My new product" }
-      newProduct.masterVariant = sampleMasterVariant
-      newProduct.variants = [ sampleVariant1, sampleVariant2 ]
+      newProduct.masterVariant = _.deepClone(sampleMasterVariant)
+      newProduct.variants = [ _.deepClone(sampleVariant1), _.deepClone(sampleVariant2) ]
+      newProduct.variants[0].prices = [samplePrice]
 
       existingProduct1 = _.deepClone(newProduct)
       existingProduct1.id = "existing_id1"
@@ -565,44 +568,6 @@ describe 'ProductImport', ->
       expectedResolvedVariant.attributes.push(sampleResolvedReference)
 
       sampleVariantWithResolveableAttr.attributes.push(sampleReferenceAttribute)
-      sampleVariantWithResolveableAttr.attributes.push(sampleReferenceAttribute)
-      spyOn(@import.client.productProjections, "fetch").andCallFake -> Promise.resolve(expectedClientResponse)
-      @import._fetchAndResolveCustomReferencesByVariant(sampleVariantWithResolveableAttr)
-      .then (result) ->
-        expect(result).toEqual expectedResolvedVariant
-        done()
-      .catch (err) ->
-        done(err)
-
-    xit ' :: should resolve custom reference set in a variant', (done) ->
-      sampleVariantWithResolveableAttr = _.deepClone sampleMasterVariant
-
-      sampleReferenceAttribute =
-        name: 'sample reference attribute'
-        value: [
-          value: 'xyz'
-          resolvePredicate: 'masterVariant(sku="xyz")'
-          endpoint: 'productProjections'
-        ,
-          value: 'xyz'
-          resolvePredicate: 'masterVariant(sku="xyz")'
-          endpoint: 'productProjections'
-        ]
-
-      expectedClientResponse =
-        body:
-          results: [
-            id: 'some uuid'
-          ]
-
-      expectedResolvedVariant = _.deepClone sampleMasterVariant
-
-      sampleResolvedReference =
-        name: 'sample reference attribute'
-        value: ['some uuid','some uuid']
-
-      expectedResolvedVariant.attributes.push(sampleResolvedReference)
-
       sampleVariantWithResolveableAttr.attributes.push(sampleReferenceAttribute)
       spyOn(@import.client.productProjections, "fetch").andCallFake -> Promise.resolve(expectedClientResponse)
       @import._fetchAndResolveCustomReferencesByVariant(sampleVariantWithResolveableAttr)
