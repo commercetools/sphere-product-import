@@ -101,6 +101,6 @@ class PriceImport
       if matchingSkus.length > 0
         true
       else
-       false
+        false
 
 module.exports = PriceImport
