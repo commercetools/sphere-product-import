@@ -24,7 +24,7 @@ class PriceImport
   performStream: (chunk, cb) ->
     @_processBatches(chunk).then -> cb()
 
-  @_processBatches (prices) ->
+  @_processBatches: (prices) ->
     batchedList = _.batchList(prices, 30) # max parallel elements to process
     Promise.map batchedList, (pricesToProcess) =>
       @_wrapPricesIntoProducts(pricesToProcess)
