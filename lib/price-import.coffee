@@ -4,8 +4,9 @@ _.mixin require 'underscore-mixins'
 Promise = require 'bluebird'
 slugify = require 'underscore.string/slugify'
 {SphereClient, ProductSync} = require 'sphere-node-sdk'
+ProductImport = require './product-import'
 
-class PriceImport
+class PriceImport extends ProductImport
 
   constructor: (@logger, options = {}) ->
     @sync = new ProductSync
@@ -27,17 +28,17 @@ class PriceImport
   @_processBatches: (prices) ->
     batchedList = _.batchList(prices, 30) # max parallel elements to process
     Promise.map batchedList, (pricesToProcess) =>
-      @_wrapPricesIntoProducts(pricesToProcess)
-      .then (wrappedProducts) =>
-        skus = @_extractUniqueSkus(wrappedProducts)
-        predicate = @_createProductFetchBySkuQueryPredicate(skus)
-        @client.productProjections
-        .where(predicate)
-        .staged(true)
-        .fetch()
-        .then (results) =>
-          debug 'Fetched products: %j', results
-          queriedEntries = results.body.results
+      skus = @_extractUniqueSkus(pricesToProcess)
+      predicate = @_createProductFetchBySkuQueryPredicate(skus)
+      @client.productProjections
+      .where(predicate)
+      .staged(true)
+      .fetch()
+      .then (results) =>
+        debug 'Fetched products: %j', results
+        queriedEntries = results.body.results
+        @_wrapPricesIntoProducts(pricesToProcess, queriedEntries)
+        .then (wrappedProducts) =>
           @_createOrUpdate wrappedProducts, queriedEntries
           .then (results) =>
             _.each results, (r) =>
@@ -47,60 +48,25 @@ class PriceImport
             Promise.resolve()
     ,{concurrency: 1}
 
+  _wrapPricesIntoProducts: (prices, products) ->
+    sku2index = {}
+    _.each prices.prices, (p, index) ->
+      if not _.has(sku2index, p.sku)
+        sku2index[p.sku] = []
+      sku2index[p.sku].push index
+    console.log "sku2index", sku2index
 
+    _.each products.products, (p) =>
+      @_wrapPriceIntoVariant p.masterVariant, prices.prices, sku2index
+      _.each p.variants, (v) =>
+        @_wrapPriceIntoVariant v, prices.prices, sku2index
 
-  _createOrUpdate: (productsToProcess, existingProducts) ->
-    debug 'Products to process: %j', {toProcess: productsToProcess, existing: existingProducts}
-
-    posts = _.map productsToProcess, (prodToProcess) =>
-      existingProduct = @_isExistingEntry(prodToProcess, existingProducts)
-      if existingProduct?
-        synced = @sync.buildActions(prodToProcess, existingProduct)
-        if synced.shouldUpdate()
-          @client.products.byId(synced.getUpdateId()).update(synced.getUpdatePayload())
-        else
-          Promise.resolve statusCode: 304
-      else
-        @_summary.unknownSKUCount++
-        Promise.resolve statusCode: 404
-
-    debug 'About to send %s requests', _.size(posts)
-    Promise.all(posts)
-
-
-  _wrapPricesIntoProducts: (prices) ->
-    new Promise(resolve, reject) ->
-      products = []
-      # Some wrapping magic from @Hajo
-      resolve products
-
-
-  _createProductFetchBySkuQueryPredicate: (skus) ->
-    skuString = "sku in (\"#{skus.join('", "')}\")"
-    return "masterVariant(#{skuString}) or variants(#{skuString})"
-
-  _extractUniqueSkus: (products) ->
-    skus = []
-    for product in products
-      if product.masterVariant?.sku
-        skus.push(product.masterVariant.sku)
-      else @_summary.emptySKU++
-      if product.variants and not _.isEmpty(product.variants)
-        for variant in product.variants
-          if variant.sku
-            skus.push(variant.sku)
-          else @_summary.emptySKU++
-    return _.uniq(skus,false)
-
-
-  _isExistingEntry: (prodToProcess, existingProducts) ->
-    prodToProcessSkus = @_extractUniqueSkus([prodToProcess])
-    _.find existingProducts, (existingEntry) =>
-      existingProductSkus =  @_extractUniqueSkus([existingEntry])
-      matchingSkus = _.intersection(prodToProcessSkus,existingProductSkus)
-      if matchingSkus.length > 0
-        true
-      else
-        false
+  _wrapPriceIntoVariant: (variant, prices, sku2index) ->
+    if _.has(sku2index, variant.sku)
+      variant.prices = []
+      _.each sku2index[variant.sku], (index) ->
+        price = _.deepClone prices[index]
+        delete price.sku
+        variant.prices.push price
 
 module.exports = PriceImport
