@@ -9,6 +9,7 @@ ProductImport = require './product-import'
 class PriceImport extends ProductImport
 
   constructor: (@logger, options = {}) ->
+    @skuOfPerformedPrices = []
     @sync = new ProductSync
     @sync.config [{type: 'prices', group: 'white'}].concat(['base', 'references', 'attributes', 'images', 'variants', 'metaAttributes'].map (type) -> {type, group: 'black'})
     @client = new SphereClient options
@@ -56,14 +57,18 @@ class PriceImport extends ProductImport
       sku2index[p.sku].push index
     console.log "sku2index", sku2index
 
-    _.each products.products, (p) =>
-      @_wrapPriceIntoVariant p.masterVariant, prices.prices, sku2index
-      _.each p.variants, (v) =>
+    _.map products.products, (p) =>
+      product = _.deepClone p
+      @_wrapPriceIntoVariant product.masterVariant, prices.prices, sku2index
+      _.each product.variants, (v) =>
         @_wrapPriceIntoVariant v, prices.prices, sku2index
+      product
 
   _wrapPriceIntoVariant: (variant, prices, sku2index) ->
     if _.has(sku2index, variant.sku)
-      variant.prices = []
+      if not _.contains(@skuOfPerformedPrices, variant.sku)
+        variant.prices = []
+        @skuOfPerformedPrices.push variant.sku
       _.each sku2index[variant.sku], (index) ->
         price = _.deepClone prices[index]
         delete price.sku
