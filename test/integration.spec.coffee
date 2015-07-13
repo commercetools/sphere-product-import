@@ -55,7 +55,7 @@ describe 'Product import integration tests', ->
 
   describe 'JSON file', ->
 
-    it 'should import two new products', (done) ->
+    xit 'should import two new products', (done) ->
       sampleImport = _.deepClone(sampleImportJson)
       @import._processBatches(sampleImport.products)
       .then =>
@@ -89,7 +89,7 @@ describe 'Product import integration tests', ->
       .catch done
     , 10000
 
-    it 'should generate missing slug', (done) ->
+    xit 'should generate missing slug', (done) ->
       sampleImport = _.deepClone(sampleImportJson)
       delete sampleImport.products[0].slug
       delete sampleImport.products[1].slug

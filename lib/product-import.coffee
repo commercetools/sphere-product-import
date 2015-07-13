@@ -63,7 +63,7 @@ class ProductImport
           switch r.statusCode
             when 201 then @_summary.created++
             when 200 then @_summary.updated++
-        Promise.resolve()
+        Promise.resolve(@_summary)
     ,{concurrency: 1} # run 1 batch at a time
 
 
