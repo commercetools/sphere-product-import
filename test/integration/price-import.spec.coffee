@@ -81,7 +81,7 @@ describe 'Price Importer integration tests', ->
     cleanup(@logger, @client)
     .then -> done()
     .catch (err) -> done(_.prettify err)
-  , 30000 # 10sec
+  , 30000 # 30sec
 
   it 'should update prices of a product', (done) ->
     prices = [
