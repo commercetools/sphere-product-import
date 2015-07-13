@@ -64,7 +64,5 @@ class PriceImport extends ProductImport
         price = _.deepClone prices[index]
         delete price.sku
         variant.prices.push price
-    else
-      variant.prices = []
 
 module.exports = PriceImport

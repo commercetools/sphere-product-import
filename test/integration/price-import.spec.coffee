@@ -112,6 +112,8 @@ describe 'Price Importer integration tests', ->
         expect(product.variants[0].prices[0].value.centAmount).toBe 666
         expect(product.variants[0].prices[0].value.currencyCode).toBe 'JPY'
         expect(product.variants[0].prices[0].country).toBe 'JP'
-        expect(_.size product.variants[1].prices).toBe 0
+        expect(_.size product.variants[1].prices).toBe 1
+        expect(product.variants[1].prices[0].value.centAmount).toBe 9
+        expect(product.variants[1].prices[0].value.currencyCode).toBe 'GBP'
         done()
   , 30000
