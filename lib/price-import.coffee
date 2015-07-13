@@ -9,24 +9,11 @@ ProductImport = require './product-import'
 class PriceImport extends ProductImport
 
   constructor: (@logger, options = {}) ->
+    super(@logger, options)
     @skuOfPerformedPrices = []
-    @sync = new ProductSync
     @sync.config [{type: 'prices', group: 'white'}].concat(['base', 'references', 'attributes', 'images', 'variants', 'metaAttributes'].map (type) -> {type, group: 'black'})
-    @client = new SphereClient options
-    @_resetSummary()
 
-  _resetSummary: ->
-    @_summary =
-      emptySKU: 0
-      unknownSKUCount: 0
-      created: 0
-      updated: 0
-
-
-  performStream: (chunk, cb) ->
-    @_processBatches(chunk).then -> cb()
-
-  @_processBatches: (prices) ->
+  _processBatches: (prices) ->
     batchedList = _.batchList(prices, 30) # max parallel elements to process
     Promise.map batchedList, (pricesToProcess) =>
       skus = @_extractUniqueSkus(pricesToProcess)
@@ -34,34 +21,38 @@ class PriceImport extends ProductImport
       @client.productProjections
       .where(predicate)
       .staged(true)
+      .all()
       .fetch()
       .then (results) =>
-        debug 'Fetched products: %j', results
+        debug "Fetched products: %j", results
         queriedEntries = results.body.results
-        @_wrapPricesIntoProducts(pricesToProcess, queriedEntries)
-        .then (wrappedProducts) =>
-          @_createOrUpdate wrappedProducts, queriedEntries
-          .then (results) =>
-            _.each results, (r) =>
-              switch r.statusCode
-                when 201 then @_summary.created++
-                when 200 then @_summary.updated++
-            Promise.resolve()
+        wrappedProducts = @_wrapPricesIntoProducts(pricesToProcess, queriedEntries)
+        console.log "Wrapped #{_.size prices} price(s) into #{_.size wrappedProducts} existing product(s)."
+        @_createOrUpdate wrappedProducts, queriedEntries
+        .then (results) =>
+          _.each results, (r) =>
+            switch r.statusCode
+              when 201 then @_summary.created++
+              when 200 then @_summary.updated++
+          Promise.resolve('huhu')
     ,{concurrency: 1}
+
+  _extractUniqueSkus: (prices) ->
+    _.map prices, (p) ->
+      p.sku
 
   _wrapPricesIntoProducts: (prices, products) ->
     sku2index = {}
-    _.each prices.prices, (p, index) ->
+    _.each prices, (p, index) ->
       if not _.has(sku2index, p.sku)
         sku2index[p.sku] = []
       sku2index[p.sku].push index
-    console.log "sku2index", sku2index
 
-    _.map products.products, (p) =>
+    _.map products, (p) =>
       product = _.deepClone p
-      @_wrapPriceIntoVariant product.masterVariant, prices.prices, sku2index
+      @_wrapPriceIntoVariant product.masterVariant, prices, sku2index
       _.each product.variants, (v) =>
-        @_wrapPriceIntoVariant v, prices.prices, sku2index
+        @_wrapPriceIntoVariant v, prices, sku2index
       product
 
   _wrapPriceIntoVariant: (variant, prices, sku2index) ->
@@ -73,5 +64,7 @@ class PriceImport extends ProductImport
         price = _.deepClone prices[index]
         delete price.sku
         variant.prices.push price
+    else
+      variant.prices = []
 
 module.exports = PriceImport

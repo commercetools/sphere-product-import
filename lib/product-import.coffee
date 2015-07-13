@@ -40,6 +40,7 @@ class ProductImport
 
   performStream: (chunk, cb) ->
     @_processBatches(chunk).then -> cb()
+    .catch (err) -> cb(err)
 
   _processBatches: (products) ->
     batchedList = _.batchList(products, 30) # max parallel elem to process
@@ -63,7 +64,7 @@ class ProductImport
           switch r.statusCode
             when 201 then @_summary.created++
             when 200 then @_summary.updated++
-        Promise.resolve()
+        Promise.resolve('done')
     ,{concurrency: 1} # run 1 batch at a time
 
 
