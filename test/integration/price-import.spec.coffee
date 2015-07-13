@@ -116,4 +116,6 @@ describe 'Price Importer integration tests', ->
         expect(product.variants[1].prices[0].value.centAmount).toBe 9
         expect(product.variants[1].prices[0].value.currencyCode).toBe 'GBP'
         done()
+      .catch (err) ->
+        done(_.prettify err)
   , 30000
