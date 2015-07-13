@@ -9,24 +9,24 @@ ProductImport = require './product-import'
 class PriceImport extends ProductImport
 
   constructor: (@logger, options = {}) ->
-    super(@logger, options)
+    super @logger, options
     @skuOfPerformedPrices = []
     @sync.config [{type: 'prices', group: 'white'}].concat(['base', 'references', 'attributes', 'images', 'variants', 'metaAttributes'].map (type) -> {type, group: 'black'})
 
   _processBatches: (prices) ->
     batchedList = _.batchList(prices, 30) # max parallel elements to process
     Promise.map batchedList, (pricesToProcess) =>
-      skus = @_extractUniqueSkus(pricesToProcess)
-      predicate = @_createProductFetchBySkuQueryPredicate(skus)
+      skus = @_extractUniqueSkus pricesToProcess
+      predicate = @_createProductFetchBySkuQueryPredicate skus
       @client.productProjections
-      .where(predicate)
-      .staged(true)
+      .where predicate
+      .staged true
       .all()
       .fetch()
       .then (results) =>
         debug "Fetched products: %j", results
         queriedEntries = results.body.results
-        wrappedProducts = @_wrapPricesIntoProducts(pricesToProcess, queriedEntries)
+        wrappedProducts = @_wrapPricesIntoProducts pricesToProcess, queriedEntries
         console.log "Wrapped #{_.size prices} price(s) into #{_.size wrappedProducts} existing product(s)."
         @_createOrUpdate wrappedProducts, queriedEntries
         .then (results) =>
