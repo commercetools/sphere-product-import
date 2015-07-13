@@ -34,7 +34,7 @@ class PriceImport extends ProductImport
             switch r.statusCode
               when 201 then @_summary.created++
               when 200 then @_summary.updated++
-          Promise.resolve('huhu')
+          Promise.resolve(@_summary)
     ,{concurrency: 1}
 
   _extractUniqueSkus: (prices) ->
