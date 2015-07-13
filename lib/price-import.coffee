@@ -50,12 +50,12 @@ class PriceImport extends ProductImport
 
     _.map products, (p) =>
       product = _.deepClone p
-      @_wrapPriceIntoVariant product.masterVariant, prices, sku2index
+      @_wrapPricesIntoVariant product.masterVariant, prices, sku2index
       _.each product.variants, (v) =>
-        @_wrapPriceIntoVariant v, prices, sku2index
+        @_wrapPricesIntoVariant v, prices, sku2index
       product
 
-  _wrapPriceIntoVariant: (variant, prices, sku2index) ->
+  _wrapPricesIntoVariant: (variant, prices, sku2index) ->
     if _.has(sku2index, variant.sku)
       if not _.contains(@skuOfPerformedPrices, variant.sku)
         variant.prices = []
