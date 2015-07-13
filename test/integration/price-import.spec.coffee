@@ -15,19 +15,27 @@ cleanup = (logger, client) ->
       client.products.byId(e.id).delete(e.version)
   .then (results) ->
     debug "#{_.size results} deleted."
-    Promise.resolve()
+    client.productTypes.all().fetch()
+    .then (result) ->
+      Promise.all _.map result.body.results, (e) ->
+        client.productTypes.byId(e.id).delete(e.version)
+    .then (results) ->
+      debug "#{_.size results} deleted."
+      Promise.resolve()
 
 getOrCreateProductType = (client) ->
-  name = 'productTypeForPriceImport'
-  client.productTypes.where("name=\"#{name}\"").fetch()
-  .then (result) ->
-    if result.total is 0
-      pt =
-        name: name
-        description: 'bla bla'
-      client.productTypes.create(pt)
-    else
-      Promise.resolve result.body.results[0]
+  new Promise (resolve, reject) ->
+    name = 'productTypeForPriceImport'
+    client.productTypes.where("name=\"#{name}\"").fetch()
+    .then (result) ->
+      if result.body.total is 0
+        pt =
+          name: name
+          description: 'bla bla'
+        client.productTypes.create(pt)
+        .then (res) -> resolve res.body
+      else
+        resolve result.body.results[0]
 
 createProduct = (client, productType) ->
   product =
@@ -44,7 +52,7 @@ createProduct = (client, productType) ->
       { sku: 'sku2', prices: [ { value: { centAmount: 777, currencyCode: 'JPY' } } ] }
       { sku: 'sku3', prices: [ { value: { centAmount: 9, currencyCode: 'GBP' } } ] }
     ]
-  client.products.create(product)
+  client.products.create product
 
 describe 'Price Importer integration tests', ->
 
@@ -68,7 +76,7 @@ describe 'Price Importer integration tests', ->
       getOrCreateProductType @client
     .then (@productType) =>
       createProduct @client, @productType
-    .then (@product) =>
+    .then (@product) ->
       done()
     .catch (err) ->
       done(_.prettify err)
@@ -81,7 +89,7 @@ describe 'Price Importer integration tests', ->
     .catch (err) -> done(_.prettify err)
   , 30000 # 10sec
 
-  it 'should update price of products', (done) ->
+  it 'should update prices of a product', (done) ->
     prices = [
       {
         sku: 'sku1'
