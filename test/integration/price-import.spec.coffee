@@ -15,13 +15,7 @@ cleanup = (logger, client) ->
       client.products.byId(e.id).delete(e.version)
   .then (results) ->
     debug "#{_.size results} deleted."
-    client.productTypes.all().fetch()
-    .then (result) ->
-      Promise.all _.map result.body.results, (e) ->
-        client.productTypes.byId(e.id).delete(e.version)
-    .then (results) ->
-      debug "#{_.size results} deleted."
-      Promise.resolve()
+    Promise.resolve()
 
 getOrCreateProductType = (client) ->
   new Promise (resolve, reject) ->
