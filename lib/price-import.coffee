@@ -21,16 +21,12 @@ class PriceImport extends ProductImport
       variantWithoutPriceUpdates: 0
       updated: 0
 
-  summaryReport: (filename) ->
+  summaryReport: ->
     if @_summary.updated is 0
       message = 'Summary: nothing to update'
     else
       message = "Summary: there were #{@_summary.updated} price update(s)." +
         "(unknown skus: #{@_summary.unknownSKUCount}, duplicate skus: #{@_summary.duplicatedSKUs}, variants without price updates: #{@_summary.variantWithoutPriceUpdates})"
-
-    if @_summary.unknownSKUCount > 0
-      message += "\nFound #{@_summary.unknownSKUCount} unknown SKUs from file input"
-      message += " '#{filename}'" if filename
 
     message
 
