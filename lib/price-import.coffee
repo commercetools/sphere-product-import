@@ -11,22 +11,22 @@ class PriceImport extends ProductImport
 
   constructor: (@logger, options = {}) ->
     super @logger, options
-    @skuOfPerformedPrices = []
     @sync.config [{type: 'prices', group: 'white'}].concat(['base', 'references', 'attributes', 'images', 'variants', 'metaAttributes'].map (type) -> {type, group: 'black'})
     @repeater = new Repeater
 
   _resetSummary: ->
     @_summary =
       unknownSKUCount: 0
-      created: 0
+      duplicatedSKUs: 0
+      variantWithoutPriceUpdates: 0
       updated: 0
 
   summaryReport: (filename) ->
-    if @_summary.created is 0 and @_summary.updated is 0
-      message = 'Summary: nothing to do, everything is fine'
+    if @_summary.updated is 0
+      message = 'Summary: nothing to update'
     else
-      message = "Summary: there were #{@_summary.created + @_summary.updated} imported prices " +
-        "(#{@_summary.created} were new and #{@_summary.updated} were updates)"
+      message = "Summary: there were #{@_summary.updated} price update(s)." +
+        "(unknown skus: #{@_summary.unknownSKUCount}, duplicate skus: #{@_summary.duplicatedSKUs}, variants without price updates: #{@_summary.variantWithoutPriceUpdates})"
 
     if @_summary.unknownSKUCount > 0
       message += "\nFound #{@_summary.unknownSKUCount} unknown SKUs from file input"
@@ -53,7 +53,6 @@ class PriceImport extends ProductImport
         .then (results) =>
           _.each results, (r) =>
             switch r.statusCode
-              when 201 then @_summary.created++
               when 200 then @_summary.updated++
           Promise.resolve(@_summary)
     ,{concurrency: 1}
@@ -97,10 +96,12 @@ class PriceImport extends ProductImport
 
   _wrapPricesIntoProducts: (prices, products) ->
     sku2index = {}
-    _.each prices, (p, index) ->
+    _.each prices, (p, index) =>
       if not _.has(sku2index, p.sku)
-        sku2index[p.sku] = []
-      sku2index[p.sku].push index
+        sku2index[p.sku] = index
+      else
+        @logger.warn "Duplicate SKU found - '#{p.sku}' - ignoring!"
+        @_summary.duplicatedSKUs++
 
     _.map products, (p) =>
       product = _.deepClone p
@@ -111,12 +112,9 @@ class PriceImport extends ProductImport
 
   _wrapPricesIntoVariant: (variant, prices, sku2index) ->
     if _.has(sku2index, variant.sku)
-      if not _.contains(@skuOfPerformedPrices, variant.sku)
-        variant.prices = []
-        @skuOfPerformedPrices.push variant.sku
-      _.each sku2index[variant.sku], (index) ->
-        price = _.deepClone prices[index]
-        delete price.sku
-        variant.prices.push price
+      index = sku2index[variant.sku]
+      variant.prices = _.deepClone prices[index].prices
+    else
+      @_summary.variantWithoutPriceUpdates++
 
 module.exports = PriceImport

@@ -87,16 +87,24 @@ describe 'Price Importer integration tests', ->
     prices = [
       {
         sku: 'sku1'
-        value:
-          centAmount: 9999
-          currencyCode: 'EUR'
+        prices: [
+          {
+            value:
+              centAmount: 9999
+              currencyCode: 'EUR'
+          }
+        ]
       }
       {
         sku: 'sku2'
-        value:
-          centAmount: 666
-          currencyCode: 'JPY'
-        country: 'JP'
+        prices: [
+          {
+            value:
+              centAmount: 666
+              currencyCode: 'JPY'
+            country: 'JP'
+          }
+        ]
       }
     ]
     @import.performStream prices, (res) =>
