@@ -9,6 +9,7 @@ package_json = require '../package.json'
 sampleImportJson = require '../samples/import.json'
 sampleProductType = require '../samples/sample-product-type.json'
 sampleCategory = require '../samples/sample-category.json'
+sampleTaxCategory = require '../samples/sample-tax-category.json'
 
 frozenTimeStamp = new Date().getTime()
 
@@ -54,9 +55,8 @@ describe 'Product import integration tests', ->
     cleanup(@logger, @client)
     .then => ensureProperty(@client.productTypes, 'name="Sample Product Type"', sampleProductType)
     .then => ensureProperty(@client.categories, 'name(en="Snowboard equipment")', sampleCategory)
+    .then => ensureProperty(@client.taxCategories, 'name="Standard tax category"', sampleTaxCategory)
     .then ->
-      # TODO: ensure that productType, taxCategory and categories
-      # are created before running the tests
       done()
     .catch (err) -> done(_.prettify err)
   , 10000 # 10sec
