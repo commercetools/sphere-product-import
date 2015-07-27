@@ -8,6 +8,7 @@ Promise = require 'bluebird'
 package_json = require '../package.json'
 sampleImportJson = require '../samples/import.json'
 sampleProductType = require '../samples/sample-product-type.json'
+sampleCategory = require '../samples/sample-category.json'
 
 frozenTimeStamp = new Date().getTime()
 
@@ -21,14 +22,14 @@ cleanup = (logger, client) ->
     debug "#{_.size results} deleted."
     Promise.resolve()
 
-initializeProductType = (logger, client) ->
-  debug "Validating existance of product type..."
-  client.productTypes.where('name="Sample Product Type"').fetch()
+ensureProperty = (service, predicate, sampleData) ->
+  debug "Ensuring existence of #{service}..."
+  service.where(predicate).fetch()
   .then (result) ->
     if result.statusCode is 200 and result.body.count is 0
-      client.productTypes.create(sampleProductType)
+      service.create(sampleData)
       .then (result) ->
-        debug "Sample product type created with id: #{result.body.id}"
+        debug "Sample #{JSON.stringify(result.body.name, null, 2)} created with id: #{result.body.id}"
         Promise.resolve()
     else
       Promise.resolve()
@@ -51,12 +52,12 @@ describe 'Product import integration tests', ->
 
     @logger.info 'About to setup...'
     cleanup(@logger, @client)
-    .then =>
-      initializeProductType(@logger, @client)
-      .then ->
-        # TODO: ensure that productType, taxCategory and categories
-        # are created before running the tests
-        done()
+    .then => ensureProperty(@client.productTypes, 'name="Sample Product Type"', sampleProductType)
+    .then => ensureProperty(@client.categories, 'name(en="Snowboard equipment")', sampleCategory)
+    .then ->
+      # TODO: ensure that productType, taxCategory and categories
+      # are created before running the tests
+      done()
     .catch (err) -> done(_.prettify err)
   , 10000 # 10sec
 
