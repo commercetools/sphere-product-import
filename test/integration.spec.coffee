@@ -55,7 +55,7 @@ describe 'Product import integration tests', ->
 
   describe 'JSON file', ->
 
-    xit 'should import two new products', (done) ->
+    it 'should import two new products', (done) ->
       sampleImport = _.deepClone(sampleImportJson)
       @import._processBatches(sampleImport.products)
       .then =>
@@ -89,7 +89,7 @@ describe 'Product import integration tests', ->
       .catch done
     , 10000
 
-    xit 'should generate missing slug', (done) ->
+    it 'should generate missing slug', (done) ->
       sampleImport = _.deepClone(sampleImportJson)
       delete sampleImport.products[0].slug
       delete sampleImport.products[1].slug
@@ -114,6 +114,18 @@ describe 'Product import integration tests', ->
       sampleUpdate = _.deepClone(sampleImportJson)
       sampleUpdate.products = _.without(sampleUpdateRef.products,sampleUpdateRef.products[1])
       sampleUpdate.products[0].variants = _.without(sampleUpdateRef.products[0].variants,sampleUpdateRef.products[0].variants[1])
+      sampleImport.products[0].name.de = 'Product_Sync_Test_Product_1_German'
+      sampleAttribute1 =
+        name: 'product_id'
+        value: 'sampe_product_id1'
+      sampleImport.products[0].masterVariant.attributes.push(sampleAttribute1)
+      sampleImport.products[0].variants[0].attributes.push(sampleAttribute1)
+      samplePrice =
+        value:
+          centAmount: 666
+          currencyCode: 'JPY'
+        country: 'JP'
+      sampleImport.products[0].variants[0].prices = [samplePrice]
 
       @import._processBatches(sampleUpdate.products)
       .then =>
@@ -131,3 +143,5 @@ describe 'Product import integration tests', ->
         done()
       .catch (err) -> done(_.prettify err.body)
     , 10000
+
+

@@ -104,10 +104,12 @@ class ProductImport
       existingProduct = @_isExistingEntry(prodToProcess, existingProducts)
       if existingProduct?
         @_prepareUpdateProduct(prodToProcess, existingProduct).then (preparedProduct) =>
+          console.log "updating product: #{prodToProcess.name.en}"
           synced = @sync.buildActions(preparedProduct, existingProduct)
           if synced.shouldUpdate()
             @client.products.byId(synced.getUpdateId()).update(synced.getUpdatePayload())
           else
+            console.log "--->> nothing to update for product: #{prodToProcess.name.en} --->>"
             Promise.resolve statusCode: 304
       else
         @_prepareNewProduct(prodToProcess).then (product) => @client.products.create(product)
