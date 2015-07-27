@@ -7,6 +7,7 @@ Promise = require 'bluebird'
 {ExtendedLogger} = require 'sphere-node-utils'
 package_json = require '../package.json'
 sampleImportJson = require '../samples/import.json'
+sampleProductType = require '../samples/sample-product-type.json'
 
 frozenTimeStamp = new Date().getTime()
 
@@ -20,6 +21,17 @@ cleanup = (logger, client) ->
     debug "#{_.size results} deleted."
     Promise.resolve()
 
+initializeProductType = (logger, client) ->
+  debug "Validating existance of product type..."
+  client.productTypes.where('name="Sample Product Type"').fetch()
+  .then (result) ->
+    if result.statusCode is 200 and result.body.count is 0
+      client.productTypes.create(sampleProductType)
+      .then (result) ->
+        debug "Sample product type created with id: #{result.body.id}"
+        Promise.resolve()
+    else
+      Promise.resolve()
 
 describe 'Product import integration tests', ->
 
@@ -39,10 +51,12 @@ describe 'Product import integration tests', ->
 
     @logger.info 'About to setup...'
     cleanup(@logger, @client)
-    .then ->
-      # TODO: ensure that productType, taxCategory and categories
-      # are created before running the tests
-      done()
+    .then =>
+      initializeProductType(@logger, @client)
+      .then ->
+        # TODO: ensure that productType, taxCategory and categories
+        # are created before running the tests
+        done()
     .catch (err) -> done(_.prettify err)
   , 10000 # 10sec
 
