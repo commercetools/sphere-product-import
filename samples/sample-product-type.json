@@ -1,0 +1,18 @@
+{
+  "name": "Sample Product Type",
+  "description": "Sample product type for product importer test",
+  "attributes": [
+    {
+      "type":
+        {
+          "name": "text"
+        },
+      "name": "product_id",
+      "label":
+        {
+          "en": "Product Id"
+        },
+      "isRequired": false
+    }
+  ]
+}

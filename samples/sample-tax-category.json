@@ -1,0 +1,17 @@
+{
+  "name": "Standard tax category",
+  "rates":[
+    {
+      "name": "5% US",
+      "amount": 0.05,
+      "includedInPrice": false,
+      "country": "US"
+    },
+    {
+      "name": "19% MwSt",
+      "amount": 0.19,
+      "includedInPrice": true,
+      "country": "DE"
+    }
+  ]
+}

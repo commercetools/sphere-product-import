@@ -7,6 +7,9 @@ Promise = require 'bluebird'
 {ExtendedLogger} = require 'sphere-node-utils'
 package_json = require '../package.json'
 sampleImportJson = require '../samples/import.json'
+sampleProductType = require '../samples/sample-product-type.json'
+sampleCategory = require '../samples/sample-category.json'
+sampleTaxCategory = require '../samples/sample-tax-category.json'
 
 frozenTimeStamp = new Date().getTime()
 
@@ -20,6 +23,17 @@ cleanup = (logger, client) ->
     debug "#{_.size results} deleted."
     Promise.resolve()
 
+ensureResource = (service, predicate, sampleData) ->
+  debug "Ensuring existence of #{service}..."
+  service.where(predicate).fetch()
+  .then (result) ->
+    if result.statusCode is 200 and result.body.count is 0
+      service.create(sampleData)
+      .then (result) ->
+        debug "Sample #{JSON.stringify(result.body.name, null, 2)} created with id: #{result.body.id}"
+        Promise.resolve()
+    else
+      Promise.resolve()
 
 describe 'Product import integration tests', ->
 
@@ -39,9 +53,10 @@ describe 'Product import integration tests', ->
 
     @logger.info 'About to setup...'
     cleanup(@logger, @client)
+    .then => ensureResource(@client.productTypes, 'name="Sample Product Type"', sampleProductType)
+    .then => ensureResource(@client.categories, 'name(en="Snowboard equipment")', sampleCategory)
+    .then => ensureResource(@client.taxCategories, 'name="Standard tax category"', sampleTaxCategory)
     .then ->
-      # TODO: ensure that productType, taxCategory and categories
-      # are created before running the tests
       done()
     .catch (err) -> done(_.prettify err)
   , 10000 # 10sec
@@ -55,7 +70,7 @@ describe 'Product import integration tests', ->
 
   describe 'JSON file', ->
 
-    xit 'should import two new products', (done) ->
+    it 'should import two new products', (done) ->
       sampleImport = _.deepClone(sampleImportJson)
       @import._processBatches(sampleImport.products)
       .then =>
@@ -89,7 +104,7 @@ describe 'Product import integration tests', ->
       .catch done
     , 10000
 
-    xit 'should generate missing slug', (done) ->
+    it 'should generate missing slug', (done) ->
       sampleImport = _.deepClone(sampleImportJson)
       delete sampleImport.products[0].slug
       delete sampleImport.products[1].slug
@@ -114,6 +129,18 @@ describe 'Product import integration tests', ->
       sampleUpdate = _.deepClone(sampleImportJson)
       sampleUpdate.products = _.without(sampleUpdateRef.products,sampleUpdateRef.products[1])
       sampleUpdate.products[0].variants = _.without(sampleUpdateRef.products[0].variants,sampleUpdateRef.products[0].variants[1])
+      sampleImport.products[0].name.de = 'Product_Sync_Test_Product_1_German'
+      sampleAttribute1 =
+        name: 'product_id'
+        value: 'sampe_product_id1'
+      sampleImport.products[0].masterVariant.attributes.push(sampleAttribute1)
+      sampleImport.products[0].variants[0].attributes.push(sampleAttribute1)
+      samplePrice =
+        value:
+          centAmount: 666
+          currencyCode: 'JPY'
+        country: 'JP'
+      sampleImport.products[0].variants[0].prices = [samplePrice]
 
       @import._processBatches(sampleUpdate.products)
       .then =>
@@ -131,3 +158,5 @@ describe 'Product import integration tests', ->
         done()
       .catch (err) -> done(_.prettify err.body)
     , 10000
+
+

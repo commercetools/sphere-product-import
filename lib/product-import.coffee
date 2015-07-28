@@ -41,6 +41,7 @@ class ProductImport
 
   performStream: (chunk, cb) ->
     @_processBatches(chunk).then -> cb()
+    .catch (err) -> cb(err.body)
 
   _processBatches: (products) ->
     batchedList = _.batchList(products, 30) # max parallel elem to process
