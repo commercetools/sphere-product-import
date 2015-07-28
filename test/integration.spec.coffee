@@ -23,7 +23,7 @@ cleanup = (logger, client) ->
     debug "#{_.size results} deleted."
     Promise.resolve()
 
-ensureProperty = (service, predicate, sampleData) ->
+ensureResource = (service, predicate, sampleData) ->
   debug "Ensuring existence of #{service}..."
   service.where(predicate).fetch()
   .then (result) ->
@@ -53,9 +53,9 @@ describe 'Product import integration tests', ->
 
     @logger.info 'About to setup...'
     cleanup(@logger, @client)
-    .then => ensureProperty(@client.productTypes, 'name="Sample Product Type"', sampleProductType)
-    .then => ensureProperty(@client.categories, 'name(en="Snowboard equipment")', sampleCategory)
-    .then => ensureProperty(@client.taxCategories, 'name="Standard tax category"', sampleTaxCategory)
+    .then => ensureResource(@client.productTypes, 'name="Sample Product Type"', sampleProductType)
+    .then => ensureResource(@client.categories, 'name(en="Snowboard equipment")', sampleCategory)
+    .then => ensureResource(@client.taxCategories, 'name="Standard tax category"', sampleTaxCategory)
     .then ->
       done()
     .catch (err) -> done(_.prettify err)
