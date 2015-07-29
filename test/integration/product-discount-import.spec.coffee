@@ -70,6 +70,9 @@ describe 'Product Discount Importer integration tests', ->
     ]
     @import.performStream discounts, (res) =>
       expect(res).toBeUndefined()
+      expect(@import._summary.created).toBe 1
+      expect(@import._summary.updated).toBe 0
+      expect(@import._summary.unChanged).toBe 0
       @client.productDiscounts.all().fetch()
       .then (res) ->
         expect(_.size res.body.results).toBe 1
@@ -98,6 +101,9 @@ describe 'Product Discount Importer integration tests', ->
       expect(res).toBeUndefined()
       @import.performStream discounts, (res) =>
         expect(res).toBeUndefined()
+        expect(@import._summary.created).toBe 1
+        expect(@import._summary.updated).toBe 0
+        expect(@import._summary.unChanged).toBe 1
         @client.productDiscounts.all().fetch()
         .then (res) ->
           expect(_.size res.body.results).toBe 1
@@ -139,6 +145,9 @@ describe 'Product Discount Importer integration tests', ->
       ]
       @import.performStream discounts, (res) =>
         expect(res).toBeUndefined()
+        expect(@import._summary.created).toBe 1
+        expect(@import._summary.updated).toBe 1
+        expect(@import._summary.unChanged).toBe 0
         @client.productDiscounts.all().fetch()
         .then (res) ->
           expect(_.size res.body.results).toBe 1
