@@ -28,7 +28,9 @@ class ProductDiscountImport
     message
 
   performStream: (chunk, cb) ->
-    @_processBatches(chunk).then -> cb()
+    @_processBatches(chunk)
+    .then -> cb()
+    .catch (err) -> cb(err.body)
 
   _createProductDiscountFetchByNamePredicate: (discounts) ->
     names = _.map discounts, (d) =>
