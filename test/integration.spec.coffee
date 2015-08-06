@@ -159,4 +159,16 @@ describe 'Product import integration tests', ->
       .catch (err) -> done(_.prettify err.body)
     , 10000
 
+    it ' :: should continue on error', (done) ->
+      sampleImport = _.deepClone sampleImportJson
+      sampleImport.products[1].slug.en = 'product-sync-test-product-1'
+      @import._processBatches(sampleImport.products)
+      .then =>
+        expect(@import._summary.failed).toBe 1
+        expect(@import._summary.created).toBe 1
+        done()
+      .catch (err) ->
+        done(err)
+
+
 

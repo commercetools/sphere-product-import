@@ -3,6 +3,7 @@ _.mixin require 'underscore-mixins'
 {ProductImport} = require '../lib'
 Config = require '../config'
 Promise = require 'bluebird'
+path = require 'path'
 
 frozenTimeStamp = new Date().getTime()
 
@@ -152,7 +153,7 @@ sampleReferenceCats =
     id: 'category_external_id2'
   ]
 
-describe 'ProductImport', ->
+describe 'ProductImport unit tests', ->
 
   beforeEach ->
     @import = new ProductImport null, Config
@@ -442,7 +443,7 @@ describe 'ProductImport', ->
       spyOn(@import, "_extractUniqueSkus").andCallThrough()
       spyOn(@import, "_createProductFetchBySkuQueryPredicate").andCallThrough()
       spyOn(@import.client.productProjections,"fetch").andCallFake -> Promise.resolve({body: {results: existingProducts}})
-      spyOn(@import, "_createOrUpdate").andCallFake -> Promise.all([Promise.resolve({statusCode: 201}), Promise.resolve({statusCode: 200})])
+      spyOn(@import, "_createOrUpdate").andCallFake -> Promise.settle([Promise.resolve({statusCode: 201}), Promise.resolve({statusCode: 200})])
       @import._processBatches(sampleProducts)
       .then =>
         expect(@import._extractUniqueSkus).toHaveBeenCalled()
@@ -451,6 +452,8 @@ describe 'ProductImport', ->
           emptySKU: 2
           created: 1
           updated: 1
+          failed: 0
+          errorDir: path.join(__dirname,'../errors')
         done()
       .catch done
 

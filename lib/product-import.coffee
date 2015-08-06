@@ -4,6 +4,8 @@ _.mixin require 'underscore-mixins'
 Promise = require 'bluebird'
 slugify = require 'underscore.string/slugify'
 {SphereClient, ProductSync} = require 'sphere-node-sdk'
+fs = require 'fs-extra'
+path = require 'path'
 
 class ProductImport
 
@@ -11,6 +13,7 @@ class ProductImport
     @sync = new ProductSync
     @sync.config [{type: 'prices', group: 'black'}].concat(['base', 'references', 'attributes', 'images', 'variants', 'metaAttributes'].map (type) -> {type, group: 'white'})
     @client = new SphereClient options
+    @errorDir = path.join(__dirname, '../errors')
     @_resetCache()
     @_resetSummary()
 
@@ -25,6 +28,8 @@ class ProductImport
       emptySKU: 0
       created: 0
       updated: 0
+      failed: 0
+      errorDir: @errorDir
 
   summaryReport: (filename) ->
     if @_summary.created is 0 and @_summary.updated is 0
@@ -37,11 +42,13 @@ class ProductImport
       message += "\nFound #{@_summary.emptySKU} empty SKUs from file input"
       message += " '#{filename}'" if filename
 
+    if @_summary.failed > 0
+      message += "\n #{@_summary.failed} product imports failed. Error reports stored at: #{@errorDir}"
+
     message
 
   performStream: (chunk, cb) ->
     @_processBatches(chunk).then -> cb()
-    .catch (err) -> cb(err.body)
 
   _processBatches: (products) ->
     batchedList = _.batchList(products, 30) # max parallel elem to process
@@ -63,11 +70,17 @@ class ProductImport
         @_createOrUpdate productsToProcess, queriedEntries
       .then (results) =>
         _.each results, (r) =>
-          switch r.statusCode
-            when 201 then @_summary.created++
-            when 200 then @_summary.updated++
+          if r.isFulfilled()
+            switch r.value().statusCode
+              when 201 then @_summary.created++
+              when 200 then @_summary.updated++
+          else if r.isRejected()
+            @_summary.failed++
+            @logger.error "Skipping product due to error: #{r.reason().message}"
+            errorFile = path.join(@errorDir, "error-#{@_summary.failed}.json")
+            fs.outputJsonSync(errorFile, r.reason(), {spaces: 2})
         Promise.resolve(@_summary)
-    ,{concurrency: 1} # run 1 batch at a time
+    , {concurrency: 1} # run 1 batch at a time
 
 
   _createProductFetchBySkuQueryPredicate: (skus) ->
@@ -114,7 +127,7 @@ class ProductImport
         @_prepareNewProduct(prodToProcess).then (product) => @client.products.create(product)
 
     debug 'About to send %s requests', _.size(posts)
-    Promise.all(posts)
+    Promise.settle(posts)
 
   _ensureVariantDefaults: (variant = {}) ->
     variantDefaults =
