@@ -33,7 +33,7 @@ class PriceImport extends ProductImport
   _processBatches: (prices) ->
     batchedList = _.batchList(prices, 30) # max parallel elements to process
     Promise.map batchedList, (pricesToProcess) =>
-      skus = @_extractUniqueSkus pricesToProcess
+      skus = _.map pricesToProcess, (p) -> p.sku
       predicate = @_createProductFetchBySkuQueryPredicate skus
       @client.productProjections
       .where predicate
@@ -85,10 +85,6 @@ class PriceImport extends ProductImport
 
     debug 'About to send %s requests', _.size(posts)
     Promise.all(posts)
-
-  _extractUniqueSkus: (prices) ->
-    _.map prices, (p) ->
-      p.sku
 
   _wrapPricesIntoProducts: (prices, products) ->
     sku2index = {}
