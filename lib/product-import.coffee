@@ -13,10 +13,18 @@ class ProductImport
     @sync = new ProductSync
     @sync.config [{type: 'prices', group: 'black'}].concat(['base', 'references', 'attributes', 'images', 'variants', 'metaAttributes'].map (type) -> {type, group: 'white'})
     @client = new SphereClient options.clientConfig
-    @errorDir = options.errorDir
-    @errorLimit = options.errorLimit
+    @_configErrorHandling(options)
     @_resetCache()
     @_resetSummary()
+
+  _configErrorHandling: (options) ->
+    if options.errorDir
+      fs.emptyDirSync(options.errorDir)
+      @errorDir = options.errorDir
+    if options.errorLimit
+      @errorLimit = options.errorLimit
+    else
+      @errorLimit = 30
 
   _resetCache: ->
     @_cache =
