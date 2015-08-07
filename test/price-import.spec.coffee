@@ -1,12 +1,18 @@
 _ = require 'underscore'
 _.mixin require 'underscore-mixins'
 {PriceImport} = require '../lib'
-Config = require '../config'
+ClientConfig = require '../config'
 Promise = require 'bluebird'
 
 describe 'PriceImport', ->
 
   beforeEach ->
+
+    Config =
+      clientConfig: ClientConfig
+      errorDir: 'somedir'
+      errorLimit: 0
+
     @import = new PriceImport null, Config
 
   it 'should initialize', ->

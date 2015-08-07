@@ -4,13 +4,17 @@ _.mixin require 'underscore-mixins'
 Promise = require 'bluebird'
 slugify = require 'underscore.string/slugify'
 {SphereClient, ProductSync} = require 'sphere-node-sdk'
+fs = require 'fs-extra'
+path = require 'path'
 
 class ProductImport
 
   constructor: (@logger, options = {}) ->
     @sync = new ProductSync
     @sync.config [{type: 'prices', group: 'black'}].concat(['base', 'references', 'attributes', 'images', 'variants', 'metaAttributes'].map (type) -> {type, group: 'white'})
-    @client = new SphereClient options
+    @client = new SphereClient options.clientConfig
+    @errorDir = options.errorDir
+    @errorLimit = options.errorLimit
     @_resetCache()
     @_resetSummary()
 
@@ -25,6 +29,8 @@ class ProductImport
       emptySKU: 0
       created: 0
       updated: 0
+      failed: 0
+      errorDir: @errorDir
 
   summaryReport: (filename) ->
     if @_summary.created is 0 and @_summary.updated is 0
@@ -37,11 +43,13 @@ class ProductImport
       message += "\nFound #{@_summary.emptySKU} empty SKUs from file input"
       message += " '#{filename}'" if filename
 
+    if @_summary.failed > 0
+      message += "\n #{@_summary.failed} product imports failed. Error reports stored at: #{@errorDir}"
+
     message
 
   performStream: (chunk, cb) ->
     @_processBatches(chunk).then -> cb()
-    .catch (err) -> cb(err.body)
 
   _processBatches: (products) ->
     batchedList = _.batchList(products, 30) # max parallel elem to process
@@ -63,11 +71,21 @@ class ProductImport
         @_createOrUpdate productsToProcess, queriedEntries
       .then (results) =>
         _.each results, (r) =>
-          switch r.statusCode
-            when 201 then @_summary.created++
-            when 200 then @_summary.updated++
+          if r.isFulfilled()
+            switch r.value().statusCode
+              when 201 then @_summary.created++
+              when 200 then @_summary.updated++
+          else if r.isRejected()
+            @_summary.failed++
+            if @_summary.failed < @errorLimit or @errorLimit is 0
+              @logger.error "Skipping product due to error: #{r.reason().message}"
+              if @errorDir
+                errorFile = path.join(@errorDir, "error-#{@_summary.failed}.json")
+                fs.outputJsonSync(errorFile, r.reason(), {spaces: 2})
+            else
+              @logger.warn "Error not logged as error limit of #{@errorLimit} has reached."
         Promise.resolve(@_summary)
-    ,{concurrency: 1} # run 1 batch at a time
+    , {concurrency: 1} # run 1 batch at a time
 
 
   _createProductFetchBySkuQueryPredicate: (skus) ->
@@ -114,7 +132,7 @@ class ProductImport
         @_prepareNewProduct(prodToProcess).then (product) => @client.products.create(product)
 
     debug 'About to send %s requests', _.size(posts)
-    Promise.all(posts)
+    Promise.settle(posts)
 
   _ensureVariantDefaults: (variant = {}) ->
     variantDefaults =
@@ -174,9 +192,9 @@ class ProductImport
           id: catId
           typeId: 'category'
       if not product.slug
-        if not product.name
-          Promise.reject 'Product name is required.'
-        product.slug = @_generateSlug product.name
+        if product.name
+          #Promise.reject 'Product name is required.'
+          product.slug = @_generateSlug product.name
       Promise.resolve product
 
 
@@ -203,7 +221,6 @@ class ProductImport
     if variant.attributes and not _.isEmpty(variant.attributes)
       Promise.map variant.attributes, (attribute) =>
         if attribute and _.isArray(attribute.value)
-          # TODO: check that it works!
           if _.every(attribute.value, @_isReferenceTypeAttribute)
             @_resolveCustomReferenceSet(attribute.value)
             .then (result) ->

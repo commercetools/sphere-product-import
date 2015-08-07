@@ -2,7 +2,7 @@ debug = require('debug')('spec:it:sphere-product-import')
 _ = require 'underscore'
 _.mixin require 'underscore-mixins'
 {PriceImport} = require '../../lib'
-Config = require '../../config'
+ClientConfig = require '../../config'
 Promise = require 'bluebird'
 {ExtendedLogger} = require 'sphere-node-utils'
 package_json = require '../../package.json'
@@ -53,12 +53,17 @@ describe 'Price Importer integration tests', ->
   beforeEach (done) ->
     @logger = new ExtendedLogger
       additionalFields:
-        project_key: Config.config.project_key
+        project_key: ClientConfig.config.project_key
       logConfig:
         name: "#{package_json.name}-#{package_json.version}"
         streams: [
           { level: 'info', stream: process.stdout }
         ]
+
+    Config =
+      clientConfig: ClientConfig
+      errorDir: 'somedir'
+      errorLimit: 0
 
     @import = new PriceImport @logger, Config
 
