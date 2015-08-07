@@ -79,8 +79,9 @@ class ProductImport
             @_summary.failed++
             if @_summary.failed < @errorLimit or @errorLimit is 0
               @logger.error "Skipping product due to error: #{r.reason().message}"
-              errorFile = path.join(@errorDir, "error-#{@_summary.failed}.json")
-              fs.outputJsonSync(errorFile, r.reason(), {spaces: 2})
+              if @errorDir
+                errorFile = path.join(@errorDir, "error-#{@_summary.failed}.json")
+                fs.outputJsonSync(errorFile, r.reason(), {spaces: 2})
             else
               @logger.warn "Error not logged as error limit of #{@errorLimit} has reached."
         Promise.resolve(@_summary)
