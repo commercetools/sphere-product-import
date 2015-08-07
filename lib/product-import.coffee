@@ -12,8 +12,9 @@ class ProductImport
   constructor: (@logger, options = {}) ->
     @sync = new ProductSync
     @sync.config [{type: 'prices', group: 'black'}].concat(['base', 'references', 'attributes', 'images', 'variants', 'metaAttributes'].map (type) -> {type, group: 'white'})
-    @client = new SphereClient options
-    @errorDir = path.join(__dirname, '../errors')
+    @client = new SphereClient options.config
+    @errorDir = options.errorDir
+    @errorLimit = options.errorLimit
     @_resetCache()
     @_resetSummary()
 
@@ -76,9 +77,12 @@ class ProductImport
               when 200 then @_summary.updated++
           else if r.isRejected()
             @_summary.failed++
-            @logger.error "Skipping product due to error: #{r.reason().message}"
-            errorFile = path.join(@errorDir, "error-#{@_summary.failed}.json")
-            fs.outputJsonSync(errorFile, r.reason(), {spaces: 2})
+            if @_summary.failed < @errorLimit or @errorLimit is 0
+              @logger.error "Skipping product due to error: #{r.reason().message}"
+              errorFile = path.join(@errorDir, "error-#{@_summary.failed}.json")
+              fs.outputJsonSync(errorFile, r.reason(), {spaces: 2})
+            else
+              @logger.warn "Error not logged as error limit of #{@errorLimit} has reached."
         Promise.resolve(@_summary)
     , {concurrency: 1} # run 1 batch at a time
 
@@ -187,9 +191,9 @@ class ProductImport
           id: catId
           typeId: 'category'
       if not product.slug
-        if not product.name
-          Promise.reject 'Product name is required.'
-        product.slug = @_generateSlug product.name
+        if product.name
+          #Promise.reject 'Product name is required.'
+          product.slug = @_generateSlug product.name
       Promise.resolve product
 
 
@@ -216,7 +220,6 @@ class ProductImport
     if variant.attributes and not _.isEmpty(variant.attributes)
       Promise.map variant.attributes, (attribute) =>
         if attribute and _.isArray(attribute.value)
-          # TODO: check that it works!
           if _.every(attribute.value, @_isReferenceTypeAttribute)
             @_resolveCustomReferenceSet(attribute.value)
             .then (result) ->

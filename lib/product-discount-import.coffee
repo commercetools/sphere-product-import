@@ -9,7 +9,7 @@ slugify = require 'underscore.string/slugify'
 class ProductDiscountImport
 
   constructor: (@logger, options = {}) ->
-    @client = new SphereClient options
+    @client = new SphereClient options.config
     @language = 'en'
     @_resetSummary()
 

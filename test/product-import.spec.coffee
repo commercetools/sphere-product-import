@@ -1,7 +1,7 @@
 _ = require 'underscore'
 _.mixin require 'underscore-mixins'
 {ProductImport} = require '../lib'
-Config = require '../config'
+ClientConfig = require '../config'
 Promise = require 'bluebird'
 path = require 'path'
 
@@ -156,6 +156,14 @@ sampleReferenceCats =
 describe 'ProductImport unit tests', ->
 
   beforeEach ->
+
+    errorDir = path.join(__dirname, '../errors')
+
+    Config =
+      config: ClientConfig
+      errorDir: errorDir
+      errorLimit: 0
+
     @import = new ProductImport null, Config
 
   it 'should initialize', ->

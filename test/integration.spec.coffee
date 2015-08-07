@@ -2,8 +2,10 @@ debug = require('debug')('spec:it:sphere-product-import')
 _ = require 'underscore'
 _.mixin require 'underscore-mixins'
 {ProductImport} = require '../lib'
-Config = require '../config'
+ClientConfig = require '../config'
 Promise = require 'bluebird'
+path = require 'path'
+fs = require 'fs-extra'
 {ExtendedLogger} = require 'sphere-node-utils'
 package_json = require '../package.json'
 sampleImportJson = require '../samples/import.json'
@@ -12,6 +14,7 @@ sampleCategory = require '../samples/sample-category.json'
 sampleTaxCategory = require '../samples/sample-tax-category.json'
 
 frozenTimeStamp = new Date().getTime()
+
 
 cleanup = (logger, client) ->
   debug "Deleting old product entries..."
@@ -40,12 +43,20 @@ describe 'Product import integration tests', ->
   beforeEach (done) ->
     @logger = new ExtendedLogger
       additionalFields:
-        project_key: Config.config.project_key
+        project_key: ClientConfig.config.project_key
       logConfig:
         name: "#{package_json.name}-#{package_json.version}"
         streams: [
           { level: 'info', stream: process.stdout }
         ]
+
+    errorDir = path.join(__dirname, '../errors')
+    fs.emptyDirSync(errorDir)
+
+    Config =
+      config: ClientConfig
+      errorDir: errorDir
+      errorLimit: 30
 
     @import = new ProductImport @logger, Config
 
@@ -159,16 +170,33 @@ describe 'Product import integration tests', ->
       .catch (err) -> done(_.prettify err.body)
     , 10000
 
-    it ' :: should continue on error', (done) ->
-      sampleImport = _.deepClone sampleImportJson
-      sampleImport.products[1].slug.en = 'product-sync-test-product-1'
-      @import._processBatches(sampleImport.products)
+    it ' :: should continue on error - duplicate slug', (done) ->
+      cleanup(@logger, @client)
       .then =>
-        expect(@import._summary.failed).toBe 1
-        expect(@import._summary.created).toBe 1
-        done()
-      .catch (err) ->
-        done(err)
+        sampleImport = _.deepClone sampleImportJson
+        sampleImport.products[1].slug.en = 'product-sync-test-product-1'
+        @import._processBatches(sampleImport.products)
+        .then =>
+          expect(@import._summary.failed).toBe 1
+          expect(@import._summary.created).toBe 1
+          done()
+        .catch (err) ->
+          done(err)
+
+    it ' :: should continue of error - missing product name', (done) ->
+      cleanup(@logger, @client)
+      .then =>
+        sampleImport = _.deepClone sampleImportJson
+        delete sampleImport.products[1].name
+        delete sampleImport.products[1].slug
+        @import._processBatches(sampleImport.products)
+        .then =>
+          expect(@import._summary.failed).toBe 1
+          expect(@import._summary.created).toBe 1
+          done()
+        .catch (err) ->
+          done(err)
+
 
 
 
