@@ -12,7 +12,7 @@ class ProductImport
   constructor: (@logger, options = {}) ->
     @sync = new ProductSync
     @sync.config [{type: 'prices', group: 'black'}].concat(['base', 'references', 'attributes', 'images', 'variants', 'metaAttributes'].map (type) -> {type, group: 'white'})
-    @client = new SphereClient options.config
+    @client = new SphereClient options.clientConfig
     @errorDir = options.errorDir
     @errorLimit = options.errorLimit
     @_resetCache()

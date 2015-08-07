@@ -61,7 +61,7 @@ describe 'Price Importer integration tests', ->
         ]
 
     Config =
-      config: ClientConfig
+      clientConfig: ClientConfig
       errorDir: 'somedir'
       errorLimit: 0
 

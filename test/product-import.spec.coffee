@@ -160,7 +160,7 @@ describe 'ProductImport unit tests', ->
     errorDir = path.join(__dirname, '../errors')
 
     Config =
-      config: ClientConfig
+      clientConfig: ClientConfig
       errorDir: errorDir
       errorLimit: 0
 

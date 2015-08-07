@@ -9,7 +9,7 @@ describe 'PriceImport', ->
   beforeEach ->
 
     Config =
-      config: ClientConfig
+      clientConfig: ClientConfig
       errorDir: 'somedir'
       errorLimit: 0
 

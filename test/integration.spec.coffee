@@ -54,7 +54,7 @@ describe 'Product import integration tests', ->
     fs.emptyDirSync(errorDir)
 
     Config =
-      config: ClientConfig
+      clientConfig: ClientConfig
       errorDir: errorDir
       errorLimit: 30
 
