@@ -27,7 +27,7 @@ cleanup = (logger, client) ->
     Promise.resolve()
 
 ensureResource = (service, predicate, sampleData) ->
-  debug "Ensuring existence of #{service}..."
+  debug 'Ensuring existence for: %s', predicate
   service.where(predicate).fetch()
   .then (result) ->
     if result.statusCode is 200 and result.body.count is 0
@@ -171,17 +171,26 @@ describe 'Product import integration tests', ->
     , 10000
 
     it ' :: should continue on error - duplicate slug', (done) ->
-      cleanup(@logger, @client)
+      # FIXME: looks like the API doesn't correctly validate for duplicate slugs
+      # for 2 concurrent requests (this happens randomly).
+      # For now we have to test it as 2 separate imports.
+      sampleImport = _.deepClone sampleImportJson
+      @import._processBatches([sampleImport.products[0]])
       .then =>
-        sampleImport = _.deepClone sampleImportJson
-        sampleImport.products[1].slug.en = 'product-sync-test-product-1'
-        @import._processBatches(sampleImport.products)
-        .then =>
-          expect(@import._summary.failed).toBe 1
-          expect(@import._summary.created).toBe 1
-          done()
-        .catch (err) ->
-          done(err)
+        expect(@import._summary.created).toBe
+        sampleImport2 = _.deepClone sampleImportJson
+        sampleImport2.products[1].slug.en = 'product-sync-test-product-1'
+        @import._resetSummary()
+        @import._processBatches([sampleImport2.products[1]])
+      .then =>
+        # import should fail because product 1 has same slug
+        expect(@import._summary.failed).toBe 1
+        expect(@import._summary.created).toBe 0
+        errorJson = require path.join(@import.errorDir,'error-1.json')
+        expect(errorJson.message).toEqual "A duplicate value '\"product-sync-test-product-1\"' exists for field 'slug'."
+        done()
+      .catch (err) ->
+        done(err)
 
     it ' :: should continue of error - missing product name', (done) ->
       cleanup(@logger, @client)
