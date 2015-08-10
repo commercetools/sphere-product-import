@@ -31,7 +31,6 @@ describe 'Product Discount Importer integration tests', ->
 
     Config =
       clientConfig: ClientConfig
-      errorDir: 'somedir'
       errorLimit: 0
 
     @import = new ProductDiscountImport @logger, Config
