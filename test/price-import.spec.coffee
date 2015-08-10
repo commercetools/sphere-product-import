@@ -10,7 +10,6 @@ describe 'PriceImport', ->
 
     Config =
       clientConfig: ClientConfig
-      errorDir: 'somedir'
       errorLimit: 0
 
     @import = new PriceImport null, Config

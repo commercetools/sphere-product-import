@@ -16,11 +16,14 @@ class ProductImport
     @_configErrorHandling(options)
     @_resetCache()
     @_resetSummary()
+    if @logger then @logger.info "Product Importer initialized with config -> errorDir: #{@errorDir}, errorLimit: #{@errorLimit}"
 
-  _configErrorHandling: (options) ->
+  _configErrorHandling: (options) =>
     if options.errorDir
-      fs.emptyDirSync(options.errorDir)
       @errorDir = options.errorDir
+    else
+      @errorDir = path.join(__dirname,'../errors')
+    fs.emptyDirSync(@errorDir)
     if options.errorLimit
       @errorLimit = options.errorLimit
     else
@@ -86,7 +89,10 @@ class ProductImport
           else if r.isRejected()
             @_summary.failed++
             if @_summary.failed < @errorLimit or @errorLimit is 0
-              @logger.error "Skipping product due to error: #{r.reason().message}"
+              if r.reason().message
+                @logger.error "Skipping product due to error message: #{r.reason().message}"
+              else
+                @logger.error "Skipping product due to error reason: #{r.reason()}"
               if @errorDir
                 errorFile = path.join(@errorDir, "error-#{@_summary.failed}.json")
                 fs.outputJsonSync(errorFile, r.reason(), {spaces: 2})
