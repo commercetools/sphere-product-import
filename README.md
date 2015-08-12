@@ -15,8 +15,12 @@ The library is being used in [Sphere Node Cli](https://github.com/sphereio/spher
 # Modules
 
 ## Product Importer
+ Accepts a list of products in a valid [JSON Schema](https://github.com/sphereio/sphere-json-schemas/tree/master/schema). Processes them in batches (of default: 30 products).
  
- 
+### Processing steps
+  
+### Default configuration
+ whitelist and blacklist
  
 ## Price Importer
  
