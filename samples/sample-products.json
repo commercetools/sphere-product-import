@@ -1,0 +1,99 @@
+{
+  "products": [
+    {
+      "name": {
+        "en":"Product_Sync_Test_Product_1"
+      },
+      "slug": {
+        "en":"product-sync-test-product-1"
+      },
+      "productType" : {
+        "id": "Sample Product Type"
+      },
+      "masterVariant": {
+        "sku": "B3-717597",
+        "attributes": [
+          {
+            "name": "attribute_name_1",
+            "value": "attribute_value_1"
+          },
+          {
+            "name": "attribute_name_2",
+            "value": {
+              "en": "attribute_localized_value_2"
+            }
+          },
+          {
+            "name": "attribute_name_boolean_3",
+            "value": true
+          },
+          {
+            "name": "attribute_name_custom_reference",
+            "value": "attribute_value_to_resolve_by",
+            "type": {
+              "name": "reference",
+              "referenceTypeId": "product"
+            },
+            "_custom": {
+              "predicate": "masterVariant(sku=\"attribute_value_to_resolve_by\") or variants(sku=\"attribute_value_to_resolve_by\")"
+            }
+          }
+        ]
+      },
+      "variants": [
+        {
+          "sku": "B3-717487",
+          "attributes": []
+        },
+        {
+          "sku": "B3-717489",
+          "attributes": []
+        }
+      ],
+      "hasStagedChanges": true,
+      "published": false,
+      "taxCategory": {
+        "id": "Standard tax category"
+      },
+      "categories": [
+        {
+          "id": "snowboard-equipment"
+        }
+      ]
+    },
+    {
+      "name": {
+        "en":"Product_Sync_Test_Product_2"
+      },
+      "slug": {
+        "en":"product-sync-test-product-2"
+      },
+      "productType" : {
+        "id": "Sample Product Type"
+      },
+      "masterVariant": {
+        "sku": "C42-345678",
+        "attributes": []
+      },
+      "variants": [
+        {
+          "sku": "C42-345987",
+          "attributes": []
+        },
+        {
+          "sku": "C42-345988",
+          "attributes": []
+        },
+        {
+          "sku": "C42-345989",
+          "attributes": []
+        }
+      ],
+      "hasStagedChanges": true,
+      "published": false,
+      "taxCategory": {
+        "id": "Standard tax category"
+      }
+    }
+  ]
+}
