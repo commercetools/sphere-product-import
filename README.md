@@ -16,6 +16,6 @@ The library is being used in [Sphere Node Cli](https://github.com/sphereio/spher
 
 ### [Product Importer](https://github.com/sphereio/sphere-product-import/wiki/Product-Importer)
  
-### Price Importer
+### [Price Importer](https://github.com/sphereio/sphere-product-import/wiki/Price-Importer)
  
 ### Product Discount Importer
