@@ -18,4 +18,4 @@ The library is being used in [Sphere Node Cli](https://github.com/sphereio/spher
  
 ### [Price Importer](https://github.com/sphereio/sphere-product-import/wiki/Price-Importer)
  
-### Product Discount Importer
+### [Product Discount Importer](https://github.com/sphereio/sphere-product-import/wiki/Product-Discounts-Importer)

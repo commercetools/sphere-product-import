@@ -1,0 +1,26 @@
+{
+  "discounts": [
+    {
+      "name": {
+        "en": "30 percent off"
+      },
+      "value": {
+        "type": "relative",
+        "permyriad": 3000
+      },
+      "predicate": "attributes.product_id in (\"product_id_1\", \"product_id_2\", \"product_id_3\", \"product_id_4\")",
+      "sortOrder": "0.30"
+    },
+    {
+      "name": {
+        "en": "35 percent off"
+      },
+      "value": {
+        "type": "relative",
+        "permyriad": 3500
+      },
+      "predicate": "attributes.product_id in (\"product_id_5\", \"product_id_6\", \"product_id_7\", \"product_id_8\")",
+      "sortOrder": "0.35"
+    }
+  ]
+}
