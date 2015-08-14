@@ -293,7 +293,7 @@ class ProductImport
       if not @_cache[refKey]
         @_cache[refKey] = {}
       if @_cache[refKey][ref.id]
-        resolve(@_cache[refKey][ref.id])
+        resolve(@_cache[refKey][ref.id].id)
       else
         request = service.where(predicate)
         if refKey is 'product'
@@ -305,7 +305,7 @@ class ProductImport
           else
             if _.size(result.body.results) > 1
               @logger.warn "Found more than 1 #{refKey} for #{ref.id}"
-            @_cache[refKey][ref.id] = result.body.results[0].id
+            @_cache[refKey][ref.id] = result.body.results[0]
             resolve(result.body.results[0].id)
 
 module.exports = ProductImport

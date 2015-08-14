@@ -215,7 +215,7 @@ describe 'ProductImport unit tests', ->
       .then (result) =>
         expect(@import.client.productTypes.fetch).toHaveBeenCalled()
         expect(result).toEqual sampleProductTypeResponse.body.results[0].id
-        expect(@import._cache.productType["AGS"]).toEqual sampleProductTypeResponse.body.results[0].id
+        expect(@import._cache.productType["AGS"].id).toEqual sampleProductTypeResponse.body.results[0].id
         done()
       .catch done
 
@@ -227,7 +227,7 @@ describe 'ProductImport unit tests', ->
       .then (result) =>
         expect(@import.client.taxCategories.fetch).toHaveBeenCalled()
         expect(result).toEqual sampleTaxCategoryResponse.body.results[0].id
-        expect(@import._cache.taxCategory["defaultTax_AT"]).toEqual sampleTaxCategoryResponse.body.results[0].id
+        expect(@import._cache.taxCategory["defaultTax_AT"].id).toEqual sampleTaxCategoryResponse.body.results[0].id
         done()
       .catch done
 
@@ -240,14 +240,14 @@ describe 'ProductImport unit tests', ->
       .then (result) =>
         expect(@import.client.categories.fetch).toHaveBeenCalled()
         expect(result).toEqual sampleCategoriesResponse.body.results[0].id
-        expect(@import._cache.categories["category_external_id1"]).toEqual sampleCategoriesResponse.body.results[0].id
+        expect(@import._cache.categories["category_external_id1"].id).toEqual sampleCategoriesResponse.body.results[0].id
         done()
       .catch done
 
 
     it 'should resolve reference from cache', (done) ->
       @import._resetCache()
-      @import._cache.taxCategory['defaultTax_AT'] = "tax_category_internal_id"
+      @import._cache.taxCategory['defaultTax_AT'] = {"id": "tax_category_internal_id"}
       spyOn(@import.client.taxCategories, "fetch").andCallFake -> Promise.resolve(sampleTaxCategoryResponse)
       taxCategoryRef = { id: 'defaultTax_AT' }
       @import._resolveReference(@import.client.taxCategories, 'taxCategory', taxCategoryRef, "name=\"#{taxCategoryRef.id}\"")
