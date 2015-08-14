@@ -148,6 +148,18 @@ class ProductImport
     debug 'About to send %s requests', _.size(posts)
     Promise.settle(posts)
 
+  _fetchSameForAllAttributesOfProductType: (productType) =>
+    new Promise (resolve) =>
+      if @_cache.productType["#{productType.id}_sameForAllAttributes"]
+        resolve(@_cache.productType["#{productType.id}_sameForAllAttributes"])
+      else
+        @_resolveReference(@client.productTypes, 'productType', productType, "name=\"#{productType?.id}\"")
+        .then (productTypeId) =>
+          sameValueAttributes = _.where(@_cache.productType[productTypeId].attributes, {attributeConstraint: "SameForAll"})
+          sameValueAttributeNames = _.pluck(sameValueAttributes, 'name')
+          @_cache.productType["#{productType.id}_sameForAllAttributes"] = sameValueAttributeNames
+          resolve(sameValueAttributeNames)
+
   _ensureVariantDefaults: (variant = {}) ->
     variantDefaults =
       attributes: []
