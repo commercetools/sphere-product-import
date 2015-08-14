@@ -12,12 +12,10 @@ It uses [Sphere-node-sdk](https://github.com/sphereio/sphere-node-sdk) to access
 The library is being used in [Sphere Node Cli](https://github.com/sphereio/sphere-node-cli) to provide an interface for 
   accessing all the data management actions.
   
-# Modules
+## Modules
 
-## [Product Importer](https://github.com/sphereio/sphere-product-import/wiki/Product-Importer)
+### [Product Importer](https://github.com/sphereio/sphere-product-import/wiki/Product-Importer)
  
-## Price Importer
+### Price Importer
  
- 
-
-## Product Discount Importer
+### Product Discount Importer
