@@ -136,12 +136,14 @@ class ProductImport
     posts = _.map productsToProcess, (prodToProcess) =>
       existingProduct = @_isExistingEntry(prodToProcess, existingProducts)
       if existingProduct?
-        @_prepareUpdateProduct(prodToProcess, existingProduct).then (preparedProduct) =>
-          synced = @sync.buildActions(preparedProduct, existingProduct)
-          if synced.shouldUpdate()
-            @client.products.byId(synced.getUpdateId()).update(synced.getUpdatePayload())
-          else
-            Promise.resolve statusCode: 304
+        @_fetchSameForAllAttributesOfProductType(prodToProcess.productType)
+        .then (sameForAllAttributes) =>
+          @_prepareUpdateProduct(prodToProcess, existingProduct).then (preparedProduct) =>
+            synced = @sync.buildActions(preparedProduct, existingProduct, sameForAllAttributes)
+            if synced.shouldUpdate()
+              @client.products.byId(synced.getUpdateId()).update(synced.getUpdatePayload())
+            else
+              Promise.resolve statusCode: 304
       else
         @_prepareNewProduct(prodToProcess).then (product) => @client.products.create(product)
 
@@ -155,7 +157,7 @@ class ProductImport
       else
         @_resolveReference(@client.productTypes, 'productType', productType, "name=\"#{productType?.id}\"")
         .then (productTypeId) =>
-          sameValueAttributes = _.where(@_cache.productType[productTypeId].attributes, {attributeConstraint: "SameForAll"})
+          sameValueAttributes = _.where(@_cache.productType[productType.id].attributes, {attributeConstraint: "SameForAll"})
           sameValueAttributeNames = _.pluck(sameValueAttributes, 'name')
           @_cache.productType["#{productType.id}_sameForAllAttributes"] = sameValueAttributeNames
           resolve(sameValueAttributeNames)

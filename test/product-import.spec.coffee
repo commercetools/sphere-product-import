@@ -429,7 +429,8 @@ describe 'ProductImport unit tests', ->
         version: 1
 
       spyOn(@import, "_prepareNewProduct").andCallFake (prepareProduct) -> Promise.resolve(prepareProduct)
-      spyOn(@import,"_prepareUpdateProduct").andCallFake (prepareProduct) -> Promise.resolve(prepareProduct)
+      spyOn(@import, "_prepareUpdateProduct").andCallFake (prepareProduct) -> Promise.resolve(prepareProduct)
+      spyOn(@import, "_fetchSameForAllAttributesOfProductType").andCallFake -> Promise.resolve([])
       spyOn(@import.client._rest, 'POST').andCallFake (endpoint, payload, callback) ->
         callback(null, {statusCode: 200}, {})
       @import._createOrUpdate([newProduct,updateProduct],existingProducts)
