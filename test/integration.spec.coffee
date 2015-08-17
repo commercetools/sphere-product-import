@@ -6,6 +6,7 @@ ClientConfig = require '../config'
 Promise = require 'bluebird'
 path = require 'path'
 fs = require 'fs-extra'
+jasmine = require 'jasmine-node'
 {ExtendedLogger} = require 'sphere-node-utils'
 package_json = require '../package.json'
 sampleImportJson = require '../samples/import.json'
@@ -153,6 +154,7 @@ describe 'Product import integration tests', ->
         country: 'JP'
       sampleImport.products[0].variants[0].prices = [samplePrice]
 
+      spyOn(@import.sync, 'buildActions').andCallThrough()
       @import._processBatches(sampleUpdate.products)
       .then =>
         expect(@import._summary.created).toBe 1
@@ -162,6 +164,7 @@ describe 'Product import integration tests', ->
       .then =>
         expect(@import._summary.created).toBe 1
         expect(@import._summary.updated).toBe 1
+        expect(@import.sync.buildActions).toHaveBeenCalledWith(jasmine.any(Object), jasmine.any(Object), ['sample_attribute_1'])
         predicate = "masterVariant(sku=\"#{sampleUpdate.products[0].masterVariant.sku}\")"
         @client.productProjections.where(predicate).staged(true).fetch()
       .then (result) ->
