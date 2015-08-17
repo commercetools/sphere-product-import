@@ -6,16 +6,12 @@
 
 [![Build Status](https://secure.travis-ci.org/sphereio/sphere-product-import.png?branch=master)](http://travis-ci.org/sphereio/sphere-product-import) [![NPM version](https://badge.fury.io/js/sphere-product-import.png)](http://badge.fury.io/js/sphere-product-import)
 
-This is a library with modules for importing and managing product data in sphere. 
-It uses [Sphere-node-sdk](https://github.com/sphereio/sphere-node-sdk) to access the sphere endpoints for all its data actions.
+This library provides different modules to manage SPHERE.IO product data.
 
-The library is being used in [Sphere Node Cli](https://github.com/sphereio/sphere-node-cli) to provide an interface for 
-  accessing all the data management actions.
+> To use those modules please refer to the [`sphere-node-cli`](https://github.com/sphereio/sphere-node-cli).
   
 ## Modules
 
-### [Product Importer](https://github.com/sphereio/sphere-product-import/wiki/Product-Importer)
- 
-### [Price Importer](https://github.com/sphereio/sphere-product-import/wiki/Price-Importer)
- 
-### [Product Discount Importer](https://github.com/sphereio/sphere-product-import/wiki/Product-Discounts-Importer)
+- [Product Importer](https://github.com/sphereio/sphere-product-import/wiki/Product-Importer)
+- [Price Importer](https://github.com/sphereio/sphere-product-import/wiki/Price-Importer)
+- [Product Discount Importer](https://github.com/sphereio/sphere-product-import/wiki/Product-Discounts-Importer)
