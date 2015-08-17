@@ -611,7 +611,45 @@ describe 'ProductImport unit tests', ->
       .catch (err) ->
         done(err)
 
+  describe 'same for all attribute type', ->
 
+    it ' :: should return a list of names with same for all attribute type and cache the response', (done) ->
+
+      sampleProductType = _.deepClone(sampleProductTypeResponse)
+
+      attribute =
+        name: 'sample attribute'
+        label:
+          en: 'sample attribute 1 label'
+        isRequired: true
+        type:
+          name: 'text'
+        attributeConstraint: 'SameForAll'
+        isSearchable: true
+
+      attribute1 = _.deepClone(attribute)
+      attribute1.name = 'sample attribute 1'
+
+      attribute2 = _.deepClone(attribute)
+      attribute2.name = 'sample attribute 2'
+      attribute2.attributeConstraint = 'None'
+
+      attribute3 = _.deepClone(attribute)
+      attribute3.name = 'sample attribute 3'
+
+      sampleProductType.body.results[0].attributes = [attribute1, attribute2, attribute3]
+
+      productType =
+        id: 'AGS'
+
+      spyOn(@import.client.productTypes, "fetch").andCallFake -> Promise.resolve(sampleProductType)
+      @import._fetchSameForAllAttributesOfProductType(productType)
+      .then (result) =>
+        expect(result).toEqual ['sample attribute 1', 'sample attribute 3']
+        expect(@import._cache.productType["#{productType.id}_sameForAllAttributes"]).toEqual ['sample attribute 1', 'sample attribute 3']
+        done()
+      .catch (err) ->
+        done(err)
 
 
 
