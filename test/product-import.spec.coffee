@@ -163,6 +163,7 @@ describe 'ProductImport unit tests', ->
       clientConfig: ClientConfig
       errorDir: errorDir
       errorLimit: 0
+      blackList: ['prices']
 
     @import = new ProductImport null, Config
 
