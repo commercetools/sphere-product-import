@@ -12,7 +12,21 @@
         {
           "en": "Product Id"
         },
-      "isRequired": false
+      "isRequired": false,
+      "attributeConstraint": "None"
+    },
+    {
+      "name": "sample_attribute_1",
+      "type":
+      {
+        "name": "text"
+      },
+      "label":
+      {
+        "en": "Sample Attribute 1"
+      },
+      "isRequired": false,
+      "attributeConstraint": "SameForAll"
     }
   ]
 }

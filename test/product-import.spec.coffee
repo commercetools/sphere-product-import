@@ -215,7 +215,7 @@ describe 'ProductImport unit tests', ->
       .then (result) =>
         expect(@import.client.productTypes.fetch).toHaveBeenCalled()
         expect(result).toEqual sampleProductTypeResponse.body.results[0].id
-        expect(@import._cache.productType["AGS"]).toEqual sampleProductTypeResponse.body.results[0].id
+        expect(@import._cache.productType["AGS"].id).toEqual sampleProductTypeResponse.body.results[0].id
         done()
       .catch done
 
@@ -227,7 +227,7 @@ describe 'ProductImport unit tests', ->
       .then (result) =>
         expect(@import.client.taxCategories.fetch).toHaveBeenCalled()
         expect(result).toEqual sampleTaxCategoryResponse.body.results[0].id
-        expect(@import._cache.taxCategory["defaultTax_AT"]).toEqual sampleTaxCategoryResponse.body.results[0].id
+        expect(@import._cache.taxCategory["defaultTax_AT"].id).toEqual sampleTaxCategoryResponse.body.results[0].id
         done()
       .catch done
 
@@ -240,14 +240,14 @@ describe 'ProductImport unit tests', ->
       .then (result) =>
         expect(@import.client.categories.fetch).toHaveBeenCalled()
         expect(result).toEqual sampleCategoriesResponse.body.results[0].id
-        expect(@import._cache.categories["category_external_id1"]).toEqual sampleCategoriesResponse.body.results[0].id
+        expect(@import._cache.categories["category_external_id1"].id).toEqual sampleCategoriesResponse.body.results[0].id
         done()
       .catch done
 
 
     it 'should resolve reference from cache', (done) ->
       @import._resetCache()
-      @import._cache.taxCategory['defaultTax_AT'] = "tax_category_internal_id"
+      @import._cache.taxCategory['defaultTax_AT'] = {"id": "tax_category_internal_id"}
       spyOn(@import.client.taxCategories, "fetch").andCallFake -> Promise.resolve(sampleTaxCategoryResponse)
       taxCategoryRef = { id: 'defaultTax_AT' }
       @import._resolveReference(@import.client.taxCategories, 'taxCategory', taxCategoryRef, "name=\"#{taxCategoryRef.id}\"")
@@ -429,7 +429,8 @@ describe 'ProductImport unit tests', ->
         version: 1
 
       spyOn(@import, "_prepareNewProduct").andCallFake (prepareProduct) -> Promise.resolve(prepareProduct)
-      spyOn(@import,"_prepareUpdateProduct").andCallFake (prepareProduct) -> Promise.resolve(prepareProduct)
+      spyOn(@import, "_prepareUpdateProduct").andCallFake (prepareProduct) -> Promise.resolve(prepareProduct)
+      spyOn(@import, "_fetchSameForAllAttributesOfProductType").andCallFake -> Promise.resolve([])
       spyOn(@import.client._rest, 'POST').andCallFake (endpoint, payload, callback) ->
         callback(null, {statusCode: 200}, {})
       @import._createOrUpdate([newProduct,updateProduct],existingProducts)
@@ -610,7 +611,45 @@ describe 'ProductImport unit tests', ->
       .catch (err) ->
         done(err)
 
+  describe 'same for all attribute type', ->
 
+    it ' :: should return a list of names with same for all attribute type and cache the response', (done) ->
+
+      sampleProductType = _.deepClone(sampleProductTypeResponse)
+
+      attribute =
+        name: 'sample attribute'
+        label:
+          en: 'sample attribute 1 label'
+        isRequired: true
+        type:
+          name: 'text'
+        attributeConstraint: 'SameForAll'
+        isSearchable: true
+
+      attribute1 = _.deepClone(attribute)
+      attribute1.name = 'sample attribute 1'
+
+      attribute2 = _.deepClone(attribute)
+      attribute2.name = 'sample attribute 2'
+      attribute2.attributeConstraint = 'None'
+
+      attribute3 = _.deepClone(attribute)
+      attribute3.name = 'sample attribute 3'
+
+      sampleProductType.body.results[0].attributes = [attribute1, attribute2, attribute3]
+
+      productType =
+        id: 'AGS'
+
+      spyOn(@import.client.productTypes, "fetch").andCallFake -> Promise.resolve(sampleProductType)
+      @import._fetchSameForAllAttributesOfProductType(productType)
+      .then (result) =>
+        expect(result).toEqual ['sample attribute 1', 'sample attribute 3']
+        expect(@import._cache.productType["#{productType.id}_sameForAllAttributes"]).toEqual ['sample attribute 1', 'sample attribute 3']
+        done()
+      .catch (err) ->
+        done(err)
 
 
 

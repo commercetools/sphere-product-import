@@ -136,17 +136,31 @@ class ProductImport
     posts = _.map productsToProcess, (prodToProcess) =>
       existingProduct = @_isExistingEntry(prodToProcess, existingProducts)
       if existingProduct?
-        @_prepareUpdateProduct(prodToProcess, existingProduct).then (preparedProduct) =>
-          synced = @sync.buildActions(preparedProduct, existingProduct)
-          if synced.shouldUpdate()
-            @client.products.byId(synced.getUpdateId()).update(synced.getUpdatePayload())
-          else
-            Promise.resolve statusCode: 304
+        @_fetchSameForAllAttributesOfProductType(prodToProcess.productType)
+        .then (sameForAllAttributes) =>
+          @_prepareUpdateProduct(prodToProcess, existingProduct).then (preparedProduct) =>
+            synced = @sync.buildActions(preparedProduct, existingProduct, sameForAllAttributes)
+            if synced.shouldUpdate()
+              @client.products.byId(synced.getUpdateId()).update(synced.getUpdatePayload())
+            else
+              Promise.resolve statusCode: 304
       else
         @_prepareNewProduct(prodToProcess).then (product) => @client.products.create(product)
 
     debug 'About to send %s requests', _.size(posts)
     Promise.settle(posts)
+
+  _fetchSameForAllAttributesOfProductType: (productType) =>
+    new Promise (resolve) =>
+      if @_cache.productType["#{productType.id}_sameForAllAttributes"]
+        resolve(@_cache.productType["#{productType.id}_sameForAllAttributes"])
+      else
+        @_resolveReference(@client.productTypes, 'productType', productType, "name=\"#{productType?.id}\"")
+        .then (productTypeId) =>
+          sameValueAttributes = _.where(@_cache.productType[productType.id].attributes, {attributeConstraint: "SameForAll"})
+          sameValueAttributeNames = _.pluck(sameValueAttributes, 'name')
+          @_cache.productType["#{productType.id}_sameForAllAttributes"] = sameValueAttributeNames
+          resolve(sameValueAttributeNames)
 
   _ensureVariantDefaults: (variant = {}) ->
     variantDefaults =
@@ -293,7 +307,7 @@ class ProductImport
       if not @_cache[refKey]
         @_cache[refKey] = {}
       if @_cache[refKey][ref.id]
-        resolve(@_cache[refKey][ref.id])
+        resolve(@_cache[refKey][ref.id].id)
       else
         request = service.where(predicate)
         if refKey is 'product'
@@ -305,7 +319,7 @@ class ProductImport
           else
             if _.size(result.body.results) > 1
               @logger.warn "Found more than 1 #{refKey} for #{ref.id}"
-            @_cache[refKey][ref.id] = result.body.results[0].id
+            @_cache[refKey][ref.id] = result.body.results[0]
             resolve(result.body.results[0].id)
 
 module.exports = ProductImport
