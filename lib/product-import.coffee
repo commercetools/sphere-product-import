@@ -11,7 +11,7 @@ class ProductImport
 
   constructor: (@logger, options = {}) ->
     @sync = new ProductSync
-    if options.blackList
+    if options.blackList and ProductSync.actions
       @sync.config @_configureSync(options.blackList)
     @client = new SphereClient options.clientConfig
     @_configErrorHandling(options)
