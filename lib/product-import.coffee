@@ -13,11 +13,12 @@ class ProductImport
     @sync = new ProductSync
     if options.blackList and ProductSync.actions
       @sync.config @_configureSync(options.blackList)
+    if options.ensureEnums then @ensureEnums = options.ensureEnums else @ensureEnums = false
     @client = new SphereClient options.clientConfig
     @_configErrorHandling(options)
     @_resetCache()
     @_resetSummary()
-    if @logger then @logger.info "Product Importer initialized with config -> errorDir: #{@errorDir}, errorLimit: #{@errorLimit}, blacklist actions: #{options.blackList}"
+    if @logger then @logger.info "Product Importer initialized with config -> errorDir: #{@errorDir}, errorLimit: #{@errorLimit}, blacklist actions: #{options.blackList}, ensureEnums: #{@ensureEnums}"
 
   _configureSync: (blackList) =>
     @_validateSyncConfig(blackList)
