@@ -11,12 +11,25 @@ class ProductImport
 
   constructor: (@logger, options = {}) ->
     @sync = new ProductSync
-    @sync.config [{type: 'prices', group: 'black'}].concat(['base', 'references', 'attributes', 'images', 'variants', 'metaAttributes'].map (type) -> {type, group: 'white'})
+    if options.blackList and ProductSync.actions
+      @sync.config @_configureSync(options.blackList)
     @client = new SphereClient options.clientConfig
     @_configErrorHandling(options)
     @_resetCache()
     @_resetSummary()
-    if @logger then @logger.info "Product Importer initialized with config -> errorDir: #{@errorDir}, errorLimit: #{@errorLimit}"
+    if @logger then @logger.info "Product Importer initialized with config -> errorDir: #{@errorDir}, errorLimit: #{@errorLimit}, blacklist actions: #{options.blackList}"
+
+  _configureSync: (blackList) =>
+    @_validateSyncConfig(blackList)
+    debug "Product sync config validated"
+    _.difference(ProductSync.actions, blackList)
+      .map (type) -> {type: type, group: 'white'}
+      .concat(blackList.map (type) -> {type: type, group: 'black'})
+
+  _validateSyncConfig: (blackList) ->
+    for actionGroup in blackList
+      if not _.contains(ProductSync.actions, actionGroup)
+        throw ("invalid product sync action group: #{actionGroup}")
 
   _configErrorHandling: (options) =>
     if options.errorDir
