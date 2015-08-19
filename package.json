@@ -39,7 +39,7 @@
   "dependencies": {
     "bluebird": "2.9.33",
     "debug": "2.2.0",
-    "sphere-node-sdk": "1.4.2",
+    "sphere-node-sdk": "1.4.3",
     "sphere-node-utils": "0.7.0",
     "underscore": "1.8.3",
     "underscore.string": "3.1.1",
