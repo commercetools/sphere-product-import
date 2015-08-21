@@ -3,7 +3,7 @@ _ = require 'underscore'
 _.mixin require 'underscore-mixins'
 Promise = require 'bluebird'
 slugify = require 'underscore.string/slugify'
-{SphereClient, ProductSync} = require 'sphere-node-sdk'
+{SphereClient} = require 'sphere-node-sdk'
 
 class EnumValidator
 
@@ -20,5 +20,6 @@ class EnumValidator
       # product type of that product
       # attribute names of type enum or lenum or set of enum or set of lenum
       #
+    Promise.resolve()
 
 module.exports = EnumValidator

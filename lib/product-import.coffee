@@ -6,6 +6,7 @@ slugify = require 'underscore.string/slugify'
 {SphereClient, ProductSync} = require 'sphere-node-sdk'
 fs = require 'fs-extra'
 path = require 'path'
+EnumValidator = require './enum-validator'
 
 class ProductImport
 
@@ -15,6 +16,7 @@ class ProductImport
       @sync.config @_configureSync(options.blackList)
     if options.ensureEnums then @ensureEnums = options.ensureEnums else @ensureEnums = false
     @client = new SphereClient options.clientConfig
+    @enumValidator = new EnumValidator @logger, @client
     @_configErrorHandling(options)
     @_resetCache()
     @_resetSummary()
@@ -152,14 +154,20 @@ class ProductImport
       if existingProduct?
         @_fetchSameForAllAttributesOfProductType(prodToProcess.productType)
         .then (sameForAllAttributes) =>
-          @_prepareUpdateProduct(prodToProcess, existingProduct).then (preparedProduct) =>
-            synced = @sync.buildActions(preparedProduct, existingProduct, sameForAllAttributes)
-            if synced.shouldUpdate()
-              @client.products.byId(synced.getUpdateId()).update(synced.getUpdatePayload())
-            else
-              Promise.resolve statusCode: 304
+          @enumValidator.validateProduct(prodToProcess, @_cache.productType[prodToProcess.productType.id])
+          .then =>
+            @_prepareUpdateProduct(prodToProcess, existingProduct).then (preparedProduct) =>
+              synced = @sync.buildActions(preparedProduct, existingProduct, sameForAllAttributes)
+              if synced.shouldUpdate()
+                @client.products.byId(synced.getUpdateId()).update(synced.getUpdatePayload())
+              else
+                Promise.resolve statusCode: 304
       else
-        @_prepareNewProduct(prodToProcess).then (product) => @client.products.create(product)
+        @_prepareNewProduct(prodToProcess)
+        .then (product) =>
+          @enumValidator.validateProduct(product, @_cache.productType[product.productType.id])
+          .then =>
+            @client.products.create(product)
 
     debug 'About to send %s requests', _.size(posts)
     Promise.settle(posts)
@@ -334,6 +342,8 @@ class ProductImport
             if _.size(result.body.results) > 1
               @logger.warn "Found more than 1 #{refKey} for #{ref.id}"
             @_cache[refKey][ref.id] = result.body.results[0]
+            if refKey is 'productType'
+              @_cache[refKey][result.body.results[0].id] = result.body.results[0]
             resolve(result.body.results[0].id)
 
 module.exports = ProductImport
