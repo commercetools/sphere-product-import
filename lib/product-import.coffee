@@ -11,7 +11,7 @@ class ProductImport
 
   constructor: (@logger, options = {}) ->
     @sync = new ProductSync
-    if options.blackList and ProductSync.actions
+    if options.blackList and ProductSync.actionGroups
       @sync.config @_configureSync(options.blackList)
     if options.ensureEnums then @ensureEnums = options.ensureEnums else @ensureEnums = false
     @client = new SphereClient options.clientConfig
@@ -22,14 +22,14 @@ class ProductImport
 
   _configureSync: (blackList) =>
     @_validateSyncConfig(blackList)
-    debug "Product sync config validated"
-    _.difference(ProductSync.actions, blackList)
+    if @logger then @logger.info "Product sync config validated"
+    _.difference(ProductSync.actionGroups, blackList)
       .map (type) -> {type: type, group: 'white'}
       .concat(blackList.map (type) -> {type: type, group: 'black'})
 
   _validateSyncConfig: (blackList) ->
     for actionGroup in blackList
-      if not _.contains(ProductSync.actions, actionGroup)
+      if not _.contains(ProductSync.actionGroups, actionGroup)
         throw ("invalid product sync action group: #{actionGroup}")
 
   _configErrorHandling: (options) =>
