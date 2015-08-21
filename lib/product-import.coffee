@@ -21,7 +21,7 @@ class ProductImport
 
   _configureSync: (blackList) =>
     @_validateSyncConfig(blackList)
-    @logger.info "Product sync config validated"
+    if @logger then @logger.info "Product sync config validated"
     _.difference(ProductSync.actionGroups, blackList)
       .map (type) -> {type: type, group: 'white'}
       .concat(blackList.map (type) -> {type: type, group: 'black'})
