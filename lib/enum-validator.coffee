@@ -26,10 +26,6 @@ class EnumValidator
         # if not then create an update action
         # add the slugified attribute value as key and orginal value as label
         # if type is of lenum, then add slugified value as key and original value for all languages as label
-    # to validate a product enums we need:
-      # product type of that product
-      # attribute names of type enum or lenum or set of enum or set of lenum
-      #
     Promise.resolve()
 
   _fetchEnumAttributesFromProduct: (product) ->
@@ -41,18 +37,23 @@ class EnumValidator
 
 
   _fetchEmumAttributesFromVariant: (variant) ->
-    _.filter(variant.attributes, @_enumFilterPredicate)
+    _.filter(variant.attributes, @_enumLenumFilterPredicate)
       .concat(_.filter(variant.attributes, @_enumSetFilterPredicate))
       .concat(_.filter(variant.attributes, @_lenumSetFilterPredicate))
 
 
-  _enumFilterPredicate: (attribute) ->
+  _fetchEnumAttributesFromProductType: (productType) =>
+    _.filter(productType.attributes, @_enumLenumFilterPredicate)
+      .concat(_.filter(productType.attributes, @_enumSetFilterPredicate))
+      .concat(_.filter(productType.attributes, @_lenumSetFilterPredicate))
+
+  _enumLenumFilterPredicate: (attribute) ->
     attribute.type.name is 'enum' or attribute.type.name is 'lenum'
 
   _enumSetFilterPredicate: (attribute) ->
-    attribute.type.name is 'set' and attribute.type.name.elementType is 'enum'
+    attribute.type.name is 'set' and attribute.type.elementType.name is 'enum'
 
   _lenumSetFilterPredicate: (attribute) ->
-    attribute.type.name is 'set' and attribute.type.name.elementType is 'lenum'
+    attribute.type.name is 'set' and attribute.type.elementType.name is 'lenum'
 
 module.exports = EnumValidator
