@@ -28,11 +28,11 @@ class EnumValidator
         # if type is of lenum, then add slugified value as key and original value for all languages as label
     Promise.resolve()
 
-  _fetchEnumAttributesFromProduct: (product) ->
-    enumAttributes = @_fetchEmumAttributesFromVariant(product.masterVariant)
+  _fetchEnumAttributesFromProduct: (product, resolvedProductType) =>
+    enumAttributes = @_fetchEnumAttributesFromVariant(product.masterVariant, resolvedProductType)
     if product.variants and not _.isEmpty(product.variants)
       for variant in product.variants
-        enumAttributes = enumAttributes.concat(@_fetchEmumAttributesFromVariant(variant))
+        enumAttributes = enumAttributes.concat(@_fetchEnumAttributesFromVariant(variant, resolvedProductType))
     enumAttributes
 
   _fetchEnumAttributesFromVariant: (variant, productType) =>

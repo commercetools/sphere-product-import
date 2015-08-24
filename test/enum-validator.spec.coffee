@@ -172,3 +172,18 @@ describe 'Enum Validator unit tests', ->
   it ' :: should fetch enum attributes from sample variant', ->
     enums = @import._fetchEnumAttributesFromVariant(sampleVariant,sampleProductType)
     expect(_.size enums).toBe 3
+
+  it ' :: should fetch all enum attributes from all product variants', ->
+    sampleProduct =
+      name: 'sample Product'
+      productType:
+        id: 'sample_product_type_id'
+      masterVariant: _.deepClone sampleVariant
+      variants: [
+        _.deepClone sampleVariant
+      ,
+        _.deepClone sampleVariant
+      ]
+
+    enums = @import._fetchEnumAttributesFromProduct(sampleProduct, sampleProductType)
+    expect(_.size enums).toBe 9
