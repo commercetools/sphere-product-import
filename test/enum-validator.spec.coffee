@@ -105,21 +105,46 @@ describe 'Enum Validator unit tests', ->
 
     @import = new EnumValidator @logger, null
 
-  it 'should initialize', ->
+  it ' :: should initialize', ->
     expect(@import).toBeDefined()
 
-  it 'should filter enum and lenum attributes', ->
+  it ' :: should filter enum and lenum attributes', ->
     enums = _.filter(sampleProductType.attributes, @import._enumLenumFilterPredicate)
     expect(_.size enums).toBe 2
 
-  it 'should filter set of enum attributes', ->
+  it ' :: should filter set of enum attributes', ->
     enums = _.filter(sampleProductType.attributes, @import._enumSetFilterPredicate)
     expect(_.size enums).toBe 1
 
-  it 'should filter set of lenum attributes', ->
+  it ' :: should filter set of lenum attributes', ->
     enums = _.filter(sampleProductType.attributes, @import._lenumSetFilterPredicate)
     expect(_.size enums).toBe 1
 
-  it 'should fetch enum attributes from product type', ->
-    enums = @import._fetchEnumAttributesFromProductType(sampleProductType)
+  it ' :: should extract enum attributes from product type', ->
+    enums = @import._extractEnumAttributesFromProductType(sampleProductType)
     expect(_.size enums).toBe 4
+
+  it ' :: should fetch enum attributes from sample product type', ->
+    enums = @import._fetchEnumAttributesOfProductType(sampleProductType)
+    expect(_.size enums).toBe 4
+
+  it ' :: should fetch enum attributes of sample product type from cache', ->
+    spyOn(@import, '_extractEnumAttributesFromProductType').andCallThrough()
+    @import._fetchEnumAttributesOfProductType(sampleProductType)
+    enums = @import._fetchEnumAttributesOfProductType(sampleProductType)
+    expect(_.size enums).toBe 4
+    expect(@import._extractEnumAttributesFromProductType.calls.length).toEqual 1
+    expect(@import._cache.productTypeEnumMap[sampleProductType.id]).toBeDefined()
+
+  it ' :: should fetch enum attribute names of sample product type', ->
+    expectedNames = ['sample-lenum-attribute', 'sample-enum-attribute', 'sample-set-enum-attribute', 'sample-set-lenum-attribute']
+    enumNames = @import._fetchEnumAttributeNamesOfProductType(sampleProductType)
+    expect(enumNames).toEqual expectedNames
+
+  it ' :: should fetch enum attribute names of sample product type from cache', ->
+    spyOn(@import, '_fetchEnumAttributesOfProductType').andCallThrough()
+    @import._fetchEnumAttributeNamesOfProductType(sampleProductType)
+    enumNames = @import._fetchEnumAttributeNamesOfProductType(sampleProductType)
+    expect(_.size enumNames).toBe 4
+    expect(@import._fetchEnumAttributesOfProductType.calls.length).toEqual 1
+    expect(@import._cache.productTypeEnumMap["#{sampleProductType.id}_names"]).toBeDefined()

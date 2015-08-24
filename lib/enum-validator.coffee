@@ -15,7 +15,7 @@ class EnumValidator
     @_cache =
       productTypeEnumMap: {}
 
-  validateProduct: (product, productType) =>
+  validateProduct: (product, resolvedProductType) =>
     # fetch all enum attributes of all variants of the product.
     # check if the product type exists in the cache
       # if not then extract all enum attributes from product type and put in cache map
@@ -42,7 +42,24 @@ class EnumValidator
       .concat(_.filter(variant.attributes, @_lenumSetFilterPredicate))
 
 
-  _fetchEnumAttributesFromProductType: (productType) =>
+  _fetchEnumAttributesOfProductType: (productType) =>
+    if @_cache.productTypeEnumMap[productType.id]
+      @_cache.productTypeEnumMap[productType.id]
+    else
+      enums = @_extractEnumAttributesFromProductType(productType)
+      @_cache.productTypeEnumMap[productType.id] = enums
+      enums
+
+  _fetchEnumAttributeNamesOfProductType: (productType) =>
+    if @_cache.productTypeEnumMap["#{productType.id}_names"]
+      @_cache.productTypeEnumMap["#{productType.id}_names"]
+    else
+      enums = @_fetchEnumAttributesOfProductType(productType)
+      names = _.pluck(enums, 'name')
+      @_cache.productTypeEnumMap["#{productType.id}_names"] = names
+      names
+
+  _extractEnumAttributesFromProductType: (productType) =>
     _.filter(productType.attributes, @_enumLenumFilterPredicate)
       .concat(_.filter(productType.attributes, @_enumSetFilterPredicate))
       .concat(_.filter(productType.attributes, @_lenumSetFilterPredicate))
