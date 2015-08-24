@@ -10,7 +10,18 @@ package_json = require '../package.json'
 sampleVariant =
   sku: 'sample_sku'
   attributes: [
-
+    name: 'sample-localized-text-attribute'
+    value:
+      en: 'sample localized text value'
+  ,
+    name: 'sample-lenum-attribute'
+    value: 'lenum-key-2'
+  ,
+    name: 'sample-enum-attribute'
+    value: 'enum-1-key'
+  ,
+    name: 'sample-set-enum-attribute'
+    value: 'enum-set-2-key'
   ]
 
 sampleProductType =
@@ -18,7 +29,7 @@ sampleProductType =
   version: 1
   name: 'sample product type name'
   attributes: [
-    name: 'sample-localized-text--attribute'
+    name: 'sample-localized-text-attribute'
     label:
       en: 'Sample Localized Text Attribute'
     isRequired: true
@@ -148,3 +159,16 @@ describe 'Enum Validator unit tests', ->
     expect(_.size enumNames).toBe 4
     expect(@import._fetchEnumAttributesOfProductType.calls.length).toEqual 1
     expect(@import._cache.productTypeEnumMap["#{sampleProductType.id}_names"]).toBeDefined()
+
+  it ' :: should detect enum attribute', ->
+    sampleEnumAttribute =
+      name: 'sample-enum-attribute'
+    sampleAttribute =
+      name: 'sample-text-attribute'
+    enumAttributeNames = ['sample-lenum-attribute', 'sample-enum-attribute', 'sample-set-enum-attribute', 'sample-set-lenum-attribute']
+    expect(@import._isEnumVariantAttribute(sampleEnumAttribute, enumAttributeNames)).toBeTruthy()
+    expect(@import._isEnumVariantAttribute(sampleAttribute, enumAttributeNames)).toBeFalsy()
+
+  it ' :: should fetch enum attributes from sample variant', ->
+    enums = @import._fetchEnumAttributesFromVariant(sampleVariant,sampleProductType)
+    expect(_.size enums).toBe 3

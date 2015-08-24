@@ -35,12 +35,16 @@ class EnumValidator
         enumAttributes = enumAttributes.concat(@_fetchEmumAttributesFromVariant(variant))
     enumAttributes
 
+  _fetchEnumAttributesFromVariant: (variant, productType) =>
+    enums = []
+    productTypeEnumNames = @_fetchEnumAttributeNamesOfProductType(productType)
+    for attribute in variant.attributes
+      if @_isEnumVariantAttribute(attribute, productTypeEnumNames)
+        enums.push attribute
+    enums
 
-  _fetchEmumAttributesFromVariant: (variant) ->
-    _.filter(variant.attributes, @_enumLenumFilterPredicate)
-      .concat(_.filter(variant.attributes, @_enumSetFilterPredicate))
-      .concat(_.filter(variant.attributes, @_lenumSetFilterPredicate))
-
+  _isEnumVariantAttribute: (attribute, productTypeEnums) ->
+    attribute.name in productTypeEnums
 
   _fetchEnumAttributesOfProductType: (productType) =>
     if @_cache.productTypeEnumMap[productType.id]
