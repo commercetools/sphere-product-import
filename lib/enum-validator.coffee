@@ -28,6 +28,59 @@ class EnumValidator
         # if type is of lenum, then add slugified value as key and original value for all languages as label
     Promise.resolve()
 
+  _validateEnums: (enumAttributes, productType) =>
+    referenceEnums = @_fetchEnumAttributesOfProductType(productType)
+    for ea in enumAttributes
+      refEnum = _.findWhere(referenceEnums, {name: "#{ea.name}"})
+      if refEnum
+        if not @_isEnumKeyPresent(ea, refEnum)
+          @_generateEnumUpdateAction(ea, refEnum)
+      else
+        Promise.reject "enum attribute name: #{ea.name} not found in Product Type: #{productType.name}", ea
+
+  _generateUpdateAction: (enumAttribute, refEnum) =>
+    switch refEnum.type.name
+      when 'enum' then @_generateEnumUpdateAction(enumAttribute, refEnum)
+      when 'lenum' then @_generateLenumUpdateAction(enumAttribute, refEnum)
+      when 'set' then @_generateSetUpdateAction(enumAttribute, refEnum)
+      else throw err "Invalid enum type: #{refEnum.type.name}"
+
+  _generateSetUpdateAction: (enumAttribute, refEnum) =>
+    switch refEnum.type.elementType.name
+      when 'enum' then @_generateEnumUpdateAction(enumAttribute, refEnum)
+      when 'lenum' then @_generateLenumUpdateAction(enumAttribute, refEnum)
+      else throw err "Invalid set enum type: #{refEnum.type.elementType.name}"
+
+  _generateEnumUpdateAction: (ea, refEnum) ->
+    updateAction =
+      action: 'addPlainEnumValue'
+      attributeName: refEnum.name
+      value:
+        key: slugify(ea.value)
+        label: ea.value
+    updateAction
+
+  _generateLenumUpdateAction: (ea, refEnum) ->
+    updateAction =
+      action: 'addLocalizedEnumValue'
+      attributeName: refEnum.name
+      value:
+        key: slugify(ea.value)
+        label:
+          en: ea.value
+          de: ea.value
+          fr: ea.value
+          it: ea.value
+          es: ea.value
+    updateAction
+
+
+  _isEnumKeyPresent: (enumAttribute, refEnum) =>
+    if refEnum.type.name is 'set'
+      _.findWhere(refEnum.type.elementType.values, {key: slugify(enumAttribute.value)})
+    else
+      _.findWhere(refEnum.type.values, {key: slugify(enumAttribute.value)})
+
   _fetchEnumAttributesFromProduct: (product, resolvedProductType) =>
     enumAttributes = @_fetchEnumAttributesFromVariant(product.masterVariant, resolvedProductType)
     if product.variants and not _.isEmpty(product.variants)
@@ -47,12 +100,7 @@ class EnumValidator
     attribute.name in productTypeEnums
 
   _fetchEnumAttributesOfProductType: (productType) =>
-    if @_cache.productTypeEnumMap[productType.id]
-      @_cache.productTypeEnumMap[productType.id]
-    else
-      enums = @_extractEnumAttributesFromProductType(productType)
-      @_cache.productTypeEnumMap[productType.id] = enums
-      enums
+    @_extractEnumAttributesFromProductType(productType)
 
   _fetchEnumAttributeNamesOfProductType: (productType) =>
     if @_cache.productTypeEnumMap["#{productType.id}_names"]

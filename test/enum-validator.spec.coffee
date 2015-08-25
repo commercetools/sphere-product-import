@@ -139,14 +139,6 @@ describe 'Enum Validator unit tests', ->
     enums = @import._fetchEnumAttributesOfProductType(sampleProductType)
     expect(_.size enums).toBe 4
 
-  it ' :: should fetch enum attributes of sample product type from cache', ->
-    spyOn(@import, '_extractEnumAttributesFromProductType').andCallThrough()
-    @import._fetchEnumAttributesOfProductType(sampleProductType)
-    enums = @import._fetchEnumAttributesOfProductType(sampleProductType)
-    expect(_.size enums).toBe 4
-    expect(@import._extractEnumAttributesFromProductType.calls.length).toEqual 1
-    expect(@import._cache.productTypeEnumMap[sampleProductType.id]).toBeDefined()
-
   it ' :: should fetch enum attribute names of sample product type', ->
     expectedNames = ['sample-lenum-attribute', 'sample-enum-attribute', 'sample-set-enum-attribute', 'sample-set-lenum-attribute']
     enumNames = @import._fetchEnumAttributeNamesOfProductType(sampleProductType)
@@ -187,3 +179,92 @@ describe 'Enum Validator unit tests', ->
 
     enums = @import._fetchEnumAttributesFromProduct(sampleProduct, sampleProductType)
     expect(_.size enums).toBe 9
+
+  it ' :: should detect enum key correctly', ->
+    enumAttributeTrue =
+      name: 'sample-enum-attribute'
+      value: 'enum-2-key'
+
+    enumAttributeFalse =
+      name: 'sample-enum-attribute'
+      value: 'enum-3-key'
+
+    lenumAttributeTrue =
+      name: 'sample-lenum-attribute'
+      value: 'lenum-key-2'
+
+    lenumAttributeFalse =
+      name: 'sample-lenum-attribute'
+      value: 'lenum-key-3'
+
+    lenumSetAttributeTrue =
+      name: 'sample-set-lenum-attribute'
+      value: 'lenum-set-1-key'
+
+    lenumSetAttributeFalse =
+      name: 'sample-set-lenum-attribute'
+      value: 'lenum-set-5-key'
+
+    enumSetAttributeTrue =
+      name: 'sample-set-enum-attribute'
+      value: 'enum-set-1-key'
+
+    enumSetAttributeFalse =
+      name: 'sample-set-enum-attribute'
+      value: 'enum-set-5-key'
+
+    expect(@import._isEnumKeyPresent(enumAttributeTrue, sampleProductType.attributes[2])).toBeDefined()
+    expect(@import._isEnumKeyPresent(enumAttributeFalse, sampleProductType.attributes[2])).toBeUndefined()
+    expect(@import._isEnumKeyPresent(lenumAttributeTrue, sampleProductType.attributes[1])).toBeDefined()
+    expect(@import._isEnumKeyPresent(lenumAttributeFalse, sampleProductType.attributes[1])).toBeUndefined()
+    expect(@import._isEnumKeyPresent(lenumSetAttributeTrue, sampleProductType.attributes[4])).toBeDefined()
+    expect(@import._isEnumKeyPresent(lenumSetAttributeFalse, sampleProductType.attributes[4])).toBeUndefined()
+    expect(@import._isEnumKeyPresent(enumSetAttributeTrue, sampleProductType.attributes[3])).toBeDefined()
+    expect(@import._isEnumKeyPresent(enumSetAttributeFalse, sampleProductType.attributes[3])).toBeUndefined()
+
+  it ' :: should generate correct enum update action', ->
+    enumAttribute =
+      name: 'sample-enum-attribute'
+      value: 'enum-3-key'
+
+    expectedUpdateAction =
+      action: 'addPlainEnumValue'
+      attributeName: 'sample-enum-attribute'
+      value:
+        key: 'enum-3-key'
+        label: 'enum-3-key'
+
+    expect(@import._generateUpdateAction(enumAttribute, sampleProductType.attributes[2])).toEqual expectedUpdateAction
+
+  it ' :: should generate correct lenum update action', ->
+    lenumAttribute =
+      name: 'sample-lenum-attribute'
+      value: 'lenum-3-key'
+
+    expectedUpdateAction =
+      action: 'addLocalizedEnumValue'
+      attributeName: 'sample-lenum-attribute'
+      value:
+        key: 'lenum-3-key'
+        label:
+          en: 'lenum-3-key'
+          de: 'lenum-3-key'
+          fr: 'lenum-3-key'
+          it: 'lenum-3-key'
+          es: 'lenum-3-key'
+
+    expect(@import._generateUpdateAction(lenumAttribute, sampleProductType.attributes[1])).toEqual expectedUpdateAction
+
+  it ' :: should generate correct enum set update action', ->
+    enumSetAttribute =
+      name: 'sample-set-enum-attribute'
+      value: 'enum-set-5-key'
+
+    expectedUpdateAction =
+      action: 'addPlainEnumValue'
+      attributeName: 'sample-set-enum-attribute'
+      value:
+        key: 'enum-set-5-key'
+        label: 'enum-set-5-key'
+
+    expect(@import._generateUpdateAction(enumSetAttribute, sampleProductType.attributes[3])).toEqual expectedUpdateAction
