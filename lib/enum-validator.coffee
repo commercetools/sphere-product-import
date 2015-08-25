@@ -16,27 +16,24 @@ class EnumValidator
       productTypeEnumMap: {}
 
   validateProduct: (product, resolvedProductType) =>
-    # fetch all enum attributes of all variants of the product.
-    # check if the product type exists in the cache
-      # if not then extract all enum attributes from product type and put in cache map
-    # foreach attribute
-      # check if attribute exists in the enum map
-        # if not then reject the product
-      # check if slugified version of attribute value exists as a key in enum map
-        # if not then create an update action
-        # add the slugified attribute value as key and orginal value as label
-        # if type is of lenum, then add slugified value as key and original value for all languages as label
-    Promise.resolve()
+    new Promise (resolve) =>
+      enumAttributes = @_fetchEnumAttributesFromProduct(product, resolvedProductType)
+      @_validateEnums(enumAttributes, resolvedProductType)
+      .then (updateActions) ->
+        resolve(updateActions)
 
   _validateEnums: (enumAttributes, productType) =>
-    referenceEnums = @_fetchEnumAttributesOfProductType(productType)
-    for ea in enumAttributes
-      refEnum = _.findWhere(referenceEnums, {name: "#{ea.name}"})
-      if refEnum
-        if not @_isEnumKeyPresent(ea, refEnum)
-          @_generateEnumUpdateAction(ea, refEnum)
-      else
-        Promise.reject "enum attribute name: #{ea.name} not found in Product Type: #{productType.name}", ea
+    new Promise (resolve, reject) =>
+      updateActions = []
+      referenceEnums = @_fetchEnumAttributesOfProductType(productType)
+      for ea in enumAttributes
+        refEnum = _.findWhere(referenceEnums, {name: "#{ea.name}"})
+        if refEnum
+          if not @_isEnumKeyPresent(ea, refEnum)
+            updateActions.push @_generateUpdateAction(ea, refEnum)
+        else
+          reject("enum attribute name: #{ea.name} not found in Product Type: #{productType.name}", ea)
+      resolve(updateActions)
 
   _generateUpdateAction: (enumAttribute, refEnum) =>
     switch refEnum.type.name
@@ -75,7 +72,7 @@ class EnumValidator
     updateAction
 
 
-  _isEnumKeyPresent: (enumAttribute, refEnum) =>
+  _isEnumKeyPresent: (enumAttribute, refEnum) ->
     if refEnum.type.name is 'set'
       _.findWhere(refEnum.type.elementType.values, {key: slugify(enumAttribute.value)})
     else

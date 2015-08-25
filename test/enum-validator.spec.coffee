@@ -268,3 +268,56 @@ describe 'Enum Validator unit tests', ->
         label: 'enum-set-5-key'
 
     expect(@import._generateUpdateAction(enumSetAttribute, sampleProductType.attributes[3])).toEqual expectedUpdateAction
+
+  it ' :: should generate correct list of update actions', (done) ->
+    enumAttributes = [
+      name: 'sample-lenum-attribute'
+      value: 'lenum-key-2'
+    ,
+      name: 'sample-enum-attribute'
+      value: 'enum-1-key'
+    ,
+      name: 'sample-set-enum-attribute'
+      value: 'enum-set-2-key'
+    ,
+      name: 'sample-lenum-attribute'
+      value: 'lenum-3-key'
+    ,
+      name: 'sample-enum-attribute'
+      value: 'enum-3-key'
+    ,
+      name: 'sample-set-enum-attribute'
+      value: 'enum-set-5-key'
+    ]
+
+    expectedUpdateActions = [
+      action: 'addLocalizedEnumValue'
+      attributeName: 'sample-lenum-attribute'
+      value:
+        key: 'lenum-3-key'
+        label:
+          en: 'lenum-3-key'
+          de: 'lenum-3-key'
+          fr: 'lenum-3-key'
+          it: 'lenum-3-key'
+          es: 'lenum-3-key'
+    ,
+      action: 'addPlainEnumValue'
+      attributeName: 'sample-enum-attribute'
+      value:
+        key: 'enum-3-key'
+        label: 'enum-3-key'
+    ,
+      action: 'addPlainEnumValue'
+      attributeName: 'sample-set-enum-attribute'
+      value:
+        key: 'enum-set-5-key'
+        label: 'enum-set-5-key'
+    ]
+
+    @import._validateEnums(enumAttributes, sampleProductType)
+    .then (updateActions) ->
+      expect(updateActions).toEqual expectedUpdateActions
+      done()
+    .catch (err) ->
+      done(err)
