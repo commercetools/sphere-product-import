@@ -7,7 +7,7 @@ slugify = require 'underscore.string/slugify'
 
 class EnumValidator
 
-  constructor: (@logger, @client) ->
+  constructor: (@logger) ->
     @_resetCache()
     if @logger then @logger.info "Enum Validator initialized."
 

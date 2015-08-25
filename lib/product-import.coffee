@@ -16,7 +16,7 @@ class ProductImport
       @sync.config @_configureSync(options.blackList)
     if options.ensureEnums then @ensureEnums = options.ensureEnums else @ensureEnums = false
     @client = new SphereClient options.clientConfig
-    @enumValidator = new EnumValidator @logger, @client
+    @enumValidator = new EnumValidator @logger
     @_configErrorHandling(options)
     @_resetCache()
     @_resetSummary()
