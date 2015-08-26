@@ -14,6 +14,7 @@ class EnumValidator
   _resetCache: ->
     @_cache =
       productTypeEnumMap: {}
+      generatedEnums: {}
 
   validateProduct: (product, resolvedProductType) =>
     new Promise (resolve) =>
@@ -27,13 +28,19 @@ class EnumValidator
       updateActions = []
       referenceEnums = @_fetchEnumAttributesOfProductType(productType)
       for ea in enumAttributes
-        refEnum = _.findWhere(referenceEnums, {name: "#{ea.name}"})
-        if refEnum
-          if not @_isEnumKeyPresent(ea, refEnum)
-            updateActions.push @_generateUpdateAction(ea, refEnum)
+        if not @_isEnumGenerated(ea)
+          refEnum = _.findWhere(referenceEnums, {name: "#{ea.name}"})
+          if refEnum
+            if not @_isEnumKeyPresent(ea, refEnum)
+              updateActions.push @_generateUpdateAction(ea, refEnum)
+          else
+            reject("enum attribute name: #{ea.name} not found in Product Type: #{productType.name}", ea)
         else
-          reject("enum attribute name: #{ea.name} not found in Product Type: #{productType.name}", ea)
+          debug "Skipping #{ea.name} update action generation as already exists."
       resolve(updateActions)
+
+  _isEnumGenerated: (ea) =>
+    @_cache.generatedEnums["#{ea.name}-#{slugify(ea.value)}"]
 
   _generateUpdateAction: (enumAttribute, refEnum) =>
     switch refEnum.type.name

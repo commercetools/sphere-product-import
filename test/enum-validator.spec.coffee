@@ -321,3 +321,20 @@ describe 'Enum Validator unit tests', ->
       done()
     .catch (err) ->
       done(err)
+
+  it ' :: should detect already generated enums', ->
+    @import._cache.generatedEnums['sample-lenum-attribute-lenum-key-2'] = 'lenum-key-2'
+    @import._cache.generatedEnums['sample-set-enum-attribute-enum-set-2-key'] = 'enum-set-2-key'
+    @import._cache.generatedEnums['sample-lenum-attribute-lenum-3-key'] = 'lenum-3-key'
+
+    sampleEnumAttributeTrue =
+      name: 'sample-lenum-attribute'
+      value: 'lenum-3-key'
+
+    sampleEnumAttributeFalse =
+      name: 'sample-lenum-attribute'
+      value: 'lenum-4-key'
+
+    expect(@import._isEnumGenerated(sampleEnumAttributeTrue)).toBeDefined()
+    expect(@import._isEnumGenerated(sampleEnumAttributeFalse)).toBeUndefined()
+
