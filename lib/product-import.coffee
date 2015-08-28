@@ -57,6 +57,7 @@ class ProductImport
       created: 0
       updated: 0
       failed: 0
+      productTypeUpdated: 0
       errorDir: @errorDir
 
   summaryReport: (filename) ->
@@ -148,14 +149,15 @@ class ProductImport
 
   _createOrUpdate: (productsToProcess, existingProducts) ->
     debug 'Products to process: %j', {toProcess: productsToProcess, existing: existingProducts}
-
+    enumUpdateActions = {}
     posts = _.map productsToProcess, (prodToProcess) =>
       existingProduct = @_isExistingEntry(prodToProcess, existingProducts)
       if existingProduct?
         @_fetchSameForAllAttributesOfProductType(prodToProcess.productType)
         .then (sameForAllAttributes) =>
-          @enumValidator.validateProduct(prodToProcess, @_cache.productType[prodToProcess.productType.id])
-          .then =>
+          @_validateEnums(prodToProcess, @_cache.productType[prodToProcess.productType.id])
+          .then (updateActions) =>
+            if updateActions and _.size(updateActions.actions) > 0 then @_updateEnumUpdateActions(enumUpdateActions, updateActions)
             @_prepareUpdateProduct(prodToProcess, existingProduct).then (preparedProduct) =>
               synced = @sync.buildActions(preparedProduct, existingProduct, sameForAllAttributes)
               if synced.shouldUpdate()
@@ -165,12 +167,47 @@ class ProductImport
       else
         @_prepareNewProduct(prodToProcess)
         .then (product) =>
-          @enumValidator.validateProduct(product, @_cache.productType[product.productType.id])
-          .then =>
+          @_validateEnums(product, @_cache.productType[product.productType.id])
+          .then (updateActions) =>
+            if updateActions and _.size(updateActions) > 0 then @_updateEnumUpdateActions(enumUpdateActions, updateActions)
             @client.products.create(product)
 
-    debug 'About to send %s requests', _.size(posts)
-    Promise.settle(posts)
+    @_updateProductType(enumUpdateActions)
+    .then ->
+      debug 'About to send %s requests', _.size(posts)
+      Promise.settle(posts)
+
+  _validateEnums: (product, productType) =>
+    if @ensureEnums
+      @enumValidator.validateProduct(product, productType)
+    else
+      Promise.resolve()
+
+  _updateProductType: (enumUpdateActions) =>
+    new Promise (resolve) =>
+      if _.isEmpty(enumUpdateActions)
+        resolve()
+      else
+        @logger.info "Updating product type(s): #{_.keys(enumUpdateActions)}"
+        Promise.all [
+          for productTypeId in _.keys(enumUpdateActions)
+            updateRequest =
+              version: @_cache.productType[productTypeId].version
+              actions: enumUpdateActions[productTypeId]
+            @client.productTypes.byId(@_cache.productType[productTypeId].id).update(updateRequest)
+            .then (updatedProductType) =>
+              @_cache.productType[productTypeId] = updatedProductType.body
+              @_summary.productTypeUpdated++
+        ]
+        .then ->
+          resolve()
+
+
+  _updateEnumUpdateActions: (enumUpdateActions, updateActions) ->
+    if enumUpdateActions[updateActions.productTypeId]
+      enumUpdateActions[updateActions.productTypeId] = enumUpdateActions[updateActions.productTypeId].concat(updateActions.actions)
+    else
+      enumUpdateActions[updateActions.productTypeId] = updateActions.actions
 
   _fetchSameForAllAttributesOfProductType: (productType) =>
     new Promise (resolve) =>
