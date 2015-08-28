@@ -9,7 +9,7 @@ class EnumValidator
 
   constructor: (@logger) ->
     @_resetCache()
-    if @logger then @logger.info "Enum Validator initialized."
+    debug "Enum Validator initialized."
 
   _resetCache: ->
     @_cache =
@@ -21,7 +21,10 @@ class EnumValidator
       enumAttributes = @_fetchEnumAttributesFromProduct(product, resolvedProductType)
       @_validateEnums(enumAttributes, resolvedProductType)
       .then (updateActions) ->
-        resolve(updateActions)
+        update =
+          productTypeId: resolvedProductType.id
+          actions: updateActions
+        resolve(update)
 
   _validateEnums: (enumAttributes, productType) =>
     new Promise (resolve, reject) =>
