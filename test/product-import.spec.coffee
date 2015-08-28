@@ -4,6 +4,8 @@ _.mixin require 'underscore-mixins'
 ClientConfig = require '../config'
 Promise = require 'bluebird'
 path = require 'path'
+{ExtendedLogger} = require 'sphere-node-utils'
+package_json = require '../package.json'
 
 frozenTimeStamp = new Date().getTime()
 
@@ -157,15 +159,25 @@ describe 'ProductImport unit tests', ->
 
   beforeEach ->
 
+    @logger = new ExtendedLogger
+      additionalFields:
+        project_key: 'productImporterTests'
+      logConfig:
+        name: "#{package_json.name}-#{package_json.version}"
+        streams: [
+          { level: 'info', stream: process.stdout }
+        ]
+
     errorDir = path.join(__dirname, '../errors')
 
     Config =
       clientConfig: ClientConfig
       errorDir: errorDir
       errorLimit: 0
+      ensureEnums: true
       blackList: ['prices']
 
-    @import = new ProductImport null, Config
+    @import = new ProductImport @logger, Config
 
   it 'should initialize', ->
     expect(@import).toBeDefined()
@@ -296,7 +308,7 @@ describe 'ProductImport unit tests', ->
         done()
       .catch done
 
-  describe '::_generateSlug', ->
+  xdescribe '::_generateSlug', ->
 
     it 'should generate valid slug', ->
       sampleName =
@@ -429,6 +441,8 @@ describe 'ProductImport unit tests', ->
         ],
         version: 1
 
+      @import._cache.productType[sampleProductTypeResponse.body.results[0].id] = sampleProductTypeResponse.body.results[0]
+
       spyOn(@import, "_prepareNewProduct").andCallFake (prepareProduct) -> Promise.resolve(prepareProduct)
       spyOn(@import, "_prepareUpdateProduct").andCallFake (prepareProduct) -> Promise.resolve(prepareProduct)
       spyOn(@import, "_fetchSameForAllAttributesOfProductType").andCallFake -> Promise.resolve([])
@@ -463,6 +477,7 @@ describe 'ProductImport unit tests', ->
           created: 1
           updated: 1
           failed: 0
+          productTypeUpdated: 0
           errorDir: path.join(__dirname,'../errors')
         done()
       .catch done
@@ -648,6 +663,71 @@ describe 'ProductImport unit tests', ->
       .then (result) =>
         expect(result).toEqual ['sample attribute 1', 'sample attribute 3']
         expect(@import._cache.productType["#{productType.id}_sameForAllAttributes"]).toEqual ['sample attribute 1', 'sample attribute 3']
+        done()
+      .catch (err) ->
+        done(err)
+
+  describe 'update product type', ->
+
+    it ' :: should do nothing for empty update actions', (done) ->
+      @import._updateProductType([])
+      .then =>
+        expect(@import._summary.productTypeUpdated).toBe 0
+        done()
+      .catch (err) ->
+        done(err)
+
+    it ' :: should update product type correctly', (done) ->
+      sampleProductType = _.deepClone sampleProductTypeResponse.body.results[0]
+      sampleEnumAttribute =
+        name: 'sample-enum-attribute'
+        label:
+          en: 'Sample Enum Attribute'
+        type:
+          name: 'enum'
+          values: [
+            key: 'enum-1-key'
+            label: 'enum-1-label'
+          ,
+            key: 'enum-2-key'
+            label: 'enum-2-label'
+          ]
+
+      sampleProductType.attributes.push sampleEnumAttribute
+
+      sampleUpdateAction =
+        action: 'addPlainEnumValue'
+        attributeName: 'sample-enum-attribute'
+        value:
+          key: 'enum-3-key'
+          label: 'enum-3-key'
+
+      sampleInput =
+        product_type_internal_id: [
+          sampleUpdateAction
+        ]
+
+      expectedPayload =
+        version: sampleProductType.version
+        actions: [
+          sampleUpdateAction
+        ]
+
+      sampleUpdatedProductType = _.deepClone sampleProductType
+
+      sampleUpdatedProductType.version++
+      sampleUpdatedProductType.attributes[0].type.values.push sampleUpdateAction.value
+
+      @import._cache.productType[sampleProductType.id] = sampleProductType
+      spyOn(@import.client._rest, 'POST').andCallFake (endpoint, payload, callback) ->
+        callback(null, {statusCode: 200}, sampleUpdatedProductType)
+      @import._updateProductType(sampleInput)
+      .then =>
+        updatedProductType = @import._cache.productType[sampleProductType.id]
+        expect(updatedProductType.version).toBe 2
+        expect(updatedProductType.attributes[0].type.values[2]).toEqual(sampleUpdateAction.value)
+        expect(@import._summary.productTypeUpdated).toBe 1
+        expect(@import.client._rest.POST.calls[0].args[1]).toEqual expectedPayload
         done()
       .catch (err) ->
         done(err)
