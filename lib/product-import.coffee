@@ -17,11 +17,11 @@ class ProductImport
     @_configErrorHandling(options)
     @_resetCache()
     @_resetSummary()
-    if @logger then @logger.info "Product Importer initialized with config -> errorDir: #{@errorDir}, errorLimit: #{@errorLimit}, blacklist actions: #{options.blackList}"
+    debug "Product Importer initialized with config -> errorDir: #{@errorDir}, errorLimit: #{@errorLimit}, blacklist actions: #{options.blackList}"
 
   _configureSync: (blackList) =>
     @_validateSyncConfig(blackList)
-    if @logger then @logger.info "Product sync config validated"
+    debug "Product sync config validated"
     _.difference(ProductSync.actionGroups, blackList)
       .map (type) -> {type: type, group: 'white'}
       .concat(blackList.map (type) -> {type: type, group: 'black'})
