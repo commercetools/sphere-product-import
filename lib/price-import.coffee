@@ -44,7 +44,7 @@ class PriceImport extends ProductImport
         debug "Fetched products: %j", results
         queriedEntries = results.body.results
         wrappedProducts = @_wrapPricesIntoProducts pricesToProcess, queriedEntries
-        console.log "Wrapped #{_.size prices} price(s) into #{_.size wrappedProducts} existing product(s)."
+        if @logger then @logger.info "Wrapped #{_.size prices} price(s) into #{_.size wrappedProducts} existing product(s)."
         @_createOrUpdate wrappedProducts, queriedEntries
         .then (results) =>
           _.each results, (r) =>
