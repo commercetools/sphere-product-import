@@ -58,6 +58,7 @@ describe 'Product import integration tests', ->
       clientConfig: ClientConfig
       errorDir: errorDir
       errorLimit: 30
+      ensureEnums: true
       blackList: ['prices']
 
     @import = new ProductImport @logger, Config

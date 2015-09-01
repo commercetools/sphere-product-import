@@ -6,6 +6,7 @@ slugify = require 'underscore.string/slugify'
 {SphereClient, ProductSync} = require 'sphere-node-sdk'
 fs = require 'fs-extra'
 path = require 'path'
+EnumValidator = require './enum-validator'
 
 class ProductImport
 
@@ -13,11 +14,13 @@ class ProductImport
     @sync = new ProductSync
     if options.blackList and ProductSync.actionGroups
       @sync.config @_configureSync(options.blackList)
+    if options.ensureEnums then @ensureEnums = options.ensureEnums else @ensureEnums = false
     @client = new SphereClient options.clientConfig
+    @enumValidator = new EnumValidator @logger
     @_configErrorHandling(options)
     @_resetCache()
     @_resetSummary()
-    debug "Product Importer initialized with config -> errorDir: #{@errorDir}, errorLimit: #{@errorLimit}, blacklist actions: #{options.blackList}"
+    if @logger then @logger.info "Product Importer initialized with config -> errorDir: #{@errorDir}, errorLimit: #{@errorLimit}, blacklist actions: #{options.blackList}, ensureEnums: #{@ensureEnums}"
 
   _configureSync: (blackList) =>
     @_validateSyncConfig(blackList)
@@ -54,6 +57,7 @@ class ProductImport
       created: 0
       updated: 0
       failed: 0
+      productTypeUpdated: 0
       errorDir: @errorDir
 
   summaryReport: (filename) ->
@@ -145,23 +149,65 @@ class ProductImport
 
   _createOrUpdate: (productsToProcess, existingProducts) ->
     debug 'Products to process: %j', {toProcess: productsToProcess, existing: existingProducts}
-
+    enumUpdateActions = {}
     posts = _.map productsToProcess, (prodToProcess) =>
       existingProduct = @_isExistingEntry(prodToProcess, existingProducts)
       if existingProduct?
         @_fetchSameForAllAttributesOfProductType(prodToProcess.productType)
         .then (sameForAllAttributes) =>
-          @_prepareUpdateProduct(prodToProcess, existingProduct).then (preparedProduct) =>
-            synced = @sync.buildActions(preparedProduct, existingProduct, sameForAllAttributes)
-            if synced.shouldUpdate()
-              @client.products.byId(synced.getUpdateId()).update(synced.getUpdatePayload())
-            else
-              Promise.resolve statusCode: 304
+          @_validateEnums(prodToProcess, @_cache.productType[prodToProcess.productType.id])
+          .then (updateActions) =>
+            if updateActions and _.size(updateActions.actions) > 0 then @_updateEnumUpdateActions(enumUpdateActions, updateActions)
+            @_prepareUpdateProduct(prodToProcess, existingProduct).then (preparedProduct) =>
+              synced = @sync.buildActions(preparedProduct, existingProduct, sameForAllAttributes)
+              if synced.shouldUpdate()
+                @client.products.byId(synced.getUpdateId()).update(synced.getUpdatePayload())
+              else
+                Promise.resolve statusCode: 304
       else
-        @_prepareNewProduct(prodToProcess).then (product) => @client.products.create(product)
+        @_prepareNewProduct(prodToProcess)
+        .then (product) =>
+          @_validateEnums(product, @_cache.productType[product.productType.id])
+          .then (updateActions) =>
+            if updateActions and _.size(updateActions) > 0 then @_updateEnumUpdateActions(enumUpdateActions, updateActions)
+            @client.products.create(product)
 
-    debug 'About to send %s requests', _.size(posts)
-    Promise.settle(posts)
+    @_updateProductType(enumUpdateActions)
+    .then ->
+      debug 'About to send %s requests', _.size(posts)
+      Promise.settle(posts)
+
+  _validateEnums: (product, productType) =>
+    if @ensureEnums
+      @enumValidator.validateProduct(product, productType)
+    else
+      Promise.resolve()
+
+  _updateProductType: (enumUpdateActions) =>
+    new Promise (resolve) =>
+      if _.isEmpty(enumUpdateActions)
+        resolve()
+      else
+        @logger.info "Updating product type(s): #{_.keys(enumUpdateActions)}"
+        Promise.all [
+          for productTypeId in _.keys(enumUpdateActions)
+            updateRequest =
+              version: @_cache.productType[productTypeId].version
+              actions: enumUpdateActions[productTypeId]
+            @client.productTypes.byId(@_cache.productType[productTypeId].id).update(updateRequest)
+            .then (updatedProductType) =>
+              @_cache.productType[productTypeId] = updatedProductType.body
+              @_summary.productTypeUpdated++
+        ]
+        .then ->
+          resolve()
+
+
+  _updateEnumUpdateActions: (enumUpdateActions, updateActions) ->
+    if enumUpdateActions[updateActions.productTypeId]
+      enumUpdateActions[updateActions.productTypeId] = enumUpdateActions[updateActions.productTypeId].concat(updateActions.actions)
+    else
+      enumUpdateActions[updateActions.productTypeId] = updateActions.actions
 
   _fetchSameForAllAttributesOfProductType: (productType) =>
     new Promise (resolve) =>
@@ -333,6 +379,8 @@ class ProductImport
             if _.size(result.body.results) > 1
               @logger.warn "Found more than 1 #{refKey} for #{ref.id}"
             @_cache[refKey][ref.id] = result.body.results[0]
+            if refKey is 'productType'
+              @_cache[refKey][result.body.results[0].id] = result.body.results[0]
             resolve(result.body.results[0].id)
 
 module.exports = ProductImport
