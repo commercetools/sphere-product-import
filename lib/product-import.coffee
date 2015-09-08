@@ -20,7 +20,7 @@ class ProductImport
     @_configErrorHandling(options)
     @_resetCache()
     @_resetSummary()
-    if @logger then @logger.info "Product Importer initialized with config -> errorDir: #{@errorDir}, errorLimit: #{@errorLimit}, blacklist actions: #{options.blackList}, ensureEnums: #{@ensureEnums}"
+    debug "Product Importer initialized with config -> errorDir: #{@errorDir}, errorLimit: #{@errorLimit}, blacklist actions: #{options.blackList}, ensureEnums: #{@ensureEnums}"
 
   _configureSync: (blackList) =>
     @_validateSyncConfig(blackList)
@@ -188,7 +188,7 @@ class ProductImport
       if _.isEmpty(enumUpdateActions)
         resolve()
       else
-        @logger.info "Updating product type(s): #{_.keys(enumUpdateActions)}"
+        debug "Updating product type(s): #{_.keys(enumUpdateActions)}"
         Promise.all [
           for productTypeId in _.keys(enumUpdateActions)
             updateRequest =
