@@ -49,10 +49,25 @@ class EnumValidator
     switch refEnum.type.name
       when 'enum' then @_generateEnumUpdateAction(enumAttribute, refEnum)
       when 'lenum' then @_generateLenumUpdateAction(enumAttribute, refEnum)
-      when 'set' then @_generateSetUpdateAction(enumAttribute, refEnum)
+      when 'set' then @_generateEnumSetUpdateActionByValueType(enumAttribute, refEnum)
       else throw err "Invalid enum type: #{refEnum.type.name}"
 
-  _generateSetUpdateAction: (enumAttribute, refEnum) =>
+  _generateEnumSetUpdateActionByValueType: (enumAttribute, refEnum) =>
+    if _.isArray(enumAttribute.value)
+      @_generateMultipleValueEnumSetUpdateAction(enumAttribute, refEnum)
+    else
+      @_generateEnumSetUpdateAction(enumAttribute, refEnum)
+
+  _generateMultipleValueEnumSetUpdateAction: (enumAttribute, refEnum) =>
+    updateActions = []
+    for attributeValue in enumAttribute.value
+      ea =
+        name: enumAttribute.name
+        value: attributeValue
+      updateActions.push(@_generateEnumSetUpdateAction(ea, refEnum))
+    updateActions
+
+  _generateEnumSetUpdateAction: (enumAttribute, refEnum) =>
     switch refEnum.type.elementType.name
       when 'enum' then @_generateEnumUpdateAction(enumAttribute, refEnum)
       when 'lenum' then @_generateLenumUpdateAction(enumAttribute, refEnum)

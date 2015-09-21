@@ -256,6 +256,28 @@ describe 'Enum Validator unit tests', ->
     expect(@import._generateUpdateAction(lenumAttribute, sampleProductType.attributes[1])).toEqual expectedUpdateAction
 
   it ' :: should generate correct enum set update action', ->
+    enumSetAttributeMultiValue =
+      name: 'sample-set-enum-attribute'
+      value: [
+        'enum-set-5-key'
+      ,
+        'enum-set-6-key'
+      ]
+
+    expectedUpdateActionMultiValue = [
+      action: 'addPlainEnumValue'
+      attributeName: 'sample-set-enum-attribute'
+      value:
+        key: 'enum-set-5-key'
+        label: 'enum-set-5-key'
+    ,
+      action: 'addPlainEnumValue'
+      attributeName: 'sample-set-enum-attribute'
+      value:
+        key: 'enum-set-6-key'
+        label: 'enum-set-6-key'
+    ]
+
     enumSetAttribute =
       name: 'sample-set-enum-attribute'
       value: 'enum-set-5-key'
@@ -267,6 +289,7 @@ describe 'Enum Validator unit tests', ->
         key: 'enum-set-5-key'
         label: 'enum-set-5-key'
 
+    expect(@import._generateUpdateAction(enumSetAttributeMultiValue, sampleProductType.attributes[3])).toEqual expectedUpdateActionMultiValue
     expect(@import._generateUpdateAction(enumSetAttribute, sampleProductType.attributes[3])).toEqual expectedUpdateAction
 
   it ' :: should generate correct list of update actions', (done) ->
