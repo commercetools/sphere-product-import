@@ -59,13 +59,11 @@ class EnumValidator
       @_generateEnumSetUpdateAction(enumAttribute, refEnum)
 
   _generateMultipleValueEnumSetUpdateAction: (enumAttribute, refEnum) =>
-    updateActions = []
-    for attributeValue in enumAttribute.value
+    _.map enumAttribute.value, (attributeValue) =>
       ea =
         name: enumAttribute.name
         value: attributeValue
-      updateActions.push(@_generateEnumSetUpdateAction(ea, refEnum))
-    updateActions
+      @_generateEnumSetUpdateAction(ea, refEnum)
 
   _generateEnumSetUpdateAction: (enumAttribute, refEnum) =>
     switch refEnum.type.elementType.name
