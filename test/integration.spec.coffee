@@ -211,6 +211,39 @@ describe 'Product import integration tests', ->
         .catch (err) ->
           done(err)
 
+    it ':: should handle set type attributes correctly', (done) ->
+      sampleImport = _.deepClone sampleImportJson
+
+      setTextAttribute =
+        name: 'sample_set_text'
+        value: ['text_1', 'text_2']
+
+      setTextAttributeUpdated =
+        name: 'sample_set_text'
+        value: ['text_1', 'text_2', 'text_3']
+
+      sampleImport.products[0].masterVariant.attributes.push setTextAttribute
+
+      predicate = 'masterVariant(sku="B3-717597")'
+      @import._processBatches(sampleImport.products)
+      .then =>
+        expect(@import._summary.created).toBe 2
+        @client.productProjections.where(predicate).staged(true).fetch()
+      .then (result) =>
+        expect(result.body.results[0].masterVariant.attributes[0].value).toEqual setTextAttribute.value
+        sampleUpdate = _.deepClone sampleImportJson
+        sampleUpdate.products[0].masterVariant.attributes.push setTextAttributeUpdated
+        @import._processBatches(sampleUpdate.products)
+      .then =>
+        expect(@import._summary.updated).toBe 1
+        @client.productProjections.where(predicate).staged(true).fetch()
+      .then (result) ->
+        expect(result.body.results[0].masterVariant.attributes[0].value).toEqual setTextAttributeUpdated.value
+        done()
+      .catch (err) ->
+        done(err)
+    , 10000
+
 
 
 

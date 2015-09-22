@@ -37,6 +37,14 @@
             "_custom": {
               "predicate": "masterVariant(sku=\"attribute_value_to_resolve_by\") or variants(sku=\"attribute_value_to_resolve_by\")"
             }
+          },
+          {
+            "name": "sample_set_text",
+            "value": ["set_text_1"]
+          },
+          {
+            "name": "sample_set_text_2",
+            "value": ["text_1", "text_2", "text_3"]
           }
         ]
       },
