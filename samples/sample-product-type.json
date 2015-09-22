@@ -27,6 +27,21 @@
       },
       "isRequired": false,
       "attributeConstraint": "SameForAll"
+    },
+    {
+      "name": "sample_set_text",
+      "label": {
+        "en": "Sample Set Text"
+      },
+      "isRequired": false,
+      "type": {
+        "name": "set",
+        "elementType": {
+          "name": "text"
+        }
+      },
+      "attributeConstraint": "None",
+      "isSearchable": true
     }
   ]
 }
