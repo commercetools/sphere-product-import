@@ -17,6 +17,7 @@ class ProductImport
     if options.ensureEnums then @ensureEnums = options.ensureEnums else @ensureEnums = false
     @client = new SphereClient options.clientConfig
     @enumValidator = new EnumValidator @logger
+    if options.filterUnknownAttributes then  @filterUnknownAttributes = options.filterUnknownAttributes else @filterUnknownAttributes = false
     @_configErrorHandling(options)
     @_resetCache()
     @_resetSummary()
@@ -47,7 +48,7 @@ class ProductImport
 
   _resetCache: ->
     @_cache =
-      productType: {}
+      productType: {} # productTypeId : productType map
       categories: {}
       taxCategory: {}
 
