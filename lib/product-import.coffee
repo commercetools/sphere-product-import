@@ -153,32 +153,56 @@ class ProductImport
   _createOrUpdate: (productsToProcess, existingProducts) ->
     debug 'Products to process: %j', {toProcess: productsToProcess, existing: existingProducts}
     enumUpdateActions = {}
-    posts = _.map productsToProcess, (prodToProcess) =>
-      existingProduct = @_isExistingEntry(prodToProcess, existingProducts)
-      if existingProduct?
-        @_fetchSameForAllAttributesOfProductType(prodToProcess.productType)
-        .then (sameForAllAttributes) =>
-          @_validateEnums(prodToProcess, @_cache.productType[prodToProcess.productType.id])
-          .then (updateActions) =>
-            if updateActions and _.size(updateActions.actions) > 0 then @_updateEnumUpdateActions(enumUpdateActions, updateActions)
-            @_prepareUpdateProduct(prodToProcess, existingProduct).then (preparedProduct) =>
-              synced = @sync.buildActions(preparedProduct, existingProduct, sameForAllAttributes)
-              if synced.shouldUpdate()
-                @client.products.byId(synced.getUpdateId()).update(synced.getUpdatePayload())
-              else
-                Promise.resolve statusCode: 304
-      else
-        @_prepareNewProduct(prodToProcess)
-        .then (product) =>
-          @_validateEnums(product, @_cache.productType[product.productType.id])
-          .then (updateActions) =>
-            if updateActions and _.size(updateActions) > 0 then @_updateEnumUpdateActions(enumUpdateActions, updateActions)
-            @client.products.create(product)
+    posts = _.map productsToProcess, (product) =>
+      @_filterAttributes(product)
+      .then (prodToProcess) =>
+        existingProduct = @_isExistingEntry(prodToProcess, existingProducts)
+        if existingProduct?
+          @_fetchSameForAllAttributesOfProductType(prodToProcess.productType)
+          .then (sameForAllAttributes) =>
+            @_validateEnums(prodToProcess, @_cache.productType[prodToProcess.productType.id])
+            .then (updateActions) =>
+              if updateActions and _.size(updateActions.actions) > 0 then @_updateEnumUpdateActions(enumUpdateActions, updateActions)
+              @_prepareUpdateProduct(prodToProcess, existingProduct).then (preparedProduct) =>
+                synced = @sync.buildActions(preparedProduct, existingProduct, sameForAllAttributes)
+                if synced.shouldUpdate()
+                  @client.products.byId(synced.getUpdateId()).update(synced.getUpdatePayload())
+                else
+                  Promise.resolve statusCode: 304
+        else
+          @_prepareNewProduct(prodToProcess)
+          .then (product) =>
+            @_validateEnums(product, @_cache.productType[product.productType.id])
+            .then (updateActions) =>
+              if updateActions and _.size(updateActions) > 0 then @_updateEnumUpdateActions(enumUpdateActions, updateActions)
+              @client.products.create(product)
 
     @_updateProductType(enumUpdateActions)
     .then ->
       debug 'About to send %s requests', _.size(posts)
       Promise.settle(posts)
+
+  _filterAttributes: (product) =>
+    new Promise (resolve) =>
+      if @filterUnknownAttributes
+        @_ensureProductTypeInMemory(product.productType.id)
+        .then =>
+          @unknownAttributesFilter.filter(@_cache.productType[product.productType.id],product)
+        .then (filteredProduct) ->
+          resolve(filteredProduct)
+      else
+        resolve(product)
+
+  _ensureProductTypeInMemory: (productTypeId) =>
+    new Promise (resolve) =>
+      if @_cache.productType[productTypeId]
+        resolve()
+      else
+        productType =
+          id: productTypeId
+        @_resolveReference(@client.productTypes, 'productType', productType, "name=\"#{productType?.id}\"")
+        .then ->
+          resolve()
 
   _validateEnums: (product, productType) =>
     if @ensureEnums

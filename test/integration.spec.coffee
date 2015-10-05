@@ -60,6 +60,7 @@ describe 'Product import integration tests', ->
       errorLimit: 30
       ensureEnums: true
       blackList: ['prices']
+      filterUnknownAttributes: true
 
     @import = new ProductImport @logger, Config
 
@@ -243,6 +244,24 @@ describe 'Product import integration tests', ->
       .catch (err) ->
         done(err)
     , 10000
+
+    it ':: should filter unknown attributes and import product without errors', (done) ->
+      sampleImport = _.deepClone sampleImportJson
+
+      unknownAttribute =
+        name: 'unknownAttribute'
+        value: 'unknown value'
+
+      sampleImport.products[0].masterVariant.attributes.push unknownAttribute
+
+      @import._processBatches(sampleImport.products)
+      .then =>
+        expect(@import._summary.created).toBe 2
+        done()
+      .catch (err) ->
+        done(err)
+    , 10000
+
 
 
 
