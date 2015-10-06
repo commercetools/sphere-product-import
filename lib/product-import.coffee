@@ -15,8 +15,8 @@ class ProductImport
     @sync = new ProductSync
     if options.blackList and ProductSync.actionGroups
       @sync.config @_configureSync(options.blackList)
-    if options.ensureEnums then @ensureEnums = options.ensureEnums else @ensureEnums = false
-    if options.filterUnknownAttributes then  @filterUnknownAttributes = options.filterUnknownAttributes else @filterUnknownAttributes = false
+    @ensureEnums = options.ensureEnums or false
+    @filterUnknownAttributes = options.filterUnknownAttributes or false
     @client = new SphereClient options.clientConfig
     @enumValidator = new EnumValidator @logger
     @unknownAttributesFilter = new UnknownAttributesFilter @logger
@@ -50,7 +50,7 @@ class ProductImport
 
   _resetCache: ->
     @_cache =
-      productType: {} # productTypeId : productType map
+      productType: {}
       categories: {}
       taxCategory: {}
 

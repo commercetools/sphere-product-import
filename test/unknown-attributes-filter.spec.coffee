@@ -83,6 +83,7 @@ describe 'Unknown Attributes Filter unit tests', ->
 
     sampleProduct =
       masterVariant:
+        sku: 'masterVariant'
         attributes: _.deepClone sampleAttributeList
       variants: [
         _.deepClone sampleVariant
@@ -97,6 +98,7 @@ describe 'Unknown Attributes Filter unit tests', ->
 
     sampleExpectedProduct =
       masterVariant:
+        sku: 'masterVariant'
         attributes: _.deepClone expectedAttributeList
       variants: [
         _.deepClone sampleExpectedVariant
@@ -121,6 +123,30 @@ describe 'Unknown Attributes Filter unit tests', ->
     @import.filter(productType,sampleProduct)
     .then (product) ->
       expect(product).toEqual sampleExpectedProduct
+      done()
+    .catch (err) ->
+      done(err)
+
+  it ' :: should resolve empty when product type has no attributes', (done) ->
+    sampleVariant =
+      attributes: _.deepClone sampleAttributeList
+
+    sampleProduct =
+      masterVariant:
+        attributes: _.deepClone sampleAttributeList
+      variants: [
+        _.deepClone sampleVariant
+      ,
+        _.deepClone sampleVariant
+      ,
+        _.deepClone sampleVariant
+      ]
+
+    productType = {}
+
+    @import.filter(productType, sampleProduct)
+    .then (result) ->
+      expect(result).toBeUndefined()
       done()
     .catch (err) ->
       done(err)

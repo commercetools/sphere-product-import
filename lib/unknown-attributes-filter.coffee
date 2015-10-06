@@ -3,14 +3,15 @@ _ = require 'underscore'
 _.mixin require 'underscore-mixins'
 Promise = require 'bluebird'
 
+# The attributes not defined in the productType will be filtered/removed from
+# the received product variants.
 class UnknownAttributesFilter
 
   constructor: (@logger) ->
     debug "Unknown Attributes Filter initialized."
 
   filter: (productType, product) =>
-    new Promise (resolve) =>
-      resolve() unless productType.attributes
+    if productType.attributes
       attrNameList = _.pluck(productType.attributes, 'name')
       Promise.all [
         @_filterVariantAttributes(product.masterVariant, attrNameList),
@@ -19,23 +20,27 @@ class UnknownAttributesFilter
         , {concurrency: 5}
       ]
       .spread (masterVariant, variants) ->
-        resolve _.extend(product, { masterVariant, variants })
+        Promise.resolve _.extend(product, { masterVariant, variants })
+    else
+      debug 'product type received without attributes, aborting attribute filter.'
+      Promise.resolve()
 
   _filterVariantAttributes: (variant, attrNameList) =>
-    new Promise (resolve) =>
-      resolve(variant) unless variant.attributes
+    if variant.attributes
       @_filterAttributes attrNameList, variant.attributes
       .then (filteredAttributes) ->
         variant.attributes = filteredAttributes
-        resolve(variant)
+        Promise.resolve variant
+    else
+      debug "skipping variant filter: as variant without attributes: #{variant.sku}"
+      Promise.resolve(variant)
 
   _filterAttributes: (attrNameList, attributes) =>
-    new Promise (resolve) =>
-      filteredAttributes = []
-      for attribute in attributes
-        if @_isKnownAttribute(attribute, attrNameList)
-          filteredAttributes.push attribute
-      resolve filteredAttributes
+    filteredAttributes = []
+    for attribute in attributes
+      if @_isKnownAttribute(attribute, attrNameList)
+        filteredAttributes.push attribute
+    Promise.resolve filteredAttributes
 
   _isKnownAttribute: (attribute, attrNameList) ->
     attribute.name in attrNameList
