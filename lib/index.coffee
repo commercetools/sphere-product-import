@@ -4,3 +4,4 @@ module.exports =
   PriceImport: require './price-import'
   ProductDiscountImport: require './product-discount-import'
   EnumValidator: require './enum-validator'
+  UnknownAttributesFilter: require './unknown-attributes-filter'

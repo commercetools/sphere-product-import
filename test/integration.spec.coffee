@@ -60,6 +60,7 @@ describe 'Product import integration tests', ->
       errorLimit: 30
       ensureEnums: true
       blackList: ['prices']
+      filterUnknownAttributes: true
 
     @import = new ProductImport @logger, Config
 
@@ -194,8 +195,7 @@ describe 'Product import integration tests', ->
         errorJson = require path.join(@import.errorDir,'error-1.json')
         expect(errorJson.message).toEqual "A duplicate value '\"product-sync-test-product-1\"' exists for field 'slug'."
         done()
-      .catch (err) ->
-        done(err)
+      .catch done
 
     it ' :: should continue of error - missing product name', (done) ->
       cleanup(@logger, @client)
@@ -208,8 +208,7 @@ describe 'Product import integration tests', ->
           expect(@import._summary.failed).toBe 1
           expect(@import._summary.created).toBe 1
           done()
-        .catch (err) ->
-          done(err)
+        .catch done
 
     it ':: should handle set type attributes correctly', (done) ->
       sampleImport = _.deepClone sampleImportJson
@@ -240,9 +239,25 @@ describe 'Product import integration tests', ->
       .then (result) ->
         expect(result.body.results[0].masterVariant.attributes[0].value).toEqual setTextAttributeUpdated.value
         done()
-      .catch (err) ->
-        done(err)
+      .catch done
     , 10000
+
+    it ':: should filter unknown attributes and import product without errors', (done) ->
+      sampleImport = _.deepClone sampleImportJson
+
+      unknownAttribute =
+        name: 'unknownAttribute'
+        value: 'unknown value'
+
+      sampleImport.products[0].masterVariant.attributes.push unknownAttribute
+
+      @import._processBatches(sampleImport.products)
+      .then =>
+        expect(@import._summary.created).toBe 2
+        done()
+      .catch done
+    , 10000
+
 
 
 
