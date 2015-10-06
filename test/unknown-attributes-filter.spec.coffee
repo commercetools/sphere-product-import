@@ -59,8 +59,7 @@ describe 'Unknown Attributes Filter unit tests', ->
     .then (result) ->
       expect(result).toEqual expectedAttributeList
       done()
-    .catch (err) ->
-      done(err)
+    .catch done
 
   it ' :: should filter attributes correctly from a variant', (done) ->
     sampleVariant =
@@ -73,8 +72,7 @@ describe 'Unknown Attributes Filter unit tests', ->
     .then (variant) ->
       expect(variant).toEqual expectedVariant
       done()
-    .catch (err) ->
-      done(err)
+    .catch done
 
   it ' :: should filter attributes of all variants of a product correctly', (done) ->
 
@@ -124,8 +122,7 @@ describe 'Unknown Attributes Filter unit tests', ->
     .then (product) ->
       expect(product).toEqual sampleExpectedProduct
       done()
-    .catch (err) ->
-      done(err)
+    .catch done
 
   it ' :: should resolve empty when product type has no attributes', (done) ->
     sampleVariant =
@@ -148,5 +145,4 @@ describe 'Unknown Attributes Filter unit tests', ->
     .then (result) ->
       expect(result).toBeUndefined()
       done()
-    .catch (err) ->
-      done(err)
+    .catch done

@@ -194,15 +194,12 @@ class ProductImport
         resolve(product)
 
   _ensureProductTypeInMemory: (productTypeId) =>
-    new Promise (resolve) =>
-      if @_cache.productType[productTypeId]
-        resolve()
-      else
-        productType =
-          id: productTypeId
-        @_resolveReference(@client.productTypes, 'productType', productType, "name=\"#{productType?.id}\"")
-        .then ->
-          resolve()
+    if @_cache.productType[productTypeId]
+      Promise.resolve()
+    else
+      productType =
+        id: productTypeId
+      @_resolveReference(@client.productTypes, 'productType', productType, "name=\"#{productType?.id}\"")
 
   _validateEnums: (product, productType) =>
     if @ensureEnums
