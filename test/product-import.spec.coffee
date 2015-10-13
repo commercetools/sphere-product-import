@@ -332,7 +332,6 @@ describe 'ProductImport unit tests', ->
       @import.ignoreSlugUpdates = true
       newSlug = @import._updateProductSlug(sampleProduct, existingProduct)
       sampleProduct.slug = newSlug
-      console.log JSON.stringify(sampleProduct, null, 2)
       expect(@import._updateProductSlug(sampleProduct, existingProduct)).toEqual existingProduct.slug
 
     it ' should replace empty slug of update product with existing slug', ->

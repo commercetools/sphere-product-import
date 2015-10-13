@@ -268,7 +268,7 @@ class ProductImport
       @_resolveReference(@client.taxCategories, 'taxCategory', productToProcess.taxCategory, "name=\"#{productToProcess.taxCategory?.id}\"")
       @_fetchAndResolveCustomReferences(productToProcess)
     ]
-    .spread (prodCatsIds, taxCatId) ->
+    .spread (prodCatsIds, taxCatId) =>
       if taxCatId
         productToProcess.taxCategory =
           id: taxCatId
@@ -286,6 +286,8 @@ class ProductImport
     else if not productToProcess.slug
       debug 'slug missing in product to process, assigning same as existing product: %s', existingProduct.slug
       slug = existingProduct.slug # to prevent removing slug from existing product.
+    else
+      slug = productToProcess.slug
     slug
 
   _prepareNewProduct: (product) ->
