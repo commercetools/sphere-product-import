@@ -310,7 +310,7 @@ describe 'ProductImport unit tests', ->
 
   describe '::_generateSlug', ->
 
-    xit 'should generate valid slug', ->
+    it 'should generate valid slug', ->
       sampleName =
         name:
           en: 'sample_product_name'
