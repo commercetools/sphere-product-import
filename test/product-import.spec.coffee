@@ -308,7 +308,7 @@ describe 'ProductImport unit tests', ->
         done()
       .catch done
 
-  xdescribe '::_generateSlug', ->
+  describe '::_generateSlug', ->
 
     it 'should generate valid slug', ->
       sampleName =
@@ -320,6 +320,32 @@ describe 'ProductImport unit tests', ->
       slugs = @import._generateSlug(sampleName.name)
       expect(slugs.en).toBe "sample-product-name-#{frozenTimeStamp}"
       expect(slugs.de).toBe "sample-product-german-name-#{frozenTimeStamp}"
+
+    it ' should ignore slug update', ->
+      sampleProduct =
+        slug:
+          en: 'some-new-slug'
+      existingProduct =
+        slug:
+          en: 'existing-slug'
+
+      @import.ignoreSlugUpdates = true
+      newSlug = @import._updateProductSlug(sampleProduct, existingProduct)
+      sampleProduct.slug = newSlug
+      expect(@import._updateProductSlug(sampleProduct, existingProduct)).toEqual existingProduct.slug
+
+    it ' should replace empty slug of update product with existing slug', ->
+      sampleProduct =
+        name:
+          en: 'sample product name'
+      existingProduct =
+        name:
+          en: 'sample product name'
+        slug:
+          en: 'sample-product-name'
+
+      @import.ignoreSlugUpdates = false
+      expect(@import._updateProductSlug(sampleProduct,existingProduct)).toEqual existingProduct.slug
 
 
   describe '::_prepareNewProduct', ->
