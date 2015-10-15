@@ -24,7 +24,12 @@ cleanup = (logger, client) ->
     Promise.all _.map result.body.results, (e) ->
       client.products.byId(e.id).delete(e.version)
   .then (results) ->
-    debug "#{_.size results} deleted."
+    debug "#{_.size results} products deleted."
+    client.productTypes.where("name=\"Sample Product Type\"").fetch()
+  .then (result) ->
+    client.productTypes.byId(result.body.results[0].id).delete(result.body.results[0].version)
+  .then (result) ->
+    debug "#{_.size result} product type(s) deleted."
     Promise.resolve()
 
 ensureResource = (service, predicate, sampleData) ->
