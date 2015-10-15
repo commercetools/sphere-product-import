@@ -85,17 +85,29 @@ class ProductImport
   _processBatches: (products) ->
     batchedList = _.batchList(products, 30) # max parallel elem to process
     Promise.map batchedList, (productsToProcess) =>
-      # extract all skus from master variant and variants of all jsons in the batch
-      skus = @_extractUniqueSkus(productsToProcess)
-      predicate = @_createProductFetchBySkuQueryPredicate(skus)
-      # Check predicate size by: Buffer.byteLength(predicate,'utf-8')
-      # Todo: Handle predicate if predicate size > 8kb
-      # Fetch products from product projections end point by list of skus.
-      @client.productProjections
-      .where(predicate)
-      .staged(true)
-      .all()
-      .fetch()
+      @logger.info 'Ensuring existence of product type in memory.'
+      @_ensureProductTypesInMemory(productsToProcess)
+      .then =>
+        @logger.info 'product types in memory ensured.'
+        if @ensureEnums
+          @logger.info 'Ensuring existence of enum keys in product type.'
+          enumUpdateActions = @_validateEnums(productsToProcess)
+          console.log 'enum update actions'
+          console.log JSON.stringify(enumUpdateActions, null, 2)
+          @_updateProductType(enumUpdateActions)
+      .then =>
+        @logger.info 'Existence of enum keys in product type ensured.'
+        # extract all skus from master variant and variants of all jsons in the batch
+        skus = @_extractUniqueSkus(productsToProcess)
+        predicate = @_createProductFetchBySkuQueryPredicate(skus)
+        # Check predicate size by: Buffer.byteLength(predicate,'utf-8')
+        # Todo: Handle predicate if predicate size > 8kb
+        # Fetch products from product projections end point by list of skus.
+        @client.productProjections
+        .where(predicate)
+        .staged(true)
+        .all()
+        .fetch()
       .then (results) =>
         debug 'Fetched products: %j', results
         queriedEntries = results.body.results
@@ -152,7 +164,7 @@ class ProductImport
 
   _createOrUpdate: (productsToProcess, existingProducts) ->
     debug 'Products to process: %j', {toProcess: productsToProcess, existing: existingProducts}
-    enumUpdateActions = {}
+
     posts = _.map productsToProcess, (product) =>
       @_filterAttributes(product)
       .then (prodToProcess) =>
@@ -160,27 +172,19 @@ class ProductImport
         if existingProduct?
           @_fetchSameForAllAttributesOfProductType(prodToProcess.productType)
           .then (sameForAllAttributes) =>
-            @_validateEnums(prodToProcess, @_cache.productType[prodToProcess.productType.id])
-            .then (updateActions) =>
-              if updateActions and _.size(updateActions.actions) > 0 then @_updateEnumUpdateActions(enumUpdateActions, updateActions)
-              @_prepareUpdateProduct(prodToProcess, existingProduct).then (preparedProduct) =>
-                synced = @sync.buildActions(preparedProduct, existingProduct, sameForAllAttributes)
-                if synced.shouldUpdate()
-                  @client.products.byId(synced.getUpdateId()).update(synced.getUpdatePayload())
-                else
-                  Promise.resolve statusCode: 304
+            @_prepareUpdateProduct(prodToProcess, existingProduct).then (preparedProduct) =>
+              synced = @sync.buildActions(preparedProduct, existingProduct, sameForAllAttributes)
+              if synced.shouldUpdate()
+                @client.products.byId(synced.getUpdateId()).update(synced.getUpdatePayload())
+              else
+                Promise.resolve statusCode: 304
         else
           @_prepareNewProduct(prodToProcess)
           .then (product) =>
-            @_validateEnums(product, @_cache.productType[product.productType.id])
-            .then (updateActions) =>
-              if updateActions and _.size(updateActions) > 0 then @_updateEnumUpdateActions(enumUpdateActions, updateActions)
-              @client.products.create(product)
+            @client.products.create(product)
 
-    @_updateProductType(enumUpdateActions)
-    .then ->
-      debug 'About to send %s requests', _.size(posts)
-      Promise.settle(posts)
+    debug 'About to send %s requests', _.size(posts)
+    Promise.settle(posts)
 
   _filterAttributes: (product) =>
     new Promise (resolve) =>
@@ -193,19 +197,30 @@ class ProductImport
       else
         resolve(product)
 
+  _ensureProductTypesInMemory: (products) =>
+    Promise.all [
+      _.map products, (product) =>
+        @_ensureProductTypeInMemory(product.productType.id)
+    ]
+
   _ensureProductTypeInMemory: (productTypeId) =>
+    @logger.info "ensuring product type id: #{productTypeId}"
     if @_cache.productType[productTypeId]
       Promise.resolve()
     else
+      console.log 'product type not in cache... resolving...'
       productType =
         id: productTypeId
       @_resolveReference(@client.productTypes, 'productType', productType, "name=\"#{productType?.id}\"")
 
-  _validateEnums: (product, productType) =>
-    if @ensureEnums
-      @enumValidator.validateProduct(product, productType)
-    else
-      Promise.resolve()
+  _validateEnums: (products) =>
+    enumUpdateActions = {}
+    _.each products, (product) =>
+      console.log 'Product Type: '
+      console.log JSON.stringify(@_cache.productType[product.productType.id], null, 2)
+      updateActions = @enumValidator.validateProduct(product, @_cache.productType[product.productType.id])
+      if updateActions and _.size(updateActions.actions) > 0 then @_updateEnumUpdateActions(enumUpdateActions, updateActions)
+    enumUpdateActions
 
   _updateProductType: (enumUpdateActions) =>
     new Promise (resolve) =>
@@ -404,6 +419,7 @@ class ProductImport
               @logger.warn "Found more than 1 #{refKey} for #{ref.id}"
             @_cache[refKey][ref.id] = result.body.results[0]
             if refKey is 'productType'
+              @logger.info "putting product type in cache in id: #{result.body.results[0].id}"
               @_cache[refKey][result.body.results[0].id] = result.body.results[0]
             resolve(result.body.results[0].id)
 

@@ -259,6 +259,7 @@ describe 'Product import integration tests', ->
     , 10000
 
     it ':: should update/create product with a new enum key', (done) ->
+      @logger.info ':: should update/create product with a new enum key'
       sampleImport = _.deepClone sampleImportJson
 
       existingEnumKeyAttr =
