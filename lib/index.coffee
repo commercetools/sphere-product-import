@@ -5,3 +5,4 @@ module.exports =
   ProductDiscountImport: require './product-discount-import'
   EnumValidator: require './enum-validator'
   UnknownAttributesFilter: require './unknown-attributes-filter'
+  CommonUtils: require './common-utils'

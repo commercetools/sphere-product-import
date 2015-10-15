@@ -8,6 +8,7 @@ fs = require 'fs-extra'
 path = require 'path'
 EnumValidator = require './enum-validator'
 UnknownAttributesFilter = require './unknown-attributes-filter'
+CommonUtils = require './common-utils'
 
 class ProductImport
 
@@ -20,6 +21,7 @@ class ProductImport
     @client = new SphereClient options.clientConfig
     @enumValidator = new EnumValidator @logger
     @unknownAttributesFilter = new UnknownAttributesFilter @logger
+    @commonUtils = new CommonUtils @logger
     @_configErrorHandling(options)
     @_resetCache()
     @_resetSummary()
@@ -94,7 +96,8 @@ class ProductImport
           enumUpdateActions = @_validateEnums(productsToProcess)
           console.log 'enum update actions'
           console.log JSON.stringify(enumUpdateActions, null, 2)
-          @_updateProductType(enumUpdateActions)
+          uniqueEnumUpdateActions = @_filterUniqueUpdateActions(enumUpdateActions)
+          @_updateProductType(uniqueEnumUpdateActions)
       .then =>
         @logger.info 'Existence of enum keys in product type ensured.'
         # extract all skus from master variant and variants of all jsons in the batch
@@ -189,13 +192,41 @@ class ProductImport
   _filterAttributes: (product) =>
     new Promise (resolve) =>
       if @filterUnknownAttributes
-        @_ensureProductTypeInMemory(product.productType.id)
-        .then =>
-          @unknownAttributesFilter.filter(@_cache.productType[product.productType.id],product)
+        @unknownAttributesFilter.filter(@_cache.productType[product.productType.id],product)
         .then (filteredProduct) ->
           resolve(filteredProduct)
       else
         resolve(product)
+
+
+  # updateActions are of the form:
+  # { productTypeId: [{updateAction},{updateAction},...],
+  #   productTypeId: [{updateAction},{updateAction},...]
+  # }
+  _filterUniqueUpdateActions: (updateActions) =>
+    @logger.info 'filtering unique update actions ->'
+    console.log JSON.stringify(updateActions, null, 2)
+    uniqueUpdateActions = {}
+    _.each _.keys(updateActions), (productTypeId) =>
+      actions = updateActions[productTypeId]
+      uniqueActions = @commonUtils.uniqueObjectFilter actions
+      uniqueUpdateActions[productTypeId] = uniqueActions
+    console.log JSON.stringify(uniqueUpdateActions, null, 2)
+    uniqueUpdateActions
+
+  _objectFilter: (objCollection) =>
+    uniques = []
+    _.each objCollection, (obj) =>
+      if not @_isObjectPresentInArray(uniques, obj) then uniques.push(obj) else console.log 'duplicate found'
+    uniques
+
+
+  _isObjectPresentInArray: (array, object) ->
+    present = false
+    _.each array, (element) ->
+      if _.isEqual(object, element)
+        present = true
+    present
 
   _ensureProductTypesInMemory: (products) =>
     Promise.map products, (product) =>
@@ -216,8 +247,6 @@ class ProductImport
   _validateEnums: (products) =>
     enumUpdateActions = {}
     _.each products, (product) =>
-      console.log 'Product Type: '
-      console.log JSON.stringify(@_cache.productType[product.productType.id], null, 2)
       updateActions = @enumValidator.validateProduct(product, @_cache.productType[product.productType.id])
       if updateActions and _.size(updateActions.actions) > 0 then @_updateEnumUpdateActions(enumUpdateActions, updateActions)
     enumUpdateActions
