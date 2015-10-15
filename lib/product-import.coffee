@@ -198,10 +198,10 @@ class ProductImport
         resolve(product)
 
   _ensureProductTypesInMemory: (products) =>
-    Promise.all [
-      _.map products, (product) =>
-        @_ensureProductTypeInMemory(product.productType.id)
-    ]
+    Promise.map products, (product) =>
+      @_ensureProductTypeInMemory(product.productType.id)
+    , {concurrency: 1}
+
 
   _ensureProductTypeInMemory: (productTypeId) =>
     @logger.info "ensuring product type id: #{productTypeId}"
@@ -223,23 +223,18 @@ class ProductImport
     enumUpdateActions
 
   _updateProductType: (enumUpdateActions) =>
-    new Promise (resolve) =>
-      if _.isEmpty(enumUpdateActions)
-        resolve()
-      else
-        debug "Updating product type(s): #{_.keys(enumUpdateActions)}"
-        Promise.all [
-          for productTypeId in _.keys(enumUpdateActions)
-            updateRequest =
-              version: @_cache.productType[productTypeId].version
-              actions: enumUpdateActions[productTypeId]
-            @client.productTypes.byId(@_cache.productType[productTypeId].id).update(updateRequest)
-            .then (updatedProductType) =>
-              @_cache.productType[productTypeId] = updatedProductType.body
-              @_summary.productTypeUpdated++
-        ]
-        .then ->
-          resolve()
+    if _.isEmpty(enumUpdateActions)
+      Promise.resolve()
+    else
+      debug "Updating product type(s): #{_.keys(enumUpdateActions)}"
+      Promise.map _.keys(enumUpdateActions), (productTypeId) =>
+        updateRequest =
+          version: @_cache.productType[productTypeId].version
+          actions: enumUpdateActions[productTypeId]
+        @client.productTypes.byId(@_cache.productType[productTypeId].id).update(updateRequest)
+        .then (updatedProductType) =>
+          @_cache.productType[productTypeId] = updatedProductType.body
+          @_summary.productTypeUpdated++
 
 
   _updateEnumUpdateActions: (enumUpdateActions, updateActions) ->
@@ -249,16 +244,15 @@ class ProductImport
       enumUpdateActions[updateActions.productTypeId] = updateActions.actions
 
   _fetchSameForAllAttributesOfProductType: (productType) =>
-    new Promise (resolve) =>
-      if @_cache.productType["#{productType.id}_sameForAllAttributes"]
-        resolve(@_cache.productType["#{productType.id}_sameForAllAttributes"])
-      else
-        @_resolveReference(@client.productTypes, 'productType', productType, "name=\"#{productType?.id}\"")
-        .then (productTypeId) =>
-          sameValueAttributes = _.where(@_cache.productType[productType.id].attributes, {attributeConstraint: "SameForAll"})
-          sameValueAttributeNames = _.pluck(sameValueAttributes, 'name')
-          @_cache.productType["#{productType.id}_sameForAllAttributes"] = sameValueAttributeNames
-          resolve(sameValueAttributeNames)
+    if @_cache.productType["#{productType.id}_sameForAllAttributes"]
+      Promise.resolve(@_cache.productType["#{productType.id}_sameForAllAttributes"])
+    else
+      @_resolveReference(@client.productTypes, 'productType', productType, "name=\"#{productType?.id}\"")
+      .then =>
+        sameValueAttributes = _.where(@_cache.productType[productType.id].attributes, {attributeConstraint: "SameForAll"})
+        sameValueAttributeNames = _.pluck(sameValueAttributes, 'name')
+        @_cache.productType["#{productType.id}_sameForAllAttributes"] = sameValueAttributeNames
+        Promise.resolve(sameValueAttributeNames)
 
   _ensureVariantDefaults: (variant = {}) ->
     variantDefaults =
