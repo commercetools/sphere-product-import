@@ -292,7 +292,7 @@ describe 'Enum Validator unit tests', ->
     expect(@import._generateUpdateAction(enumSetAttributeMultiValue, sampleProductType.attributes[3])).toEqual expectedUpdateActionMultiValue
     expect(@import._generateUpdateAction(enumSetAttribute, sampleProductType.attributes[3])).toEqual expectedUpdateAction
 
-  it ' :: should generate correct list of update actions', (done) ->
+  it ' :: should generate correct list of update actions', ->
     enumAttributes = [
       name: 'sample-lenum-attribute'
       value: 'lenum-key-2'
@@ -338,12 +338,8 @@ describe 'Enum Validator unit tests', ->
         label: 'enum-set-5-key'
     ]
 
-    @import._validateEnums(enumAttributes, sampleProductType)
-    .then (updateActions) ->
-      expect(updateActions).toEqual expectedUpdateActions
-      done()
-    .catch (err) ->
-      done(err)
+    updateActions = @import._validateEnums(enumAttributes, sampleProductType)
+    expect(updateActions).toEqual expectedUpdateActions
 
   it ' :: should detect already generated enums', ->
     @import._cache.generatedEnums['sample-lenum-attribute-lenum-key-2'] = 'lenum-key-2'

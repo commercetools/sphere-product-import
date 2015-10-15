@@ -494,6 +494,8 @@ describe 'ProductImport unit tests', ->
       spyOn(@import, "_createProductFetchBySkuQueryPredicate").andCallThrough()
       spyOn(@import.client.productProjections,"fetch").andCallFake -> Promise.resolve({body: {results: existingProducts}})
       spyOn(@import, "_createOrUpdate").andCallFake -> Promise.settle([Promise.resolve({statusCode: 201}), Promise.resolve({statusCode: 200})])
+      spyOn(@import, "_ensureProductTypesInMemory").andCallFake -> Promise.resolve()
+      @import.ensureEnums = false
       @import._processBatches(sampleProducts)
       .then =>
         expect(@import._extractUniqueSkus).toHaveBeenCalled()
