@@ -88,19 +88,15 @@ class ProductImport
   _processBatches: (products) ->
     batchedList = _.batchList(products, 30) # max parallel elem to process
     Promise.map batchedList, (productsToProcess) =>
-      @logger.info 'Ensuring existence of product type in memory.'
+      debug 'Ensuring existence of product type in memory.'
       @_ensureProductTypesInMemory(productsToProcess)
       .then =>
-        @logger.info 'product types in memory ensured.'
         if @ensureEnums
-          @logger.info 'Ensuring existence of enum keys in product type.'
+          debug 'Ensuring existence of enum keys in product type.'
           enumUpdateActions = @_validateEnums(productsToProcess)
-          console.log 'enum update actions'
-          console.log JSON.stringify(enumUpdateActions, null, 2)
           uniqueEnumUpdateActions = @_filterUniqueUpdateActions(enumUpdateActions)
           @_updateProductType(uniqueEnumUpdateActions)
       .then =>
-        @logger.info 'Existence of enum keys in product type ensured.'
         # extract all skus from master variant and variants of all jsons in the batch
         skus = @_extractUniqueSkus(productsToProcess)
         predicate = @_createProductFetchBySkuQueryPredicate(skus)
@@ -205,29 +201,12 @@ class ProductImport
   #   productTypeId: [{updateAction},{updateAction},...]
   # }
   _filterUniqueUpdateActions: (updateActions) =>
-    @logger.info 'filtering unique update actions ->'
-    console.log JSON.stringify(updateActions, null, 2)
     uniqueUpdateActions = {}
     _.each _.keys(updateActions), (productTypeId) =>
       actions = updateActions[productTypeId]
       uniqueActions = @commonUtils.uniqueObjectFilter actions
       uniqueUpdateActions[productTypeId] = uniqueActions
-    console.log JSON.stringify(uniqueUpdateActions, null, 2)
     uniqueUpdateActions
-
-  _objectFilter: (objCollection) =>
-    uniques = []
-    _.each objCollection, (obj) =>
-      if not @_isObjectPresentInArray(uniques, obj) then uniques.push(obj) else console.log 'duplicate found'
-    uniques
-
-
-  _isObjectPresentInArray: (array, object) ->
-    present = false
-    _.each array, (element) ->
-      if _.isEqual(object, element)
-        present = true
-    present
 
   _ensureProductTypesInMemory: (products) =>
     Promise.map products, (product) =>
@@ -236,11 +215,9 @@ class ProductImport
 
 
   _ensureProductTypeInMemory: (productTypeId) =>
-    @logger.info "ensuring product type id: #{productTypeId}"
     if @_cache.productType[productTypeId]
       Promise.resolve()
     else
-      console.log 'product type not in cache... resolving...'
       productType =
         id: productTypeId
       @_resolveReference(@client.productTypes, 'productType', productType, "name=\"#{productType?.id}\"")
@@ -451,7 +428,6 @@ class ProductImport
               @logger.warn "Found more than 1 #{refKey} for #{ref.id}"
             @_cache[refKey][ref.id] = result.body.results[0]
             if refKey is 'productType'
-              @logger.info "putting product type in cache in id: #{result.body.results[0].id}"
               @_cache[refKey][result.body.results[0].id] = result.body.results[0]
             resolve(result.body.results[0].id)
 
