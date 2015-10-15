@@ -18,6 +18,7 @@ class ProductImport
       @sync.config @_configureSync(options.blackList)
     @ensureEnums = options.ensureEnums or false
     @filterUnknownAttributes = options.filterUnknownAttributes or false
+    @ignoreSlugUpdates = options.ignoreSlugUpdates or false
     @client = new SphereClient options.clientConfig
     @enumValidator = new EnumValidator @logger
     @unknownAttributesFilter = new UnknownAttributesFilter @logger
@@ -305,7 +306,7 @@ class ProductImport
       @_resolveReference(@client.taxCategories, 'taxCategory', productToProcess.taxCategory, "name=\"#{productToProcess.taxCategory?.id}\"")
       @_fetchAndResolveCustomReferences(productToProcess)
     ]
-    .spread (prodCatsIds, taxCatId) ->
+    .spread (prodCatsIds, taxCatId) =>
       if taxCatId
         productToProcess.taxCategory =
           id: taxCatId
@@ -314,10 +315,18 @@ class ProductImport
         productToProcess.categories = _.map prodCatsIds, (catId) ->
           id: catId
           typeId: 'category'
-      if not productToProcess.slug
-        debug 'slug missing in product to process, assigning same as existing product: %s', existingProduct.slug
-        productToProcess.slug = existingProduct.slug # to prevent removing slug from existing product.
+      productToProcess.slug = @_updateProductSlug productToProcess, existingProduct
       Promise.resolve productToProcess
+
+  _updateProductSlug: (productToProcess, existingProduct) =>
+    if @ignoreSlugUpdates
+      slug = existingProduct.slug
+    else if not productToProcess.slug
+      debug 'slug missing in product to process, assigning same as existing product: %s', existingProduct.slug
+      slug = existingProduct.slug # to prevent removing slug from existing product.
+    else
+      slug = productToProcess.slug
+    slug
 
   _prepareNewProduct: (product) ->
     product = @_ensureDefaults(product)
