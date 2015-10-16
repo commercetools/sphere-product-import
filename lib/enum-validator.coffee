@@ -34,7 +34,7 @@ class EnumValidator
           if not @_isEnumKeyPresent(ea, refEnum)
             updateActions.push @_generateUpdateAction(ea, refEnum)
         else
-          throw err "enum attribute name: #{ea.name} not found in Product Type: #{productType.name}", ea
+          debug "enum attribute name: #{ea.name} not found in Product Type: #{productType.name}"
       else
         debug "Skipping #{ea.name} update action generation as already exists."
     updateActions
