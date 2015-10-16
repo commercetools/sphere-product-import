@@ -29,15 +29,17 @@ class EnumValidator
     referenceEnums = @_fetchEnumAttributesOfProductType(productType)
     for ea in enumAttributes
       if not @_isEnumGenerated(ea)
-        refEnum = _.findWhere(referenceEnums, {name: "#{ea.name}"})
-        if refEnum
-          if not @_isEnumKeyPresent(ea, refEnum)
-            updateActions.push @_generateUpdateAction(ea, refEnum)
-        else
-          debug "enum attribute name: #{ea.name} not found in Product Type: #{productType.name}"
+        @_handleNewEnumAttributeUpdate(ea, referenceEnums, updateActions, productType)
       else
         debug "Skipping #{ea.name} update action generation as already exists."
     updateActions
+
+  _handleNewEnumAttributeUpdate: (ea, referenceEnums, updateActions, productType) =>
+    refEnum = _.findWhere(referenceEnums, {name: "#{ea.name}"})
+    if refEnum and not @_isEnumKeyPresent(ea, refEnum)
+      updateActions.push @_generateUpdateAction(ea, refEnum)
+    else
+      debug "enum attribute name: #{ea.name} not found in Product Type: #{productType.name}"
 
   _isEnumGenerated: (ea) =>
     @_cache.generatedEnums["#{ea.name}-#{slugify(ea.value)}"]
