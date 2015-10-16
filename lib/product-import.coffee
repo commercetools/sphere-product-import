@@ -106,7 +106,6 @@ class ProductImport
         @client.productProjections
         .where(predicate)
         .staged(true)
-        .all()
         .fetch()
       .then (results) =>
         debug 'Fetched products: %j', results
