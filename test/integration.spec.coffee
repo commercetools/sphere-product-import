@@ -277,9 +277,21 @@ describe 'Product import integration tests', ->
         name: 'sample_enum_attribute'
         value: 'enum-new-key'
 
+      expectedNewEnumKeyAttr =
+        name: 'sample_enum_attribute'
+        value:
+          key: 'enum-new-key'
+          label: 'enum-new-key'
+
       newEnumKeyAttr2 =
         name: 'sample_enum_attribute'
         value: 'enum-3-new-key'
+
+      expectedNewEnumKeyAttr2 =
+        name: 'sample_enum_attribute'
+        value:
+          key: 'enum-3-new-key'
+          label: 'enum-3-new-key'
 
       sampleImport.products[0].masterVariant.attributes.push(existingEnumKeyAttr)
       sampleImport.products[0].masterVariant.attributes.push(newEnumKeyAttr)
@@ -287,9 +299,17 @@ describe 'Product import integration tests', ->
       sampleImport.products[1].variants[0].attributes.push(existingEnumKeyAttr)
       sampleImport.products[1].variants[0].attributes.push(newEnumKeyAttr)
 
+      predicate = 'masterVariant(sku="B3-717597")'
+
       @import._processBatches(sampleImport.products)
       .then =>
         expect(@import._summary.created).toBe 2
+        @client.productProjections.where(predicate).staged(true).fetch()
+      .then (result) ->
+        filterPredicate1 = (element) -> _.isEqual(element,expectedNewEnumKeyAttr)
+        filterPredicate2 = (element) -> _.isEqual(element,expectedNewEnumKeyAttr2)
+        expect(_.find(result.body.results[0].masterVariant.attributes, filterPredicate1)).toBeDefined()
+        expect(_.find(result.body.results[0].masterVariant.attributes, filterPredicate2)).toBeDefined()
         done()
       .catch done
 
