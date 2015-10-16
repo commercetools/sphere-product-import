@@ -16,10 +16,6 @@ class CommonUtils
 
 
   isObjectPresentInArray: (array, object) ->
-    present = false
-    _.each array, (element) ->
-      if _.isEqual(object, element)
-        present = true
-    present
+    _.find array, (element) -> _.isEqual(element, object)
 
 module.exports = CommonUtils
