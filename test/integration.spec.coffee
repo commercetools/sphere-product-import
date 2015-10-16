@@ -21,13 +21,13 @@ cleanup = (logger, client) ->
   debug "Deleting old product entries..."
   client.products.all().fetch()
   .then (result) ->
-    Promise.all _.map result.body.results, (e) ->
+    Promise.map result.body.results, (e) ->
       client.products.byId(e.id).delete(e.version)
   .then (results) ->
     debug "#{_.size results} products deleted."
     client.productTypes.where('name="Sample Product Type"').fetch()
   .then (result) ->
-    Promise.all _.map result.body.results, (e) ->
+    Promise.map result.body.results, (e) ->
       client.productTypes.byId(e.id).delete(e.version)
   .then (result) ->
     debug "#{_.size result} product type(s) deleted."
