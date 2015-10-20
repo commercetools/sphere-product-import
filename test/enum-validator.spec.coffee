@@ -116,35 +116,35 @@ describe 'Enum Validator unit tests', ->
 
     @import = new EnumValidator @logger, null
 
-  it ' :: should initialize', ->
+  it ' should initialize', ->
     expect(@import).toBeDefined()
 
-  it ' :: should filter enum and lenum attributes', ->
+  it ' should filter enum and lenum attributes', ->
     enums = _.filter(sampleProductType.attributes, @import._enumLenumFilterPredicate)
     expect(_.size enums).toBe 2
 
-  it ' :: should filter set of enum attributes', ->
+  it ' should filter set of enum attributes', ->
     enums = _.filter(sampleProductType.attributes, @import._enumSetFilterPredicate)
     expect(_.size enums).toBe 1
 
-  it ' :: should filter set of lenum attributes', ->
+  it ' should filter set of lenum attributes', ->
     enums = _.filter(sampleProductType.attributes, @import._lenumSetFilterPredicate)
     expect(_.size enums).toBe 1
 
-  it ' :: should extract enum attributes from product type', ->
+  it ' should extract enum attributes from product type', ->
     enums = @import._extractEnumAttributesFromProductType(sampleProductType)
     expect(_.size enums).toBe 4
 
-  it ' :: should fetch enum attributes from sample product type', ->
+  it ' should fetch enum attributes from sample product type', ->
     enums = @import._fetchEnumAttributesOfProductType(sampleProductType)
     expect(_.size enums).toBe 4
 
-  it ' :: should fetch enum attribute names of sample product type', ->
+  it ' should fetch enum attribute names of sample product type', ->
     expectedNames = ['sample-lenum-attribute', 'sample-enum-attribute', 'sample-set-enum-attribute', 'sample-set-lenum-attribute']
     enumNames = @import._fetchEnumAttributeNamesOfProductType(sampleProductType)
     expect(enumNames).toEqual expectedNames
 
-  it ' :: should fetch enum attribute names of sample product type from cache', ->
+  it ' should fetch enum attribute names of sample product type from cache', ->
     spyOn(@import, '_fetchEnumAttributesOfProductType').andCallThrough()
     @import._fetchEnumAttributeNamesOfProductType(sampleProductType)
     enumNames = @import._fetchEnumAttributeNamesOfProductType(sampleProductType)
@@ -152,7 +152,7 @@ describe 'Enum Validator unit tests', ->
     expect(@import._fetchEnumAttributesOfProductType.calls.length).toEqual 1
     expect(@import._cache.productTypeEnumMap["#{sampleProductType.id}_names"]).toBeDefined()
 
-  it ' :: should detect enum attribute', ->
+  it ' should detect enum attribute', ->
     sampleEnumAttribute =
       name: 'sample-enum-attribute'
     sampleAttribute =
@@ -161,11 +161,11 @@ describe 'Enum Validator unit tests', ->
     expect(@import._isEnumVariantAttribute(sampleEnumAttribute, enumAttributeNames)).toBeTruthy()
     expect(@import._isEnumVariantAttribute(sampleAttribute, enumAttributeNames)).toBeFalsy()
 
-  it ' :: should fetch enum attributes from sample variant', ->
+  it ' should fetch enum attributes from sample variant', ->
     enums = @import._fetchEnumAttributesFromVariant(sampleVariant,sampleProductType)
     expect(_.size enums).toBe 3
 
-  it ' :: should fetch all enum attributes from all product variants', ->
+  it ' should fetch all enum attributes from all product variants', ->
     sampleProduct =
       name: 'sample Product'
       productType:
@@ -180,7 +180,7 @@ describe 'Enum Validator unit tests', ->
     enums = @import._fetchEnumAttributesFromProduct(sampleProduct, sampleProductType)
     expect(_.size enums).toBe 9
 
-  it ' :: should detect enum key correctly', ->
+  it ' should detect enum key correctly', ->
     enumAttributeTrue =
       name: 'sample-enum-attribute'
       value: 'enum-2-key'
@@ -222,7 +222,7 @@ describe 'Enum Validator unit tests', ->
     expect(@import._isEnumKeyPresent(enumSetAttributeTrue, sampleProductType.attributes[3])).toBeDefined()
     expect(@import._isEnumKeyPresent(enumSetAttributeFalse, sampleProductType.attributes[3])).toBeUndefined()
 
-  it ' :: should generate correct enum update action', ->
+  it ' should generate correct enum update action', ->
     enumAttribute =
       name: 'sample-enum-attribute'
       value: 'enum-3-key'
@@ -236,7 +236,7 @@ describe 'Enum Validator unit tests', ->
 
     expect(@import._generateUpdateAction(enumAttribute, sampleProductType.attributes[2])).toEqual expectedUpdateAction
 
-  it ' :: should generate correct lenum update action', ->
+  it ' should generate correct lenum update action', ->
     lenumAttribute =
       name: 'sample-lenum-attribute'
       value: 'lenum-3-key'
@@ -255,7 +255,7 @@ describe 'Enum Validator unit tests', ->
 
     expect(@import._generateUpdateAction(lenumAttribute, sampleProductType.attributes[1])).toEqual expectedUpdateAction
 
-  it ' :: should generate correct enum set update action', ->
+  it ' should generate correct enum set update action', ->
     enumSetAttributeMultiValue =
       name: 'sample-set-enum-attribute'
       value: [
@@ -292,7 +292,7 @@ describe 'Enum Validator unit tests', ->
     expect(@import._generateUpdateAction(enumSetAttributeMultiValue, sampleProductType.attributes[3])).toEqual expectedUpdateActionMultiValue
     expect(@import._generateUpdateAction(enumSetAttribute, sampleProductType.attributes[3])).toEqual expectedUpdateAction
 
-  it ' :: should generate correct list of update actions', (done) ->
+  it ' should generate correct list of update actions', ->
     enumAttributes = [
       name: 'sample-lenum-attribute'
       value: 'lenum-key-2'
@@ -338,14 +338,10 @@ describe 'Enum Validator unit tests', ->
         label: 'enum-set-5-key'
     ]
 
-    @import._validateEnums(enumAttributes, sampleProductType)
-    .then (updateActions) ->
-      expect(updateActions).toEqual expectedUpdateActions
-      done()
-    .catch (err) ->
-      done(err)
+    updateActions = @import._validateEnums(enumAttributes, sampleProductType)
+    expect(updateActions).toEqual expectedUpdateActions
 
-  it ' :: should detect already generated enums', ->
+  it ' should detect already generated enums', ->
     @import._cache.generatedEnums['sample-lenum-attribute-lenum-key-2'] = 'lenum-key-2'
     @import._cache.generatedEnums['sample-set-enum-attribute-enum-set-2-key'] = 'enum-set-2-key'
     @import._cache.generatedEnums['sample-lenum-attribute-lenum-3-key'] = 'lenum-3-key'

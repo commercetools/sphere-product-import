@@ -494,6 +494,8 @@ describe 'ProductImport unit tests', ->
       spyOn(@import, "_createProductFetchBySkuQueryPredicate").andCallThrough()
       spyOn(@import.client.productProjections,"fetch").andCallFake -> Promise.resolve({body: {results: existingProducts}})
       spyOn(@import, "_createOrUpdate").andCallFake -> Promise.settle([Promise.resolve({statusCode: 201}), Promise.resolve({statusCode: 200})])
+      spyOn(@import, "_ensureProductTypesInMemory").andCallFake -> Promise.resolve()
+      @import.ensureEnums = false
       @import._processBatches(sampleProducts)
       .then =>
         expect(@import._extractUniqueSkus).toHaveBeenCalled()
@@ -758,7 +760,48 @@ describe 'ProductImport unit tests', ->
       .catch (err) ->
         done(err)
 
+    it ' :: should filter unique update actions', ->
+      sampleUpdateAction1 =
+        action: 'addPlainEnumValue'
+        attributeName: 'sample-enum-attribute'
+        value:
+          key: 'enum-1-key'
+          label: 'enum-1-key'
 
+      sampleUpdateAction2 =
+        action: 'addPlainEnumValue'
+        attributeName: 'sample-enum-attribute'
+        value:
+          key: 'enum-2-key'
+          label: 'enum-2-key'
 
+      sampleInput =
+        product_type_internal_id_1: [
+          sampleUpdateAction1
+        ,
+          sampleUpdateAction2
+        ,
+          sampleUpdateAction1
+        ]
+        product_type_internal_id_2: [
+          sampleUpdateAction2
+        ,
+          sampleUpdateAction1
+        ,
+          sampleUpdateAction2
+        ]
 
+      expectedOutput =
+        product_type_internal_id_1: [
+          sampleUpdateAction1
+        ,
+          sampleUpdateAction2
+        ]
+        product_type_internal_id_2: [
+          sampleUpdateAction2
+        ,
+          sampleUpdateAction1
+        ]
+
+      expect(@import._filterUniqueUpdateActions(sampleInput)).toEqual expectedOutput
 

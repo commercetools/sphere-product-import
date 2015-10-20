@@ -42,6 +42,26 @@
       },
       "attributeConstraint": "None",
       "isSearchable": true
+    },
+    {
+      "name": "sample_enum_attribute",
+      "label": {
+        "en": "Sample Enum Attribute"
+      },
+      "isRequired": false,
+      "type": {
+        "name": "enum",
+        "values": [
+          {
+            "key": "enum-1-key",
+            "label": "Enum 1 Label"
+          },
+          {
+            "key": "enum-2-key",
+            "label": "Enum 2 Label"
+          }
+        ]
+      }
     }
   ]
 }

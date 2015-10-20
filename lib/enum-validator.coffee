@@ -17,30 +17,29 @@ class EnumValidator
       generatedEnums: {}
 
   validateProduct: (product, resolvedProductType) =>
-    new Promise (resolve) =>
-      enumAttributes = @_fetchEnumAttributesFromProduct(product, resolvedProductType)
-      @_validateEnums(enumAttributes, resolvedProductType)
-      .then (updateActions) ->
-        update =
-          productTypeId: resolvedProductType.id
-          actions: updateActions
-        resolve(update)
+    enumAttributes = @_fetchEnumAttributesFromProduct(product, resolvedProductType)
+    updateActions = @_validateEnums(enumAttributes, resolvedProductType)
+    update =
+      productTypeId: resolvedProductType.id
+      actions: updateActions
+    update
 
   _validateEnums: (enumAttributes, productType) =>
-    new Promise (resolve, reject) =>
-      updateActions = []
-      referenceEnums = @_fetchEnumAttributesOfProductType(productType)
-      for ea in enumAttributes
-        if not @_isEnumGenerated(ea)
-          refEnum = _.findWhere(referenceEnums, {name: "#{ea.name}"})
-          if refEnum
-            if not @_isEnumKeyPresent(ea, refEnum)
-              updateActions.push @_generateUpdateAction(ea, refEnum)
-          else
-            reject("enum attribute name: #{ea.name} not found in Product Type: #{productType.name}", ea)
-        else
-          debug "Skipping #{ea.name} update action generation as already exists."
-      resolve(updateActions)
+    updateActions = []
+    referenceEnums = @_fetchEnumAttributesOfProductType(productType)
+    for ea in enumAttributes
+      if not @_isEnumGenerated(ea)
+        @_handleNewEnumAttributeUpdate(ea, referenceEnums, updateActions, productType)
+      else
+        debug "Skipping #{ea.name} update action generation as already exists."
+    updateActions
+
+  _handleNewEnumAttributeUpdate: (ea, referenceEnums, updateActions, productType) =>
+    refEnum = _.findWhere(referenceEnums, {name: "#{ea.name}"})
+    if refEnum and not @_isEnumKeyPresent(ea, refEnum)
+      updateActions.push @_generateUpdateAction(ea, refEnum)
+    else
+      debug "enum attribute name: #{ea.name} not found in Product Type: #{productType.name}"
 
   _isEnumGenerated: (ea) =>
     @_cache.generatedEnums["#{ea.name}-#{slugify(ea.value)}"]

@@ -8,6 +8,7 @@ fs = require 'fs-extra'
 path = require 'path'
 EnumValidator = require './enum-validator'
 UnknownAttributesFilter = require './unknown-attributes-filter'
+CommonUtils = require './common-utils'
 
 class ProductImport
 
@@ -21,6 +22,7 @@ class ProductImport
     @client = new SphereClient options.clientConfig
     @enumValidator = new EnumValidator @logger
     @unknownAttributesFilter = new UnknownAttributesFilter @logger
+    @commonUtils = new CommonUtils @logger
     @_configErrorHandling(options)
     @_resetCache()
     @_resetSummary()
@@ -86,17 +88,26 @@ class ProductImport
   _processBatches: (products) ->
     batchedList = _.batchList(products, 30) # max parallel elem to process
     Promise.map batchedList, (productsToProcess) =>
-      # extract all skus from master variant and variants of all jsons in the batch
-      skus = @_extractUniqueSkus(productsToProcess)
-      predicate = @_createProductFetchBySkuQueryPredicate(skus)
-      # Check predicate size by: Buffer.byteLength(predicate,'utf-8')
-      # Todo: Handle predicate if predicate size > 8kb
-      # Fetch products from product projections end point by list of skus.
-      @client.productProjections
-      .where(predicate)
-      .staged(true)
-      .all()
-      .fetch()
+      debug 'Ensuring existence of product type in memory.'
+      @_ensureProductTypesInMemory(productsToProcess)
+      .then =>
+        if @ensureEnums
+          debug 'Ensuring existence of enum keys in product type.'
+          enumUpdateActions = @_validateEnums(productsToProcess)
+          uniqueEnumUpdateActions = @_filterUniqueUpdateActions(enumUpdateActions)
+          @_updateProductType(uniqueEnumUpdateActions)
+      .then =>
+        # extract all skus from master variant and variants of all jsons in the batch
+        skus = @_extractUniqueSkus(productsToProcess)
+        predicate = @_createProductFetchBySkuQueryPredicate(skus)
+        # Check predicate size by: Buffer.byteLength(predicate,'utf-8')
+        # Todo: Handle predicate if predicate size > 8kb
+        # Fetch products from product projections end point by list of skus.
+        @client.productProjections
+        .where(predicate)
+        .staged(true)
+        .all()
+        .fetch()
       .then (results) =>
         debug 'Fetched products: %j', results
         queriedEntries = results.body.results
@@ -153,7 +164,7 @@ class ProductImport
 
   _createOrUpdate: (productsToProcess, existingProducts) ->
     debug 'Products to process: %j', {toProcess: productsToProcess, existing: existingProducts}
-    enumUpdateActions = {}
+
     posts = _.map productsToProcess, (product) =>
       @_filterAttributes(product)
       .then (prodToProcess) =>
@@ -161,38 +172,47 @@ class ProductImport
         if existingProduct?
           @_fetchSameForAllAttributesOfProductType(prodToProcess.productType)
           .then (sameForAllAttributes) =>
-            @_validateEnums(prodToProcess, @_cache.productType[prodToProcess.productType.id])
-            .then (updateActions) =>
-              if updateActions and _.size(updateActions.actions) > 0 then @_updateEnumUpdateActions(enumUpdateActions, updateActions)
-              @_prepareUpdateProduct(prodToProcess, existingProduct).then (preparedProduct) =>
-                synced = @sync.buildActions(preparedProduct, existingProduct, sameForAllAttributes)
-                if synced.shouldUpdate()
-                  @client.products.byId(synced.getUpdateId()).update(synced.getUpdatePayload())
-                else
-                  Promise.resolve statusCode: 304
+            @_prepareUpdateProduct(prodToProcess, existingProduct).then (preparedProduct) =>
+              synced = @sync.buildActions(preparedProduct, existingProduct, sameForAllAttributes)
+              if synced.shouldUpdate()
+                @client.products.byId(synced.getUpdateId()).update(synced.getUpdatePayload())
+              else
+                Promise.resolve statusCode: 304
         else
           @_prepareNewProduct(prodToProcess)
           .then (product) =>
-            @_validateEnums(product, @_cache.productType[product.productType.id])
-            .then (updateActions) =>
-              if updateActions and _.size(updateActions) > 0 then @_updateEnumUpdateActions(enumUpdateActions, updateActions)
-              @client.products.create(product)
+            @client.products.create(product)
 
-    @_updateProductType(enumUpdateActions)
-    .then ->
-      debug 'About to send %s requests', _.size(posts)
-      Promise.settle(posts)
+    debug 'About to send %s requests', _.size(posts)
+    Promise.settle(posts)
 
   _filterAttributes: (product) =>
     new Promise (resolve) =>
       if @filterUnknownAttributes
-        @_ensureProductTypeInMemory(product.productType.id)
-        .then =>
-          @unknownAttributesFilter.filter(@_cache.productType[product.productType.id],product)
+        @unknownAttributesFilter.filter(@_cache.productType[product.productType.id],product)
         .then (filteredProduct) ->
           resolve(filteredProduct)
       else
         resolve(product)
+
+
+  # updateActions are of the form:
+  # { productTypeId: [{updateAction},{updateAction},...],
+  #   productTypeId: [{updateAction},{updateAction},...]
+  # }
+  _filterUniqueUpdateActions: (updateActions) =>
+    _.reduce _.keys(updateActions), (acc, productTypeId) =>
+      actions = updateActions[productTypeId]
+      uniqueActions = @commonUtils.uniqueObjectFilter actions
+      acc[productTypeId] = uniqueActions
+      acc
+    , {}
+
+  _ensureProductTypesInMemory: (products) =>
+    Promise.map products, (product) =>
+      @_ensureProductTypeInMemory(product.productType.id)
+    , {concurrency: 1}
+
 
   _ensureProductTypeInMemory: (productTypeId) =>
     if @_cache.productType[productTypeId]
@@ -202,30 +222,26 @@ class ProductImport
         id: productTypeId
       @_resolveReference(@client.productTypes, 'productType', productType, "name=\"#{productType?.id}\"")
 
-  _validateEnums: (product, productType) =>
-    if @ensureEnums
-      @enumValidator.validateProduct(product, productType)
-    else
-      Promise.resolve()
+  _validateEnums: (products) =>
+    enumUpdateActions = {}
+    _.each products, (product) =>
+      updateActions = @enumValidator.validateProduct(product, @_cache.productType[product.productType.id])
+      if updateActions and _.size(updateActions.actions) > 0 then @_updateEnumUpdateActions(enumUpdateActions, updateActions)
+    enumUpdateActions
 
   _updateProductType: (enumUpdateActions) =>
-    new Promise (resolve) =>
-      if _.isEmpty(enumUpdateActions)
-        resolve()
-      else
-        debug "Updating product type(s): #{_.keys(enumUpdateActions)}"
-        Promise.all [
-          for productTypeId in _.keys(enumUpdateActions)
-            updateRequest =
-              version: @_cache.productType[productTypeId].version
-              actions: enumUpdateActions[productTypeId]
-            @client.productTypes.byId(@_cache.productType[productTypeId].id).update(updateRequest)
-            .then (updatedProductType) =>
-              @_cache.productType[productTypeId] = updatedProductType.body
-              @_summary.productTypeUpdated++
-        ]
-        .then ->
-          resolve()
+    if _.isEmpty(enumUpdateActions)
+      Promise.resolve()
+    else
+      debug "Updating product type(s): #{_.keys(enumUpdateActions)}"
+      Promise.map _.keys(enumUpdateActions), (productTypeId) =>
+        updateRequest =
+          version: @_cache.productType[productTypeId].version
+          actions: enumUpdateActions[productTypeId]
+        @client.productTypes.byId(@_cache.productType[productTypeId].id).update(updateRequest)
+        .then (updatedProductType) =>
+          @_cache.productType[productTypeId] = updatedProductType.body
+          @_summary.productTypeUpdated++
 
 
   _updateEnumUpdateActions: (enumUpdateActions, updateActions) ->
@@ -235,16 +251,15 @@ class ProductImport
       enumUpdateActions[updateActions.productTypeId] = updateActions.actions
 
   _fetchSameForAllAttributesOfProductType: (productType) =>
-    new Promise (resolve) =>
-      if @_cache.productType["#{productType.id}_sameForAllAttributes"]
-        resolve(@_cache.productType["#{productType.id}_sameForAllAttributes"])
-      else
-        @_resolveReference(@client.productTypes, 'productType', productType, "name=\"#{productType?.id}\"")
-        .then (productTypeId) =>
-          sameValueAttributes = _.where(@_cache.productType[productType.id].attributes, {attributeConstraint: "SameForAll"})
-          sameValueAttributeNames = _.pluck(sameValueAttributes, 'name')
-          @_cache.productType["#{productType.id}_sameForAllAttributes"] = sameValueAttributeNames
-          resolve(sameValueAttributeNames)
+    if @_cache.productType["#{productType.id}_sameForAllAttributes"]
+      Promise.resolve(@_cache.productType["#{productType.id}_sameForAllAttributes"])
+    else
+      @_resolveReference(@client.productTypes, 'productType', productType, "name=\"#{productType?.id}\"")
+      .then =>
+        sameValueAttributes = _.where(@_cache.productType[productType.id].attributes, {attributeConstraint: "SameForAll"})
+        sameValueAttributeNames = _.pluck(sameValueAttributes, 'name')
+        @_cache.productType["#{productType.id}_sameForAllAttributes"] = sameValueAttributeNames
+        Promise.resolve(sameValueAttributeNames)
 
   _ensureVariantDefaults: (variant = {}) ->
     variantDefaults =
