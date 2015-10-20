@@ -201,12 +201,12 @@ class ProductImport
   #   productTypeId: [{updateAction},{updateAction},...]
   # }
   _filterUniqueUpdateActions: (updateActions) =>
-    uniqueUpdateActions = {}
-    _.each _.keys(updateActions), (productTypeId) =>
+    _.reduce _.keys(updateActions), (acc, productTypeId) =>
       actions = updateActions[productTypeId]
       uniqueActions = @commonUtils.uniqueObjectFilter actions
-      uniqueUpdateActions[productTypeId] = uniqueActions
-    uniqueUpdateActions
+      acc[productTypeId] = uniqueActions
+      acc
+    , {}
 
   _ensureProductTypesInMemory: (products) =>
     Promise.map products, (product) =>
