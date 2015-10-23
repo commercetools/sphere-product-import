@@ -10,7 +10,7 @@ class UnknownAttributesFilter
   constructor: (@logger) ->
     debug "Unknown Attributes Filter initialized."
 
-  filter: (productType, product) =>
+  filter: (productType, product, @collectedUnknownAttributeNames) =>
     if productType.attributes
       attrNameList = _.pluck(productType.attributes, 'name')
       Promise.all [
@@ -40,9 +40,15 @@ class UnknownAttributesFilter
     for attribute in attributes
       if @_isKnownAttribute(attribute, attrNameList)
         filteredAttributes.push attribute
+      else if @collectedUnknownAttributeNames
+        @_unknownAttributeNameCollector(attribute.name)
     Promise.resolve filteredAttributes
 
   _isKnownAttribute: (attribute, attrNameList) ->
     attribute.name in attrNameList
+
+  _unknownAttributeNameCollector: (attributeName) =>
+    if not _.contains(@collectedUnknownAttributeNames, attributeName)
+      @collectedUnknownAttributeNames.push(attributeName)
 
 module.exports = UnknownAttributesFilter

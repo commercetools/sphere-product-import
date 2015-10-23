@@ -65,6 +65,7 @@ class ProductImport
       failed: 0
       productTypeUpdated: 0
       errorDir: @errorDir
+    if @filterUnknownAttributes then @_summary.unknownAttributeNames = []
 
   summaryReport: (filename) ->
     if @_summary.created is 0 and @_summary.updated is 0
@@ -189,7 +190,7 @@ class ProductImport
   _filterAttributes: (product) =>
     new Promise (resolve) =>
       if @filterUnknownAttributes
-        @unknownAttributesFilter.filter(@_cache.productType[product.productType.id],product)
+        @unknownAttributesFilter.filter(@_cache.productType[product.productType.id],product, @_summary.unknownAttributeNames)
         .then (filteredProduct) ->
           resolve(filteredProduct)
       else
