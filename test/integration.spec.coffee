@@ -260,6 +260,7 @@ describe 'Product import integration tests', ->
     @import._processBatches(sampleImport.products)
     .then =>
       expect(@import._summary.created).toBe 2
+      expect(@import._summary.unknownAttributeNames).toEqual ['unknownAttribute']
       done()
     .catch done
   , 10000

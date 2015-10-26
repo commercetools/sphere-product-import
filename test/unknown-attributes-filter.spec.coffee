@@ -36,6 +36,12 @@ expectedAttributeList = [
   value: 'attributeValue'
 ]
 
+expectedUnknownAttributeList = [
+  'attributeName4'
+,
+  'attributeName5'
+]
+
 describe 'Unknown Attributes Filter unit tests', ->
 
   beforeEach ->
@@ -118,9 +124,11 @@ describe 'Unknown Attributes Filter unit tests', ->
         value: 'attributeValue'
       ]
 
-    @import.filter(productType,sampleProduct)
+    unknownAttributeList = []
+    @import.filter(productType,sampleProduct, unknownAttributeList)
     .then (product) ->
       expect(product).toEqual sampleExpectedProduct
+      expect(unknownAttributeList).toEqual expectedUnknownAttributeList
       done()
     .catch done
 
