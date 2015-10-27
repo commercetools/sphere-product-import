@@ -68,7 +68,7 @@ class ProductImport
     if @filterUnknownAttributes then @_summary.unknownAttributeNames = []
 
   summaryReport: (filename) ->
-    if @_summary.created is 0 and @_summary.updated is 0
+    if @_summary.created is 0 and @_summary.updated is 0 and @_summary.failed is 0
       message = 'Summary: nothing to do, everything is fine'
     else
       message = "Summary: there were #{@_summary.created + @_summary.updated} imported products " +
@@ -81,7 +81,11 @@ class ProductImport
     if @_summary.failed > 0
       message += "\n #{@_summary.failed} product imports failed. Error reports stored at: #{@errorDir}"
 
-    message
+    report = {
+      reportMessage: message
+      detailedSummary: @_summary
+    }
+    report
 
   performStream: (chunk, cb) ->
     @_processBatches(chunk).then -> cb()
