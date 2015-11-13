@@ -510,6 +510,19 @@ describe 'ProductImport unit tests', ->
         done()
       .catch done
 
+    it 'should throw error in case of too big query', (done) ->
+      exptectedErrorMessage = 'product fetch query size: 10952 bytes, exceeded the supported size, please try with a smaller batch size.'
+      longQueryPredicate = require('../samples/sample-long-query.json')
+      products = _.deepClone(sampleProducts)
+      spyOn(@import, "_ensureProductTypesInMemory").andCallFake -> Promise.resolve()
+      spyOn(@import, "_createProductFetchBySkuQueryPredicate").andCallFake -> return longQueryPredicate.predicate
+      @import.ensureEnums = false
+      @import._processBatches(products)
+      .then done
+      .catch (err) ->
+        expect(err).toBe exptectedErrorMessage
+        done()
+
   describe '::_ensureDefaults', ->
 
     it 'should add variant defaults to all variants', ->

@@ -19,6 +19,7 @@ class ProductImport
     @ensureEnums = options.ensureEnums or false
     @filterUnknownAttributes = options.filterUnknownAttributes or false
     @ignoreSlugUpdates = options.ignoreSlugUpdates or false
+    @batchSize = options.batchSize or 30
     @client = new SphereClient options.clientConfig
     @enumValidator = new EnumValidator @logger
     @unknownAttributesFilter = new UnknownAttributesFilter @logger
@@ -91,7 +92,7 @@ class ProductImport
     @_processBatches(chunk).then -> cb()
 
   _processBatches: (products) ->
-    batchedList = _.batchList(products, 30) # max parallel elem to process
+    batchedList = _.batchList(products, @batchSize) # max parallel elem to process
     Promise.map batchedList, (productsToProcess) =>
       debug 'Ensuring existence of product type in memory.'
       @_ensureProductTypesInMemory(productsToProcess)
@@ -102,12 +103,13 @@ class ProductImport
           uniqueEnumUpdateActions = @_filterUniqueUpdateActions(enumUpdateActions)
           @_updateProductType(uniqueEnumUpdateActions)
       .then =>
-        # extract all skus from master variant and variants of all jsons in the batch
         skus = @_extractUniqueSkus(productsToProcess)
         predicate = @_createProductFetchBySkuQueryPredicate(skus)
-        # Check predicate size by: Buffer.byteLength(predicate,'utf-8')
-        # Todo: Handle predicate if predicate size > 8kb
-        # Fetch products from product projections end point by list of skus.
+        if Buffer.byteLength(predicate,'utf-8') > 7800
+          errMessage = "product fetch query size: #{Buffer.byteLength(predicate,'utf-8')} bytes, exceeded the supported " +
+            "size, please try with a smaller batch size."
+          @logger.error(errMessage)
+          throw (errMessage)
         @client.productProjections
         .where(predicate)
         .staged(true)
