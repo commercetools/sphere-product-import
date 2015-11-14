@@ -12,6 +12,6 @@ This library provides different modules to manage SPHERE.IO product data.
   
 ## Modules
 
-- [Product Importer](https://github.com/sphereio/sphere-product-import/wiki/Product-Importer)
-- [Price Importer](https://github.com/sphereio/sphere-product-import/wiki/Price-Importer)
-- [Product Discount Importer](https://github.com/sphereio/sphere-product-import/wiki/Product-Discounts-Importer)
+- [Product Importer](/readme/product-import.md)
+- [Price Importer](/readme/price-importer.md)
+- [Product Discount Importer](/readme/product-discounts-importer.md)
