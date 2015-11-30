@@ -1,0 +1,21 @@
+{
+  "prices": [
+    {
+      "sku": "08-12345",
+      "prices": [
+        {
+          "value": {
+            "centAmount" : 1699,
+            "currencyCode": "EUR"
+          },
+          "country": "AT",
+          "validFrom": "2015-12-24T00:00:00Z",
+          "validUntil": "2015-12-25T00:00:00Z",
+          "customerGroup": {
+            "id": "normal"
+          }
+        }
+      ]
+     }
+  ]
+}

@@ -17,21 +17,11 @@ cleanup = (logger, client) ->
     debug "#{_.size results} deleted."
     Promise.resolve()
 
-getOrCreateProductType = (client) ->
-  new Promise (resolve, reject) ->
-    name = 'productTypeForPriceImport'
-    client.productTypes.where("name=\"#{name}\"").fetch()
-    .then (result) ->
-      if result.body.total is 0
-        pt =
-          name: name
-          description: 'bla bla'
-        client.productTypes.create(pt)
-        .then (res) -> resolve res.body
-      else
-        resolve result.body.results[0]
+sampleProductTypeForPrice =
+  name: 'productTypeForPriceImport'
+  description: 'bla bla'
 
-createProduct = (client, productType) ->
+createProduct = (productType) ->
   product =
     productType:
       typeId: 'product-type'
@@ -46,7 +36,24 @@ createProduct = (client, productType) ->
       { sku: 'sku2', prices: [ { value: { centAmount: 777, currencyCode: 'JPY' } } ] }
       { sku: 'sku3', prices: [ { value: { centAmount: 9, currencyCode: 'GBP' } } ] }
     ]
-  client.products.create product
+
+sampleCustomerGroup =
+  groupName: 'test-group'
+
+sampleChannel =
+  key: 'test-channel'
+
+ensureResource = (service, predicate, sampleData) ->
+  debug 'Ensuring existence for: %s', predicate
+  service.where(predicate).fetch()
+  .then (result) ->
+    if result.statusCode is 200 and result.body.count is 0
+      service.create(sampleData)
+      .then (result) ->
+        debug "Sample #{predicate} created with id: #{result.body.id}"
+        Promise.resolve(result.body)
+    else
+      Promise.resolve(result.body.results[0])
 
 describe 'Price Importer integration tests', ->
 
@@ -57,7 +64,9 @@ describe 'Price Importer integration tests', ->
       logConfig:
         name: "#{package_json.name}-#{package_json.version}"
         streams: [
-          { level: 'info', stream: process.stdout }
+          { level: 'info', stream: process.stdout },
+          { level: 'error', stream: process.stderr },
+          { level: 'debug', stream: process.stdout }
         ]
 
     Config =
@@ -70,11 +79,12 @@ describe 'Price Importer integration tests', ->
 
     @logger.info 'About to setup...'
     cleanup @logger, @client
-    .then =>
-      getOrCreateProductType @client
-    .then (@productType) =>
-      createProduct @client, @productType
-    .then (@product) ->
+    .then => ensureResource(@client.productTypes, 'name="productTypeForPriceImport"', sampleProductTypeForPrice)
+    .then (@productType) => ensureResource(@client.customerGroups, 'name="test-group"', sampleCustomerGroup)
+    .then (@customerGroup) => ensureResource(@client.channels, 'key="test-channel"', sampleChannel)
+    .then (@channel) => ensureResource(@client.products, 'masterData(staged(name(en="foo")))', createProduct(@productType))
+    .then (@product) =>
+      @logger.debug "product created with id: #{@product.id}"
       done()
     .catch (err) ->
       done(_.prettify err)
@@ -96,6 +106,17 @@ describe 'Price Importer integration tests', ->
             value:
               centAmount: 9999
               currencyCode: 'EUR'
+            customerGroup:
+              id: 'test-group'
+          },
+          {
+            value:
+              centAmount: 7999
+              currencyCode: 'EUR'
+            customerGroup:
+              id: 'test-group'
+            channel:
+              id: 'test-channel'
           }
         ]
       }
@@ -107,6 +128,8 @@ describe 'Price Importer integration tests', ->
               centAmount: 666
               currencyCode: 'JPY'
             country: 'JP'
+            customerGroup:
+              id: 'test-group'
           }
         ]
       }
@@ -114,20 +137,24 @@ describe 'Price Importer integration tests', ->
     @import.performStream prices, (res) =>
       expect(res).toBeUndefined()
       @client.productProjections.staged(true).all().fetch()
-      .then (res) ->
+      .then (res) =>
         expect(_.size res.body.results).toBe 1
         product = res.body.results[0]
-        expect(_.size product.masterVariant.prices).toBe 1
+        expect(_.size product.masterVariant.prices).toBe 2
+        expect(product.masterVariant.prices[0].customerGroup.id).toBe @customerGroup.id
+        expect(product.masterVariant.prices[1].customerGroup.id).toBe @customerGroup.id
+        expect(product.masterVariant.prices[1].channel.id).toBe @channel.id
         expect(product.masterVariant.prices[0].value.centAmount).toBe 9999
         expect(product.masterVariant.prices[0].value.currencyCode).toBe 'EUR'
         expect(_.size product.variants[0].prices).toBe 1
         expect(product.variants[0].prices[0].value.centAmount).toBe 666
         expect(product.variants[0].prices[0].value.currencyCode).toBe 'JPY'
         expect(product.variants[0].prices[0].country).toBe 'JP'
+        expect(product.variants[0].prices[0].customerGroup.id).toBe @customerGroup.id
         expect(_.size product.variants[1].prices).toBe 1
         expect(product.variants[1].prices[0].value.centAmount).toBe 9
         expect(product.variants[1].prices[0].value.currencyCode).toBe 'GBP'
         done()
       .catch (err) ->
-        done(_.prettify err)
+        done(_.prettify err.body)
   , 30000

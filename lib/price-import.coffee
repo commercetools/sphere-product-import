@@ -41,17 +41,52 @@ class PriceImport extends ProductImport
       .all()
       .fetch()
       .then (results) =>
-        debug "Fetched products: %j", results
         queriedEntries = results.body.results
-        wrappedProducts = @_wrapPricesIntoProducts pricesToProcess, queriedEntries
-        if @logger then @logger.info "Wrapped #{_.size prices} price(s) into #{_.size wrappedProducts} existing product(s)."
-        @_createOrUpdate wrappedProducts, queriedEntries
-        .then (results) =>
-          _.each results, (r) =>
-            switch r.statusCode
-              when 200 then @_summary.updated++
-          Promise.resolve(@_summary)
+        @_preparePrices(pricesToProcess)
+        .then (preparedPrices) =>
+          wrappedProducts = @_wrapPricesIntoProducts preparedPrices, queriedEntries
+          if @logger then @logger.info "Wrapped #{_.size prices} price(s) into #{_.size wrappedProducts} existing product(s)."
+          @_createOrUpdate wrappedProducts, queriedEntries
+          .then (results) =>
+            _.each results, (r) =>
+              switch r.statusCode
+                when 200 then @_summary.updated++
+            Promise.resolve(@_summary)
     ,{concurrency: 1}
+
+  _preparePrices: (pricesToProcess) =>
+    Promise.map pricesToProcess, (priceToProcess) =>
+      @_preparePrice priceToProcess
+    , {concurrency: 1}
+
+
+  _preparePrice: (priceToProcess) =>
+    resolvedPrices = []
+    Promise.map priceToProcess.prices, (price) =>
+      @_resolvePriceReferences(price)
+      .then (resolved) ->
+        resolvedPrices.push(resolved)
+    , {concurrency: 1}
+    .then ->
+      priceToProcess.prices = resolvedPrices
+      Promise.resolve(priceToProcess)
+
+
+  _resolvePriceReferences: (price) =>
+    Promise.all [
+      @_resolveReference(@client.customerGroups, 'customerGroup', price.customerGroup, "name=\"#{price.customerGroup?.id}\"")
+      @_resolveReference(@client.channels, 'channel', price.channel, "key=\"#{price.channel?.id}\"")
+    ]
+    .spread (customerGroupId, channelId) ->
+      if customerGroupId
+        price.customerGroup =
+          id: customerGroupId
+          typeId: 'customer-group'
+      if channelId
+        price.channel =
+          id: channelId
+          typeId: 'channel'
+      Promise.resolve price
 
   _createOrUpdate: (productsToProcess, existingProducts) ->
     debug 'Products to process: %j', {toProcess: productsToProcess, existing: existingProducts}
