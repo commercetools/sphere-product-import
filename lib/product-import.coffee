@@ -121,25 +121,27 @@ class ProductImport
         @_createOrUpdate productsToProcess, queriedEntries
       .then (results) =>
         _.each results, (r) =>
-          if r.isFulfilled()
-            switch r.value().statusCode
-              when 201 then @_summary.created++
-              when 200 then @_summary.updated++
-          else if r.isRejected()
-            @_summary.failed++
-            if @_summary.failed < @errorLimit or @errorLimit is 0
-              if r.reason().message
-                @logger.error "Skipping product due to error message: #{r.reason().message}"
-              else
-                @logger.error "Skipping product due to error reason: #{r.reason()}"
-              if @errorDir
-                errorFile = path.join(@errorDir, "error-#{@_summary.failed}.json")
-                fs.outputJsonSync(errorFile, r.reason(), {spaces: 2})
-            else
-              @logger.warn "Error not logged as error limit of #{@errorLimit} has reached."
+          @_handleProcessResponse(r)
         Promise.resolve(@_summary)
     , {concurrency: 1} # run 1 batch at a time
 
+  _handleProcessResponse: (r) =>
+    if r.isFulfilled()
+      switch r.value().statusCode
+        when 201 then @_summary.created++
+        when 200 then @_summary.updated++
+    else if r.isRejected()
+      @_summary.failed++
+      if @_summary.failed < @errorLimit or @errorLimit is 0
+        if r.reason().message
+          @logger.error "Skipping product due to error message: #{r.reason().message}"
+        else
+          @logger.error "Skipping product due to error reason: #{r.reason()}"
+        if @errorDir
+          errorFile = path.join(@errorDir, "error-#{@_summary.failed}.json")
+          fs.outputJsonSync(errorFile, r.reason(), {spaces: 2})
+      else
+        @logger.warn "Error not logged as error limit of #{@errorLimit} has reached."
 
   _createProductFetchBySkuQueryPredicate: (skus) ->
     skuString = "sku in (\"#{skus.join('", "')}\")"

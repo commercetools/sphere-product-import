@@ -20,6 +20,7 @@ class PriceImport extends ProductImport
       duplicatedSKUs: 0
       variantWithoutPriceUpdates: 0
       updated: 0
+      failed: 0
 
   summaryReport: ->
     if @_summary.updated is 0
@@ -49,8 +50,7 @@ class PriceImport extends ProductImport
           @_createOrUpdate wrappedProducts, queriedEntries
           .then (results) =>
             _.each results, (r) =>
-              switch r.statusCode
-                when 200 then @_summary.updated++
+              @_handleProcessResponse(r)
             Promise.resolve(@_summary)
     ,{concurrency: 1}
 
@@ -119,7 +119,7 @@ class PriceImport extends ProductImport
         Promise.resolve statusCode: 404
 
     debug 'About to send %s requests', _.size(posts)
-    Promise.all(posts)
+    Promise.settle(posts)
 
   _wrapPricesIntoProducts: (prices, products) ->
     sku2index = {}
