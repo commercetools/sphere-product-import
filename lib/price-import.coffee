@@ -54,6 +54,13 @@ class PriceImport extends ProductImport
             Promise.resolve(@_summary)
     ,{concurrency: 1}
 
+  _handleFulfilledResponse: (r) =>
+    switch r.value().statusCode
+      when 201 then @_summary.created++
+      when 200 then @_summary.updated++
+      when 404 then @_summary.unknownSKUCount++
+      when 304 then @_summary.variantWithoutPriceUpdates++
+
   _preparePrices: (pricesToProcess) =>
     Promise.map pricesToProcess, (priceToProcess) =>
       @_preparePrice priceToProcess
@@ -93,6 +100,7 @@ class PriceImport extends ProductImport
 
     posts = _.map productsToProcess, (prodToProcess) =>
       existingProduct = @_isExistingEntry(prodToProcess, existingProducts)
+
       if existingProduct?
         synced = @sync.buildActions(prodToProcess, existingProduct)
         if synced.shouldUpdate()

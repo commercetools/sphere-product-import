@@ -6,3 +6,4 @@ module.exports =
   EnumValidator: require './enum-validator'
   UnknownAttributesFilter: require './unknown-attributes-filter'
   CommonUtils: require './common-utils'
+  EnsureDefaultAttributes: require './ensure-default-attributes'

@@ -9,6 +9,7 @@ path = require 'path'
 EnumValidator = require './enum-validator'
 UnknownAttributesFilter = require './unknown-attributes-filter'
 CommonUtils = require './common-utils'
+EnsureDefaultAttributes = require './ensure-default-attributes'
 
 class ProductImport
 
@@ -24,6 +25,8 @@ class ProductImport
     @enumValidator = new EnumValidator @logger
     @unknownAttributesFilter = new UnknownAttributesFilter @logger
     @commonUtils = new CommonUtils @logger
+    if options.defaultAttributes
+      @defaultAttributesService = new EnsureDefaultAttributes @logger, options.defaultAttributes
     @_configErrorHandling(options)
     @_resetCache()
     @_resetSummary()
@@ -103,6 +106,10 @@ class ProductImport
           uniqueEnumUpdateActions = @_filterUniqueUpdateActions(enumUpdateActions)
           @_updateProductType(uniqueEnumUpdateActions)
       .then =>
+        if @defaultAttributesService
+          debug 'Ensuring default attributes'
+          @_ensureDefaultAttributesInProducts(productsToProcess)
+      .then =>
         skus = @_extractUniqueSkus(productsToProcess)
         predicate = @_createProductFetchBySkuQueryPredicate(skus)
         if Buffer.byteLength(predicate,'utf-8') > 7800
@@ -127,9 +134,7 @@ class ProductImport
 
   _handleProcessResponse: (r) =>
     if r.isFulfilled()
-      switch r.value().statusCode
-        when 201 then @_summary.created++
-        when 200 then @_summary.updated++
+      @_handleFulfilledResponse(r)
     else if r.isRejected()
       @_summary.failed++
       if @_summary.failed < @errorLimit or @errorLimit is 0
@@ -142,6 +147,11 @@ class ProductImport
           fs.outputJsonSync(errorFile, r.reason(), {spaces: 2})
       else
         @logger.warn "Error not logged as error limit of #{@errorLimit} has reached."
+
+  _handleFulfilledResponse: (r) =>
+    switch r.value().statusCode
+      when 201 then @_summary.created++
+      when 200 then @_summary.updated++
 
   _createProductFetchBySkuQueryPredicate: (skus) ->
     skuString = "sku in (\"#{skus.join('", "')}\")"
@@ -222,6 +232,10 @@ class ProductImport
       @_ensureProductTypeInMemory(product.productType.id)
     , {concurrency: 1}
 
+  _ensureDefaultAttributesInProducts: (products) =>
+    Promise.map products, (product) =>
+      @defaultAttributesService.ensureDefaultAttributesInProduct(product)
+    , {concurrency: 1}
 
   _ensureProductTypeInMemory: (productTypeId) =>
     if @_cache.productType[productTypeId]
