@@ -155,6 +155,18 @@ sampleReferenceCats =
     id: 'category_external_id2'
   ]
 
+sampleDefaultAttributes =
+  [
+    name: 'defaultAttribute1'
+    value: 'defaultAttributeValue'
+  ,
+    name: 'defaultAttribute2'
+    value: 'defaultAttributeValue'
+  ,
+    name: 'defaultAttribute3'
+    value: 'defaultAttributeValue'
+  ]
+
 describe 'ProductImport unit tests', ->
 
   beforeEach ->
@@ -176,6 +188,8 @@ describe 'ProductImport unit tests', ->
       errorLimit: 0
       ensureEnums: true
       blackList: ['prices']
+      defaultAttributes: sampleDefaultAttributes
+
 
     @import = new ProductImport @logger, Config
 
@@ -818,3 +832,32 @@ describe 'ProductImport unit tests', ->
 
       expect(@import._filterUniqueUpdateActions(sampleInput)).toEqual expectedOutput
 
+    it ' :: should check and add default attributes', (done) ->
+      sampleInput = _.deepClone sampleNewProduct
+      sampleInput.masterVariant = _.deepClone sampleMasterVariant
+      sampleInput.variants = []
+      sampleInput.variants.push _.deepClone(sampleVariant1)
+      sampleInput.variants.push _.deepClone(sampleVariant2)
+
+      sampleDefaultExistingAttr =
+        name: 'defaultAttribute1'
+        value: 'defaultExistingAttributeValue'
+
+      sampleInput.masterVariant.attributes.push sampleDefaultExistingAttr
+
+      expectedOutput = _.deepClone sampleNewProduct
+      expectedOutput.masterVariant = _.deepClone sampleMasterVariant
+      expectedOutput.variants = []
+      expectedOutput.variants.push _.deepClone(sampleVariant1)
+      expectedOutput.variants.push _.deepClone(sampleVariant2)
+
+      expectedOutput.masterVariant.attributes = expectedOutput.masterVariant.attributes.concat(_.deepClone(sampleDefaultAttributes))
+      expectedOutput.masterVariant.attributes[1].value = 'defaultExistingAttributeValue'
+      expectedOutput.variants[0].attributes = expectedOutput.variants[0].attributes.concat _.deepClone(sampleDefaultAttributes)
+      expectedOutput.variants[1].attributes = expectedOutput.variants[1].attributes.concat _.deepClone(sampleDefaultAttributes)
+
+      @import._ensureDefaultAttributesInProducts([sampleInput])
+      .then ->
+        expect(sampleInput).toEqual(expectedOutput)
+        done()
+      .catch(done)
