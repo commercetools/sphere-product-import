@@ -26,6 +26,7 @@ Accepts a list of products in a valid [JSON Schema](https://github.com/sphereio/
   * filterUnknownAttributes -> when set to `true` will ignore any attributes not defined in the product type of the product being imported. Default: `false`
   * ignoreSlugUpdates -> when set to `true` will ignore all slug updates for existing product updates. Default: `false` 
   * batchSize -> number of products to be processed in each batch. Default: 30
+  * defaultAttributes -> a list of attributes to be added to all variants if not existing
 
 #### Sample configuration object for cli:
 
@@ -37,7 +38,11 @@ Accepts a list of products in a valid [JSON Schema](https://github.com/sphereio/
       "filterUnknownAttributes": "true",
       "ignoreSlugUpdates": "true",
       "batchSize": 20,
-      "blackList": [ "images", "categories" ]
+      "blackList": [ "images", "categories" ],
+      "defaultAttributes": [
+        {"name": "attributeName", "value": "defaultValue"},
+        {"name": "attributeName", "value": "defaultValue"}
+      ]
     }
   
 ### Sample Inputs
