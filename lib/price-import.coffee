@@ -11,6 +11,7 @@ class PriceImport extends ProductImport
 
   constructor: (@logger, options = {}) ->
     super @logger, options
+    @batchSize = options.batchSize or 30
     @sync.config [{type: 'prices', group: 'white'}].concat(['base', 'references', 'attributes', 'images', 'variants', 'metaAttributes'].map (type) -> {type, group: 'black'})
     @repeater = new Repeater
 
@@ -32,7 +33,7 @@ class PriceImport extends ProductImport
     message
 
   _processBatches: (prices) ->
-    batchedList = _.batchList(prices, 30) # max parallel elements to process
+    batchedList = _.batchList(prices, @batchSize) # max parallel elements to process
     Promise.map batchedList, (pricesToProcess) =>
       skus = _.map pricesToProcess, (p) -> p.sku
       predicate = @_createProductFetchBySkuQueryPredicate skus
