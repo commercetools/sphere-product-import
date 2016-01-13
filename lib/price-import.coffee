@@ -14,6 +14,7 @@ class PriceImport extends ProductImport
     @batchSize = options.batchSize or 30
     @sync.config [{type: 'prices', group: 'white'}].concat(['base', 'references', 'attributes', 'images', 'variants', 'metaAttributes'].map (type) -> {type, group: 'black'})
     @repeater = new Repeater
+    @preventRemoveActions = options.preventRemoveActions || false
 
   _resetSummary: ->
     @_summary =
@@ -107,8 +108,11 @@ class PriceImport extends ProductImport
         if synced.shouldUpdate()
           updateTask = (payload) =>
             @client.products.byId(synced.getUpdateId()).update(payload)
-          @repeater.execute ->
-            updateTask(synced.getUpdatePayload())
+          @repeater.execute =>
+            payload = synced.getUpdatePayload()
+            if @preventRemoveActions
+              payload.actions = @_filterPriceActions(payload.actions)
+            updateTask(payload)
           , (e) =>
             if e.statusCode is 409
               debug 'retrying to update %s because of 409', synced.getUpdateId()
@@ -129,6 +133,14 @@ class PriceImport extends ProductImport
 
     debug 'About to send %s requests', _.size(posts)
     Promise.settle(posts)
+
+  ###*
+   * filters out remove actions
+   * so no prices get deleted
+  ###
+  _filterPriceActions: (actions) ->
+    _.filter actions, (action) ->
+      action.action != "removePrice"
 
   _wrapPricesIntoProducts: (prices, products) ->
     sku2index = {}
