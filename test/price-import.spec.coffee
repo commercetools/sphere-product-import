@@ -3,6 +3,43 @@ _.mixin require 'underscore-mixins'
 {PriceImport} = require '../lib'
 ClientConfig = require '../config'
 Promise = require 'bluebird'
+jasmine = require 'jasmine-node'
+cuid = require 'cuid'
+
+mockPrice = (options = {}) ->
+  id: cuid()
+  value:
+    currencyCode: options.currency || "EUR",
+    centAmount: options.amount || 4200
+  country: options.country || "DE"
+
+addPriceAction =
+  action: 'addPrice'
+  variantId: 'variantId'
+  price: mockPrice()
+
+changePriceAction = (priceId = cuid()) ->
+  action: 'changePrice'
+  priceId: priceId
+
+priceActionDeprecated = (action = "addPrice", variantId, price) ->
+  if !action
+    throw new Error 'no-action'
+  if !variantId
+    throw new Error 'no-variant-id'
+  if !price
+    throw new Error 'no-price'
+  {
+    action: action
+    variantId: variantId,
+    price: price
+  }
+
+removePriceAction = (priceId = cuid()) ->
+  action: 'removePrice'
+  priceId: priceId
+
+priceActions = [ addPriceAction, removePriceAction() ]
 
 describe 'PriceImport', ->
 
@@ -92,3 +129,169 @@ describe 'PriceImport', ->
       modifiedProducts = @import._wrapPricesIntoProducts prices, products
       expect(_.size modifiedProducts).toBe 1
       expect(_.size modifiedProducts[0].masterVariant.prices).toBe 2
+
+  describe '_filterPriceActions', ->
+
+    it 'should filter out price deletion actions', (done) ->
+
+      filteredActions = @import._filterPriceActions(priceActions)
+
+      actual = filteredActions
+      expected = [ addPriceAction ]
+
+      expect(actual).toEqual(expected)
+      done()
+
+  describe '_createOrUpdate', ->
+
+    updateStub =
+      update: (actions) ->
+        new Promise (resolve) -> resolve()
+
+    beforeEach ->
+
+      @priceDe = mockPrice({ country: "DE" })
+      @priceUs = mockPrice({ country: "US" })
+      @sku = cuid()
+      @variantId = cuid()
+
+      spyOn(@import.client.products, 'byId').andReturn(updateStub)
+      spyOn(updateStub, 'update')
+
+    it 'should call remove actions', (done) ->
+
+      existingProduct =
+        version: 1
+        masterVariant:
+          sku: @sku
+          id: @variantId
+          prices: [ @priceDe, @priceUs ]
+
+      productsToProcess =
+        version: 1
+        masterVariant:
+          sku: @sku
+          id: @variantId
+          prices: [ @priceDe ]
+
+      @import._createOrUpdate([ productsToProcess ], [ existingProduct ])
+      .then =>
+
+        actual = updateStub.update.mostRecentCall.args[0]
+        expected =
+          version: productsToProcess.version
+          actions: [
+            priceActionDeprecated(
+              "removePrice"
+              @variantId,
+              _.omit(@priceUs, 'id')
+            )
+          ]
+
+        expect(actual).toEqual(expected)
+      .catch (err) -> done(err)
+      .finally -> done()
+
+    it "should not call remove actions
+    if preventRemoveActions flag is set to true", (done) ->
+
+      @import.preventRemoveActions = true
+
+      existingProduct =
+        version: 1
+        masterVariant:
+          sku: @sku
+          id: @variantId
+          prices: [ @priceDe, @priceUs ]
+
+      productsToProcess =
+        version: 1
+        masterVariant:
+          sku: @sku
+          id: @variantId
+          prices: [ @priceDe ]
+
+      @import._createOrUpdate([ productsToProcess ], [ existingProduct ])
+      .then ->
+
+        actual = updateStub.update.mostRecentCall.args[0]
+        expected =
+          actions: []
+          version: productsToProcess.version
+
+        expect(actual).toEqual(expected)
+      .catch (err) -> done(err)
+      .finally =>
+        @import.preventRemoveActions = false
+        done()
+
+    it 'should generate add actions', (done) ->
+
+      productsToProcess =
+        version: 1
+        masterVariant:
+          sku: @sku
+          id: @variantId
+          prices: [ @priceDe, @priceUs ]
+
+      existingProduct =
+        version: 1
+        masterVariant:
+          sku: @sku
+          id: @variantId
+          prices: [ @priceDe ]
+
+      @import._createOrUpdate([ productsToProcess ], [ existingProduct ])
+      .then =>
+
+        actual = updateStub.update.mostRecentCall.args[0]
+        expected =
+          version: productsToProcess.version
+          actions: [
+            priceActionDeprecated(
+              "addPrice",
+              @variantId,
+              _.omit(@priceUs, 'id')
+            )
+          ]
+
+        expect(actual).toEqual(expected)
+      .catch (err) -> done(err)
+      .finally -> done()
+
+    it 'should generate change actions', (done) ->
+
+      productsToProcess =
+        version: 1
+        masterVariant:
+          sku: @sku
+          id: @variantId
+          prices: [ @priceDe ]
+
+      changedPrice = _.deepClone(@priceDe)
+      changedPrice.value.centAmount = 0
+
+      existingProduct =
+        version: 1
+        masterVariant:
+          sku: @sku
+          id: @variantId
+          prices: [ changedPrice ]
+
+      @import._createOrUpdate([ productsToProcess ], [ existingProduct ])
+      .then =>
+
+        actual = updateStub.update.mostRecentCall.args[0]
+        expected =
+          version: productsToProcess.version
+          actions: [
+            priceActionDeprecated(
+              "changePrice",
+              @variantId,
+              _.omit(changedPrice, 'id')
+            )
+          ]
+
+        expect(actual).toEqual(expected)
+      .catch (err) -> done(err)
+      .finally -> done()
