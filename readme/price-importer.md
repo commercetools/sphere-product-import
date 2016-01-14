@@ -9,6 +9,7 @@ Price Importer is used to import the prices for `existing` products of a project
     * user-agent
   * errorDir -> error directory path (absolute), default: `../errors`
   * errorLimit -> maximum number of errors to log, default: 30. If set to 0, logs all errors
+  * preventRemoveActions -> When `true` it filters out all remove actions. Defaults to `false`
 
 #### Default configuration
  * The product sync instance is configured to blacklist all actions and whitelist `price` actions.
