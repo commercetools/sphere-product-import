@@ -25,6 +25,7 @@ class ProductImport
     @enumValidator = new EnumValidator @logger
     @unknownAttributesFilter = new UnknownAttributesFilter @logger
     @commonUtils = new CommonUtils @logger
+    @filterActions = options.filterActions or -> true
     if options.defaultAttributes
       @defaultAttributesService = new EnsureDefaultAttributes @logger, options.defaultAttributes
     @_configErrorHandling(options)
@@ -201,6 +202,7 @@ class ProductImport
           .then (sameForAllAttributes) =>
             @_prepareUpdateProduct(prodToProcess, existingProduct).then (preparedProduct) =>
               synced = @sync.buildActions(preparedProduct, existingProduct, sameForAllAttributes)
+                .filterActions(@filterActions)
               if synced.shouldUpdate()
                 @client.products.byId(synced.getUpdateId()).update(synced.getUpdatePayload())
               else
