@@ -6,27 +6,29 @@ Accepts a list of products in a valid [JSON Schema](https://github.com/sphereio/
   * All the enums should be existing with the correct keys
  * All the `categories` with the correct external ids used by the data to be imported
  * All `tax categories` be existing with the correct names to be used by the date to be imported
-  
+
 ### Configuration
  The constructor requires the following:
   * logger instance
-  * sphere client (sphere-node-sdk) configuration
-    * project credentials
-    * user-agent
-  * errorDir -> error directory path (absolute), default: `../errors`
-  * errorLimit -> maximum number of errors to log, default: 30. If set to 0, logs all errors
-  * blackList -> array of action groups of Product Sync which are to be black listed. This is to ignore all the update actions generated for the specified action groups. Possible Values:
-    * images
-    * references
-    * prices
-    * attributes
-    * variants
-    * categories
-  * ensureEnums -> When set to `true`, any new enum keys will be added to existing enums. Default: `false`
-  * filterUnknownAttributes -> when set to `true` will ignore any attributes not defined in the product type of the product being imported. Default: `false`
-  * ignoreSlugUpdates -> when set to `true` will ignore all slug updates for existing product updates. Default: `false` 
-  * batchSize -> number of products to be processed in each batch. Default: 30
-  * defaultAttributes -> a list of attributes to be added to all variants if not existing
+  * configuration object
+    * sphere client (sphere-node-sdk) configuration
+      * project credentials
+      * user-agent
+    * errorDir: error directory path (absolute), default: `../errors`
+    * errorLimit: maximum number of errors to log, default: 30. If set to 0, logs all errors
+    * blackList: array of action groups of Product Sync which are to be black listed. This is to ignore all the update actions generated for the specified action groups. Possible Values:
+      * images
+      * references
+      * prices
+      * attributes
+      * variants
+      * categories
+    * ensureEnums: When set to `true`, any new enum keys will be added to existing enums. Default: `false`
+    * filterUnknownAttributes: when set to `true` will ignore any attributes not defined in the product type of the product being imported. Default: `false`
+    * ignoreSlugUpdates: when set to `true` will ignore all slug updates for existing product updates. Default: `false`
+    * batchSize: number of products to be processed in each batch. Default: 30
+    * defaultAttributes: a list of attributes to be added to all variants if not existing
+    * filterActions: a function that gets called on the actions, that the product sync returns. See [here](https://github.com/sphereio/sphere-node-sdk/blob/master/src/coffee/sync/base-sync.coffee#L96) for an example filter.
 
 #### Sample configuration object for cli:
 
@@ -44,7 +46,7 @@ Accepts a list of products in a valid [JSON Schema](https://github.com/sphereio/
         {"name": "attributeName", "value": "defaultValue"}
       ]
     }
-  
+
 ### Sample Inputs
 
 #### Product Type Reference
@@ -52,24 +54,24 @@ Accepts a list of products in a valid [JSON Schema](https://github.com/sphereio/
       "productType": {
         "id": "product_type_name"
       }
-  
+
   the `id` is resolved by productType.name
-  
+
 #### Tax Category reference
 
       "taxCategory": {
         "id": "tax_category_name"
       }
-      
+
   the `id` is resolved by taxCategory.name
-  
+
 #### Product Category reference
 
       "categories" : [
         "id" : "category_external_id_1",
         "id" : "category_external_id_2"
       ]
-      
+
 #### Custom Reference Attribute
 
       {
@@ -90,27 +92,27 @@ Accepts a list of products in a valid [JSON Schema](https://github.com/sphereio/
 
 #### Enum Values
 The enum attributes of a product variant are fetched using the product type definition by the attribute name. If the enum attribute value does not exist as a key of the referenced enum attribute, the product type is updated with the new enum key.
-* In case of enum: 
+* In case of enum:
   * key -> slugified attribute value
   * label -> attribute value
 * In case of lenum:
   * key -> slugified attribute value
-  * label -> 
+  * label ->
     * en -> attribute value
     * de -> attribute value
     * fr -> attribute value
     * it -> attribute value
     * es -> attribute value
-    
-It handles Enums, Lenums (localized enums), Set of Enums, Set of Lenums. 
+
+It handles Enums, Lenums (localized enums), Set of Enums, Set of Lenums.
 
 Acceptable Enum / Lenum / Set < Enum / Lenum > Attribute Samples:
-    
+
       {
         "name": "enum attribute name",
         "value": "enum key"
       }
-      
+
 Multiple attribute values for a Set < Enum / Lenum > may be specified as individual attributes or also as an array of values:
 
       {
@@ -121,7 +123,7 @@ Multiple attribute values for a Set < Enum / Lenum > may be specified as individ
         "name": "enum1 attribute name",
         "value": "enum1 key 2"
       },
-      
+
       {
         "name": "enum2 attribute name",
         "value": [
@@ -158,14 +160,14 @@ Please refer to the official [SPHERE.IO API docs](http://dev.sphere.io/http-api-
       * fetches and resolves any or all `custom references` in the product variant attributes according to the reference resolution given in the json block
       * if the update product does not have a `slug` specified, it is assigned the slug of existing product
     * The prepared product is then passed to the sync module to build update actions
-    
+
     * Prepares the product for creation if it is a new product
       * resolves the `product type` by `name` to its internal id
       * resolves all the `product categories` by `external id` to their internal ids
       * resolves `tax category` for the product by `name` to their internal ids
       * fetches and resolves any or all `custom references` in the product variant attributes according to the reference resolution given in the json block
       * if the slug is missing, it is generated using the product name and timestamp
-    * The prepared product is then passed to the `products.create` endpoint. 
+    * The prepared product is then passed to the `products.create` endpoint.
 
 
 ### Error Handling
@@ -176,4 +178,3 @@ The detailed errors from the `sphere-node-sdk` are written to a separate file in
 ### Caveats
 The known work-arounds. These will be resolved with the release of dependant module updates.
  * Reference resolution: if the resolution by id / name / external-id returns more than one result, then the first one from the list is used
- 
