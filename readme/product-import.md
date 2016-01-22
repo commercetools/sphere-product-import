@@ -28,7 +28,10 @@ Accepts a list of products in a valid [JSON Schema](https://github.com/sphereio/
     * ignoreSlugUpdates: when set to `true` will ignore all slug updates for existing product updates. Default: `false`
     * batchSize: number of products to be processed in each batch. Default: 30
     * defaultAttributes: a list of attributes to be added to all variants if not existing
-    * filterActions: a function that gets called on the actions, that the product sync returns. See [here](https://github.com/sphereio/sphere-node-sdk/blob/master/src/coffee/sync/base-sync.coffee#L96) for an example filter.
+    * filterActions: a function that gets called for each action, that the product sync returns. See [here](https://github.com/sphereio/sphere-node-sdk/blob/master/src/coffee/sync/base-sync.coffee#L96) for an example filter. It get's passed the following arguments:
+      * the action that should be performed
+      * the product that should be updated
+      * the product that is being imported
 
 #### Sample configuration object for cli:
 

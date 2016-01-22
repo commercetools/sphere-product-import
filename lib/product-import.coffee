@@ -202,7 +202,9 @@ class ProductImport
           .then (sameForAllAttributes) =>
             @_prepareUpdateProduct(prodToProcess, existingProduct).then (preparedProduct) =>
               synced = @sync.buildActions(preparedProduct, existingProduct, sameForAllAttributes)
-                .filterActions(@filterActions)
+                .filterActions((action) =>
+                  @filterActions(action, existingProduct, preparedProduct)
+                )
               if synced.shouldUpdate()
                 @client.products.byId(synced.getUpdateId()).update(synced.getUpdatePayload())
               else
