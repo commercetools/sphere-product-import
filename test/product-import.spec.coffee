@@ -524,26 +524,6 @@ describe 'ProductImport unit tests', ->
         done()
       .catch done
 
-    it 'should throw error in case of too big query', (done) ->
-      querySize = @import._getWhereQueryLimit()
-      exptectedErrorMessage = "
-        product fetch query size: #{querySize} bytes,
-        exceeded the supported size!
-        The query must be smaller than #{querySize} bytes.
-      "
-      str = ''
-      for i in [1..querySize]
-        str += 'a'
-      products = _.deepClone(sampleProducts)
-      spyOn(@import, "_ensureProductTypesInMemory").andCallFake -> Promise.resolve()
-      spyOn(@import, "_createProductFetchBySkuQueryPredicate").andCallFake -> return str
-      @import.ensureEnums = false
-      @import._processBatches(products)
-      .then done
-      .catch (err) ->
-        expect(err).toBe exptectedErrorMessage
-        done()
-
   describe '::_getExistingProductsForSkus', ->
 
     it 'should split into multiple querys', (done) ->

@@ -143,12 +143,6 @@ class ProductImport
       Promise.map(skuChunks, (skus) =>
         new Promise (resolve, reject) =>
           predicate = @_createProductFetchBySkuQueryPredicate(skus)
-          queryLimit = @_getWhereQueryLimit()
-          if Buffer.byteLength(encodeURIComponent(predicate),'utf-8') >= queryLimit
-            errMessage = "product fetch query size: #{Buffer.byteLength(encodeURIComponent(predicate),'utf-8')} bytes, exceeded the supported " +
-            "size! The query must be smaller than #{queryLimit} bytes."
-            @logger.error(errMessage)
-            reject (errMessage)
           client = @client.productProjections
           .where(predicate)
           .staged(true)
