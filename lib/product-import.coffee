@@ -187,10 +187,12 @@ class ProductImport
     # the skusChunk is now small enough to fit in a query
     # now we split the skus array in chunks of the size of the skusChunk
     chunkSize = skusChunk.length
-    iterations = skus.length / chunkSize
+    iterations = Math.ceil(skus.length / chunkSize)
     chunks = []
     for i in [1..iterations]
       chunks.push(skus.slice(0, chunkSize))
+      # remove chunk from skus
+      skus = skus.slice(chunkSize)
     return chunks
 
 

@@ -590,6 +590,32 @@ describe 'ProductImport unit tests', ->
         done()
       .finally -> done()
 
+    it 'should query for all given SKUs', (done) ->
+      spyOn(@import.client.productProjections, 'fetch').andReturn({
+        then: (fn) -> fn({ body: { results: ['result1', 'result2'] } })
+      })
+      spyOn(@import, '_createProductFetchBySkuQueryPredicate')
+      # 3 bytes string
+      sku = 'SKU'
+      skus = []
+      for i in [1..10000]
+        skus.push("#{sku}#{i}")
+      # the number of requests should be the same as the number of chunks
+      @import._getExistingProductsForSkus(skus)
+      .then (products) =>
+
+        actualSkus = []
+        _.each(@import._createProductFetchBySkuQueryPredicate.calls, (call) ->
+          actualSkus = actualSkus.concat(call.args[0])
+        )
+
+        actual = actualSkus.length
+        expected = skus.length
+
+        expect(actual).toEqual(expected)
+        done()
+      .finally -> done()
+
   describe '::_separateSkusChunksIntoSmallerChunks', ->
 
     it 'should split a list of skus that is to big for a single query
