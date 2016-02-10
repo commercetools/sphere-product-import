@@ -150,7 +150,7 @@ class ProductImport
           .then ({ body: { results } }) ->
             resolve(results)
           .catch (err) -> reject(err)
-      , { concurrency: 5 })
+      , { concurrency: 30 })
       .then (results) ->
         debug 'Fetched products: %j', results
         resolve(_.flatten(results))
