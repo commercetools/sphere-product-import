@@ -112,26 +112,70 @@ class ProductImport
           @_ensureDefaultAttributesInProducts(productsToProcess)
       .then =>
         skus = @_extractUniqueSkus(productsToProcess)
-        predicate = @_createProductFetchBySkuQueryPredicate(skus)
-        if Buffer.byteLength(predicate,'utf-8') > 7800
-          errMessage = "product fetch query size: #{Buffer.byteLength(predicate,'utf-8')} bytes, exceeded the supported " +
-            "size, please try with a smaller batch size."
-          @logger.error(errMessage)
-          throw (errMessage)
-        @client.productProjections
-        .where(predicate)
-        .staged(true)
-        .all()
-        .fetch()
-      .then (results) =>
-        debug 'Fetched products: %j', results
-        queriedEntries = results.body.results
+        @_getExistingProductsForSkus(skus)
+      .then (queriedEntries) =>
         @_createOrUpdate productsToProcess, queriedEntries
       .then (results) =>
         _.each results, (r) =>
           @_handleProcessResponse(r)
         Promise.resolve(@_summary)
     , {concurrency: 1} # run 1 batch at a time
+
+  _getExistingProductsForSkus: (skus) =>
+    new Promise (resolve, reject) =>
+      skuChunks = @_separateSkusChunksIntoSmallerChunks(skus, skus)
+      Promise.map(skuChunks, (skus) =>
+        new Promise (resolve, reject) =>
+          predicate = @_createProductFetchBySkuQueryPredicate(skus)
+          if Buffer.byteLength(encodeURIComponent(predicate),'utf-8') > 8072
+            errMessage = "product fetch query size: #{Buffer.byteLength(encodeURIComponent(predicate),'utf-8')} bytes, exceeded the supported " +
+            "size, please try with a smaller batch size."
+            @logger.error(errMessage)
+            reject (errMessage)
+          @client.productProjections
+          .where(predicate)
+          .staged(true)
+          .fetch()
+          .then ({ body: { results } }) ->
+            resolve(results)
+          .catch (err) -> reject(err)
+      , { concurrency: 5 })
+      .then (results) ->
+        debug 'Fetched products: %j', results
+        resolve(_.flatten(results))
+      .catch (err) -> reject(err)
+
+  ###*
+   * takes an array of sku chunks and returns an array of sku chunks
+   * where each chunk fits inside the query
+  ###
+  _separateSkusChunksIntoSmallerChunks: (skusChunk, skus) ->
+    # use two sku lists since we have to query for masterVariant and variant
+    # with the same list of skus
+    skuString = encodeURIComponent(
+      "\"#{skusChunk.join('","')}\"\"#{skusChunk.join('","')}\""
+    )
+    whereQuery = "
+      masterVariant(sku in ()) or variants(sku in ())
+    "
+    fixBytes = Buffer.byteLength(encodeURIComponent(whereQuery),'utf-8')
+    availableSkuBytes = 8072 - fixBytes
+
+    if Buffer.byteLength(skuString,'utf-8') > availableSkuBytes
+      # split skus and retry
+      return @_separateSkusChunksIntoSmallerChunks(
+        skusChunk.slice(0, Math.round(skusChunk.length / 2)),
+        skus
+      )
+    # the skusChunk is now small enough to fit in a query
+    # now we split the skus array in chunks of the size of the skusChunk
+    chunkSize = skusChunk.length
+    iterations = skus.length / chunkSize
+    chunks = []
+    for i in [1..iterations]
+      chunks.push(skus.slice(0, chunkSize))
+    return chunks
+
 
   _handleProcessResponse: (r) =>
     if r.isFulfilled()
@@ -163,7 +207,7 @@ class ProductImport
       when 200 then @_summary.updated++
 
   _createProductFetchBySkuQueryPredicate: (skus) ->
-    skuString = "sku in (\"#{skus.join('", "')}\")"
+    skuString = "sku in (\"#{skus.join('","')}\")"
     return "masterVariant(#{skuString}) or variants(#{skuString})"
 
   _extractUniqueSkus: (products) ->
