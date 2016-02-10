@@ -525,9 +525,14 @@ describe 'ProductImport unit tests', ->
       .catch done
 
     it 'should throw error in case of too big query', (done) ->
-      exptectedErrorMessage = 'product fetch query size: 8073 bytes, exceeded the supported size, please try with a smaller batch size.'
+      querySize = @import._getWhereQueryLimit()
+      exptectedErrorMessage = "
+        product fetch query size: #{querySize} bytes,
+        exceeded the supported size!
+        The query must be smaller than #{querySize} bytes.
+      "
       str = ''
-      for i in [1..8073]
+      for i in [1..querySize]
         str += 'a'
       products = _.deepClone(sampleProducts)
       spyOn(@import, "_ensureProductTypesInMemory").andCallFake -> Promise.resolve()

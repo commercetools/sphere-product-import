@@ -26,6 +26,9 @@ class ProductImport
     @unknownAttributesFilter = new UnknownAttributesFilter @logger
     @commonUtils = new CommonUtils @logger
     @filterActions = options.filterActions or -> true
+    # default web server url limit in bytes
+    # count starts after protocol (eg. https:// does not count)
+    @urlLimit = 8192
     if options.defaultAttributes
       @defaultAttributesService = new EnsureDefaultAttributes @logger, options.defaultAttributes
     @_configErrorHandling(options)
@@ -121,18 +124,32 @@ class ProductImport
         Promise.resolve(@_summary)
     , {concurrency: 1} # run 1 batch at a time
 
+  _getWhereQueryLimit: () ->
+    client = @client.productProjections
+    .where('a')
+    .staged(true)
+    @client.productProjections._setDefaults()
+
+    url = _.clone(@client.productProjections._rest._options.uri)
+    url.replace(/.*?:\/\//g, "")
+    url += @client.productProjections._currentEndpoint
+    url += "?" + @client.productProjections._queryString()
+    # subtract 1 since we added 'a' as the where query
+    return @urlLimit - Buffer.byteLength((url),'utf-8') - 1
+
   _getExistingProductsForSkus: (skus) =>
     new Promise (resolve, reject) =>
       skuChunks = @_separateSkusChunksIntoSmallerChunks(skus, skus)
       Promise.map(skuChunks, (skus) =>
         new Promise (resolve, reject) =>
           predicate = @_createProductFetchBySkuQueryPredicate(skus)
-          if Buffer.byteLength(encodeURIComponent(predicate),'utf-8') > 8072
+          queryLimit = @_getWhereQueryLimit()
+          if Buffer.byteLength(encodeURIComponent(predicate),'utf-8') >= queryLimit
             errMessage = "product fetch query size: #{Buffer.byteLength(encodeURIComponent(predicate),'utf-8')} bytes, exceeded the supported " +
-            "size, please try with a smaller batch size."
+            "size! The query must be smaller than #{queryLimit} bytes."
             @logger.error(errMessage)
             reject (errMessage)
-          @client.productProjections
+          client = @client.productProjections
           .where(predicate)
           .staged(true)
           .fetch()
@@ -159,9 +176,9 @@ class ProductImport
       masterVariant(sku in ()) or variants(sku in ())
     "
     fixBytes = Buffer.byteLength(encodeURIComponent(whereQuery),'utf-8')
-    availableSkuBytes = 8072 - fixBytes
+    availableSkuBytes = @_getWhereQueryLimit() - fixBytes
 
-    if Buffer.byteLength(skuString,'utf-8') > availableSkuBytes
+    if Buffer.byteLength(skuString,'utf-8') >= availableSkuBytes
       # split skus and retry
       return @_separateSkusChunksIntoSmallerChunks(
         skusChunk.slice(0, Math.round(skusChunk.length / 2)),
