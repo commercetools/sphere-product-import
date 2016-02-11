@@ -295,3 +295,27 @@ describe 'PriceImport', ->
         expect(actual).toEqual(expected)
       .catch (err) -> done(err)
       .finally -> done()
+
+  describe 'publish updates', ->
+
+    it 'should return correct canBePublished', ->
+      productTrue =
+        hasStagedChanges: false
+        published: true
+
+      productFalse =
+        hasStagedChanges: true
+        published: true
+
+      productFalse2 =
+        hasStagedChanges: false
+        published: false
+
+      productFalse3 =
+        hasStagedChanges: true
+        published: false
+
+      expect(@import._canBePublished(productTrue)).toBeTruthy()
+      expect(@import._canBePublished(productFalse)).toBeFalsy()
+      expect(@import._canBePublished(productFalse2)).toBeFalsy()
+      expect(@import._canBePublished(productFalse3)).toBeFalsy()
