@@ -407,7 +407,7 @@ describe 'PriceImport', ->
       .catch (err) -> done(err)
       .finally -> done()
 
-    it 'should add publish action to update actions when product not published
+    it 'should not add publish action to update actions when product not published
        and has staged changes', (done) ->
       existingProduct =
         version: 1
