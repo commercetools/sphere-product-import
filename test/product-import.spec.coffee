@@ -221,7 +221,7 @@ describe 'ProductImport unit tests', ->
     it 'should return predicate with 5 unique skus', ->
       skus = @import._extractUniqueSkus(sampleProducts)
       predicate = @import._createProductFetchBySkuQueryPredicate(skus)
-      expect(predicate).toEqual 'masterVariant(sku in ("a", "b", "c", "d", "e")) or variants(sku in ("a", "b", "c", "d", "e"))'
+      expect(predicate).toEqual 'masterVariant(sku in ("a","b","c","d","e")) or variants(sku in ("a","b","c","d","e"))'
 
   describe '::_isExistingEntry', ->
 
@@ -524,18 +524,86 @@ describe 'ProductImport unit tests', ->
         done()
       .catch done
 
-    it 'should throw error in case of too big query', (done) ->
-      exptectedErrorMessage = 'product fetch query size: 10952 bytes, exceeded the supported size, please try with a smaller batch size.'
-      longQueryPredicate = require('../samples/sample-long-query.json')
-      products = _.deepClone(sampleProducts)
-      spyOn(@import, "_ensureProductTypesInMemory").andCallFake -> Promise.resolve()
-      spyOn(@import, "_createProductFetchBySkuQueryPredicate").andCallFake -> return longQueryPredicate.predicate
-      @import.ensureEnums = false
-      @import._processBatches(products)
-      .then done
-      .catch (err) ->
-        expect(err).toBe exptectedErrorMessage
+  describe '::_getExistingProductsForSkus', ->
+
+    it 'should split into multiple querys', (done) ->
+      spyOn(@import.client.productProjections, 'fetch').andReturn({
+        then: (fn) -> fn({ body: { results: [] } })
+      })
+      # 3 bytes string
+      sku = 'SKU'
+      skus = []
+      for i in [1..10000]
+        skus.push(sku)
+      chunks = @import.commonUtils._separateSkusChunksIntoSmallerChunks(
+        skus,
+        skus,
+        @import._getWhereQueryLimit()
+      )
+      # the number of requests should be the same as the number of chunks
+      @import._getExistingProductsForSkus(skus)
+      .then (products) =>
+        actual = @import.client.productProjections.fetch.calls.length
+        expected = chunks.length
+
+        expect(actual).toEqual(expected)
         done()
+      .finally -> done()
+
+    it 'should accumulate the results of split queries', (done) ->
+      spyOn(@import.client.productProjections, 'fetch').andReturn({
+        then: (fn) -> fn({ body: { results: ['result1', 'result2'] } })
+      })
+      # 3 bytes string
+      sku = 'SKU'
+      skus = []
+      for i in [1..10000]
+        skus.push(sku)
+      chunks = @import.commonUtils._separateSkusChunksIntoSmallerChunks(
+        skus,
+        skus,
+        @import._getWhereQueryLimit()
+      )
+      expectedResult = _.flatten(_.map(chunks, () ->
+        return ['result1', 'result2']
+      ))
+      # the number of requests should be the same as the number of chunks
+      @import._getExistingProductsForSkus(skus)
+      .then (products) ->
+
+        actual = products
+        expected = expectedResult
+
+        expect(actual).toEqual(expected)
+        done()
+      .finally -> done()
+
+    it 'should query for all given SKUs', (done) ->
+      spyOn(@import.client.productProjections, 'fetch').andReturn({
+        then: (fn) -> fn({ body: { results: ['result1', 'result2'] } })
+      })
+      spyOn(@import, '_createProductFetchBySkuQueryPredicate')
+      # 3 bytes string
+      sku = 'SKU'
+      skus = []
+      for i in [1..10000]
+        skus.push("#{sku}#{i}")
+      # the number of requests should be the same as the number of chunks
+      @import._getExistingProductsForSkus(skus)
+      .then (products) =>
+
+        actualSkus = []
+        _.each(@import._createProductFetchBySkuQueryPredicate.calls, (call) ->
+          actualSkus = actualSkus.concat(call.args[0])
+        )
+
+        actual = actualSkus.length
+        expected = skus.length
+
+        expect(actual).toEqual(expected)
+        done()
+      .finally -> done()
+
 
   describe '::_ensureDefaults', ->
 
