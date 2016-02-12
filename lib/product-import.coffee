@@ -139,7 +139,11 @@ class ProductImport
 
   _getExistingProductsForSkus: (skus) =>
     new Promise (resolve, reject) =>
-      skuChunks = @_separateSkusChunksIntoSmallerChunks(skus, skus)
+      skuChunks = @commonUtils._separateSkusChunksIntoSmallerChunks(
+        skus,
+        skus,
+        @_getWhereQueryLimit()
+      )
       Promise.map(skuChunks, (skus) =>
         new Promise (resolve, reject) =>
           predicate = @_createProductFetchBySkuQueryPredicate(skus)
@@ -155,40 +159,6 @@ class ProductImport
         debug 'Fetched products: %j', results
         resolve(_.flatten(results))
       .catch (err) -> reject(err)
-
-  ###*
-   * takes an array of sku chunks and returns an array of sku chunks
-   * where each chunk fits inside the query
-  ###
-  _separateSkusChunksIntoSmallerChunks: (skusChunk, skus) ->
-    # use two sku lists since we have to query for masterVariant and variant
-    # with the same list of skus
-    skuString = encodeURIComponent(
-      "\"#{skusChunk.join('","')}\"\"#{skusChunk.join('","')}\""
-    )
-    whereQuery = "
-      masterVariant(sku in ()) or variants(sku in ())
-    "
-    fixBytes = Buffer.byteLength(encodeURIComponent(whereQuery),'utf-8')
-    availableSkuBytes = @_getWhereQueryLimit() - fixBytes
-
-    if Buffer.byteLength(skuString,'utf-8') >= availableSkuBytes
-      # split skus and retry
-      return @_separateSkusChunksIntoSmallerChunks(
-        skusChunk.slice(0, Math.round(skusChunk.length / 2)),
-        skus
-      )
-    # the skusChunk is now small enough to fit in a query
-    # now we split the skus array in chunks of the size of the skusChunk
-    chunkSize = skusChunk.length
-    iterations = Math.ceil(skus.length / chunkSize)
-    chunks = []
-    for i in [1..iterations]
-      chunks.push(skus.slice(0, chunkSize))
-      # remove chunk from skus
-      skus = skus.slice(chunkSize)
-    return chunks
-
 
   _handleProcessResponse: (r) =>
     if r.isFulfilled()

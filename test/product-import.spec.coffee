@@ -535,7 +535,11 @@ describe 'ProductImport unit tests', ->
       skus = []
       for i in [1..10000]
         skus.push(sku)
-      chunks = @import._separateSkusChunksIntoSmallerChunks(skus, skus)
+      chunks = @import.commonUtils._separateSkusChunksIntoSmallerChunks(
+        skus,
+        skus,
+        @import._getWhereQueryLimit()
+      )
       # the number of requests should be the same as the number of chunks
       @import._getExistingProductsForSkus(skus)
       .then (products) =>
@@ -555,7 +559,11 @@ describe 'ProductImport unit tests', ->
       skus = []
       for i in [1..10000]
         skus.push(sku)
-      chunks = @import._separateSkusChunksIntoSmallerChunks(skus, skus)
+      chunks = @import.commonUtils._separateSkusChunksIntoSmallerChunks(
+        skus,
+        skus,
+        @import._getWhereQueryLimit()
+      )
       expectedResult = _.flatten(_.map(chunks, () ->
         return ['result1', 'result2']
       ))
@@ -595,37 +603,6 @@ describe 'ProductImport unit tests', ->
         expect(actual).toEqual(expected)
         done()
       .finally -> done()
-
-  describe '::_separateSkusChunksIntoSmallerChunks', ->
-
-    it 'should split a list of skus that is to big for a single query
-    into chunks that are small enough for a query', ->
-      # prepare fixed bytes
-      whereQuery = "
-        masterVariant(sku in ()) or variants(sku in ())
-      "
-      fixBytes = Buffer.byteLength(encodeURIComponent(whereQuery), 'utf-8')
-      # 3 bytes string
-      sku = 'SKU'
-      skus = []
-      for i in [1..10000]
-        skus.push(sku)
-      # skus is now a 30000 bytes
-      chunks = @import._separateSkusChunksIntoSmallerChunks(skus, skus)
-      # the number of chunks should be at least the number of actual bytes
-      # divided by the number of maximum bytes per request
-      expect(chunks.length).toBeGreaterThan(30000 / 8072)
-      # check chunk byte sizes
-      _.each(chunks, (chunk) ->
-        skuStr = chunk.join(',')
-        queryStr = "
-          masterVariant(sku in (#{skuStr})) or variants(sku in (#{skuStr}))
-        "
-        actual = Buffer.byteLength(encodeURIComponent(queryStr), 'utf-8')
-        expected = 8073
-        # expect to be max 8072 bytes
-        expect(actual).toBeLessThan(expected)
-      )
 
 
   describe '::_ensureDefaults', ->
