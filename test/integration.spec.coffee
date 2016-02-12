@@ -215,6 +215,7 @@ describe 'Product import integration tests', ->
         expect(@import._summary.created).toBe 1
         done()
       .catch done
+  , 10000
 
   it ' should handle set type attributes correctly', (done) ->
     sampleImport = _.deepClone sampleImportJson

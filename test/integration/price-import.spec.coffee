@@ -191,6 +191,6 @@ describe 'Price Importer integration tests', ->
           { action: 'unpublish' }
         ]
       })
-      .then =>
+      .then ->
         done()
   , 30000
