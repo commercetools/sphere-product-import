@@ -137,8 +137,12 @@ class PriceImport extends ProductImport
     debug 'About to send %s requests', _.size(posts)
     Promise.settle(posts)
 
+  ###
+   * returns true if product does not have any staged changes
+   * and is published
+  ###
   _canBePublished: (product) ->
-    if !product.hasStagedChanges and published
+    if !product.hasStagedChanges and product.published
       return true
     else false
 
