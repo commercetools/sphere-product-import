@@ -26,6 +26,9 @@ class ProductImport
     @unknownAttributesFilter = new UnknownAttributesFilter @logger
     @commonUtils = new CommonUtils @logger
     @filterActions = options.filterActions or -> true
+    # default web server url limit in bytes
+    # count starts after protocol (eg. https:// does not count)
+    @urlLimit = 8192
     if options.defaultAttributes
       @defaultAttributesService = new EnsureDefaultAttributes @logger, options.defaultAttributes
     @_configErrorHandling(options)
@@ -112,26 +115,50 @@ class ProductImport
           @_ensureDefaultAttributesInProducts(productsToProcess)
       .then =>
         skus = @_extractUniqueSkus(productsToProcess)
-        predicate = @_createProductFetchBySkuQueryPredicate(skus)
-        if Buffer.byteLength(predicate,'utf-8') > 7800
-          errMessage = "product fetch query size: #{Buffer.byteLength(predicate,'utf-8')} bytes, exceeded the supported " +
-            "size, please try with a smaller batch size."
-          @logger.error(errMessage)
-          throw (errMessage)
-        @client.productProjections
-        .where(predicate)
-        .staged(true)
-        .all()
-        .fetch()
-      .then (results) =>
-        debug 'Fetched products: %j', results
-        queriedEntries = results.body.results
+        @_getExistingProductsForSkus(skus)
+      .then (queriedEntries) =>
         @_createOrUpdate productsToProcess, queriedEntries
       .then (results) =>
         _.each results, (r) =>
           @_handleProcessResponse(r)
         Promise.resolve(@_summary)
     , {concurrency: 1} # run 1 batch at a time
+
+  _getWhereQueryLimit: () ->
+    client = @client.productProjections
+    .where('a')
+    .staged(true)
+    @client.productProjections._setDefaults()
+
+    url = _.clone(@client.productProjections._rest._options.uri)
+    url.replace(/.*?:\/\//g, "")
+    url += @client.productProjections._currentEndpoint
+    url += "?" + @client.productProjections._queryString()
+    # subtract 1 since we added 'a' as the where query
+    return @urlLimit - Buffer.byteLength((url),'utf-8') - 1
+
+  _getExistingProductsForSkus: (skus) =>
+    new Promise (resolve, reject) =>
+      skuChunks = @commonUtils._separateSkusChunksIntoSmallerChunks(
+        skus,
+        skus,
+        @_getWhereQueryLimit()
+      )
+      Promise.map(skuChunks, (skus) =>
+        new Promise (resolve, reject) =>
+          predicate = @_createProductFetchBySkuQueryPredicate(skus)
+          client = @client.productProjections
+          .where(predicate)
+          .staged(true)
+          .fetch()
+          .then ({ body: { results } }) ->
+            resolve(results)
+          .catch (err) -> reject(err)
+      , { concurrency: 30 })
+      .then (results) ->
+        debug 'Fetched products: %j', results
+        resolve(_.flatten(results))
+      .catch (err) -> reject(err)
 
   _handleProcessResponse: (r) =>
     if r.isFulfilled()
@@ -163,7 +190,7 @@ class ProductImport
       when 200 then @_summary.updated++
 
   _createProductFetchBySkuQueryPredicate: (skus) ->
-    skuString = "sku in (\"#{skus.join('", "')}\")"
+    skuString = "sku in (\"#{skus.join('","')}\")"
     return "masterVariant(#{skuString}) or variants(#{skuString})"
 
   _extractUniqueSkus: (products) ->

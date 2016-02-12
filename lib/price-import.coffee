@@ -49,7 +49,7 @@ class PriceImport extends ProductImport
         @_preparePrices(pricesToProcess)
         .then (preparedPrices) =>
           wrappedProducts = @_wrapPricesIntoProducts preparedPrices, queriedEntries
-          if @logger then @logger.info "Wrapped #{_.size prices} price(s) into #{_.size wrappedProducts} existing product(s)."
+          if @logger then @logger.info "Wrapped #{_.size preparedPrices} price(s) into #{_.size wrappedProducts} existing product(s)."
           @_createOrUpdate wrappedProducts, queriedEntries
           .then (results) =>
             _.each results, (r) =>
