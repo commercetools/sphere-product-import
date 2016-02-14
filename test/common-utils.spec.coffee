@@ -95,3 +95,45 @@ describe 'Common Utils unit tests', ->
         # expect to be max 8072 bytes
         expect(actual).toBeLessThan(expected)
       )
+
+  describe '::_canBePublished', ->
+    it 'should return correct canBePublished', ->
+      published =
+        hasStagedChanges: false
+        published: true
+
+      publishedStaged =
+        hasStagedChanges: true
+        published: true
+
+      notpublishednotstaged =
+        hasStagedChanges: false
+        published: false
+
+      notpublishedstaged =
+        hasStagedChanges: true
+        published: false
+
+      publishingStrategy = 'always'
+      expect(@import._canBePublished(published, publishingStrategy)).toBeTruthy()
+      expect(@import._canBePublished(publishedStaged, publishingStrategy)).toBeTruthy()
+      expect(@import._canBePublished(notpublishednotstaged, publishingStrategy)).toBeTruthy()
+      expect(@import._canBePublished(notpublishedstaged, publishingStrategy)).toBeTruthy()
+
+      publishingStrategy = 'publishedOnly'
+      expect(@import._canBePublished(published, publishingStrategy)).toBeTruthy()
+      expect(@import._canBePublished(publishedStaged, publishingStrategy)).toBeTruthy()
+      expect(@import._canBePublished(notpublishednotstaged, publishingStrategy)).toBeFalsy()
+      expect(@import._canBePublished(notpublishedstaged, publishingStrategy)).toBeFalsy()
+
+      publishingStrategy = 'published'
+      expect(@import._canBePublished(published, publishingStrategy)).toBeTruthy()
+      expect(@import._canBePublished(publishedStaged, publishingStrategy)).toBeFalsy()
+      expect(@import._canBePublished(notpublishednotstaged, publishingStrategy)).toBeFalsy()
+      expect(@import._canBePublished(notpublishedstaged, publishingStrategy)).toBeFalsy()
+
+      publishingStrategy = 'stagedAndPublished'
+      expect(@import._canBePublished(published, publishingStrategy)).toBeTruthy()
+      expect(@import._canBePublished(publishedStaged, publishingStrategy)).toBeTruthy()
+      expect(@import._canBePublished(notpublishednotstaged, publishingStrategy)).toBeFalsy()
+      expect(@import._canBePublished(notpublishedstaged, publishingStrategy)).toBeFalsy()
