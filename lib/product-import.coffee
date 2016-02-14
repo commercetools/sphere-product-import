@@ -32,7 +32,7 @@ class ProductImport
     if options.defaultAttributes
       @defaultAttributesService = new EnsureDefaultAttributes @logger, options.defaultAttributes
     # possible values:
-    # always, publishedOnly, stagedAndPublishedOnly, published
+    # always, publishedOnly, stagedAndPublishedOnly
     @publishingStrategy = options.publishingStrategy or false
     @_configErrorHandling(options)
     @_resetCache()

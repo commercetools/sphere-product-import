@@ -312,28 +312,6 @@ describe 'PriceImport', ->
       spyOn(@import.client.products, 'byId').andReturn(updateStub)
       spyOn(updateStub, 'update')
 
-    it 'should return correct canBePublished', ->
-      productTrue =
-        hasStagedChanges: false
-        published: true
-
-      productFalse =
-        hasStagedChanges: true
-        published: true
-
-      productFalse2 =
-        hasStagedChanges: false
-        published: false
-
-      productFalse3 =
-        hasStagedChanges: true
-        published: false
-
-      expect(@import._canBePublished(productTrue)).toBeTruthy()
-      expect(@import._canBePublished(productFalse)).toBeFalsy()
-      expect(@import._canBePublished(productFalse2)).toBeFalsy()
-      expect(@import._canBePublished(productFalse3)).toBeFalsy()
-
     it 'should add publish action to update actions', (done) ->
       existingProduct =
         version: 1
@@ -353,7 +331,7 @@ describe 'PriceImport', ->
         hasStagedChanges: false
         published: true
 
-      @import.publishUpdates = true
+      @import.publishingStrategy = 'stagedAndPublishedOnly'
       @import._createOrUpdate([productToProcess], [existingProduct])
       .then =>
         actual = updateStub.update.mostRecentCall.args[0]
@@ -390,7 +368,7 @@ describe 'PriceImport', ->
         hasStagedChanges: false
         published: true
 
-      @import.publishUpdates = false
+      @import.publishingStrategy = false
       @import._createOrUpdate([productToProcess], [existingProduct])
       .then =>
         actual = updateStub.update.mostRecentCall.args[0]
@@ -427,7 +405,7 @@ describe 'PriceImport', ->
         hasStagedChanges: false
         published: true
 
-      @import.publishUpdates = true
+      @import.publishingStrategy = 'stagedAndPublishedOnly'
       @import._createOrUpdate([productToProcess], [existingProduct])
       .then =>
         actual = updateStub.update.mostRecentCall.args[0]

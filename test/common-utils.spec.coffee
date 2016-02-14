@@ -96,7 +96,7 @@ describe 'Common Utils unit tests', ->
         expect(actual).toBeLessThan(expected)
       )
 
-  describe '::_canBePublished', ->
+  describe '::canBePublished', ->
     it 'should return correct canBePublished', ->
       published =
         hasStagedChanges: false
@@ -115,25 +115,19 @@ describe 'Common Utils unit tests', ->
         published: false
 
       publishingStrategy = 'always'
-      expect(@import._canBePublished(published, publishingStrategy)).toBeTruthy()
-      expect(@import._canBePublished(publishedStaged, publishingStrategy)).toBeTruthy()
-      expect(@import._canBePublished(notpublishednotstaged, publishingStrategy)).toBeTruthy()
-      expect(@import._canBePublished(notpublishedstaged, publishingStrategy)).toBeTruthy()
+      expect(@import.canBePublished(published, publishingStrategy)).toBeTruthy()
+      expect(@import.canBePublished(publishedStaged, publishingStrategy)).toBeTruthy()
+      expect(@import.canBePublished(notpublishednotstaged, publishingStrategy)).toBeTruthy()
+      expect(@import.canBePublished(notpublishedstaged, publishingStrategy)).toBeTruthy()
 
       publishingStrategy = 'publishedOnly'
-      expect(@import._canBePublished(published, publishingStrategy)).toBeTruthy()
-      expect(@import._canBePublished(publishedStaged, publishingStrategy)).toBeTruthy()
-      expect(@import._canBePublished(notpublishednotstaged, publishingStrategy)).toBeFalsy()
-      expect(@import._canBePublished(notpublishedstaged, publishingStrategy)).toBeFalsy()
+      expect(@import.canBePublished(published, publishingStrategy)).toBeTruthy()
+      expect(@import.canBePublished(publishedStaged, publishingStrategy)).toBeTruthy()
+      expect(@import.canBePublished(notpublishednotstaged, publishingStrategy)).toBeFalsy()
+      expect(@import.canBePublished(notpublishedstaged, publishingStrategy)).toBeFalsy()
 
-      publishingStrategy = 'published'
-      expect(@import._canBePublished(published, publishingStrategy)).toBeTruthy()
-      expect(@import._canBePublished(publishedStaged, publishingStrategy)).toBeFalsy()
-      expect(@import._canBePublished(notpublishednotstaged, publishingStrategy)).toBeFalsy()
-      expect(@import._canBePublished(notpublishedstaged, publishingStrategy)).toBeFalsy()
-
-      publishingStrategy = 'stagedAndPublished'
-      expect(@import._canBePublished(published, publishingStrategy)).toBeTruthy()
-      expect(@import._canBePublished(publishedStaged, publishingStrategy)).toBeTruthy()
-      expect(@import._canBePublished(notpublishednotstaged, publishingStrategy)).toBeFalsy()
-      expect(@import._canBePublished(notpublishedstaged, publishingStrategy)).toBeFalsy()
+      publishingStrategy = 'stagedAndPublishedOnly'
+      expect(@import.canBePublished(published, publishingStrategy)).toBeTruthy()
+      expect(@import.canBePublished(publishedStaged, publishingStrategy)).toBeFalsy()
+      expect(@import.canBePublished(notpublishednotstaged, publishingStrategy)).toBeFalsy()
+      expect(@import.canBePublished(notpublishedstaged, publishingStrategy)).toBeFalsy()

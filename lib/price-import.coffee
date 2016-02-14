@@ -15,7 +15,6 @@ class PriceImport extends ProductImport
     @sync.config [{type: 'prices', group: 'white'}].concat(['base', 'references', 'attributes', 'images', 'variants', 'metaAttributes'].map (type) -> {type, group: 'black'})
     @repeater = new Repeater
     @preventRemoveActions = options.preventRemoveActions || false
-    @publishUpdates = options.publishUpdates || false
 
   _resetSummary: ->
     @_summary =
@@ -113,7 +112,7 @@ class PriceImport extends ProductImport
             payload = synced.getUpdatePayload()
             if @preventRemoveActions
               payload.actions = @_filterPriceActions(payload.actions)
-            if @publishUpdates and @_canBePublished(existingProduct)
+            if @publishingStrategy and @commonUtils.canBePublished(existingProduct, @publishingStrategy)
               payload.actions.push { action: 'publish' }
             updateTask(payload)
           , (e) =>
@@ -136,15 +135,6 @@ class PriceImport extends ProductImport
 
     debug 'About to send %s requests', _.size(posts)
     Promise.settle(posts)
-
-  ###
-   * returns true if product does not have any staged changes
-   * and is published
-  ###
-  _canBePublished: (product) ->
-    if !product.hasStagedChanges and product.published
-      return true
-    else false
 
   ###*
    * filters out remove actions
