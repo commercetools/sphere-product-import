@@ -52,4 +52,17 @@ class CommonUtils
       skus = skus.slice(chunkSize)
     return chunks
 
+  _canBePublished: (product, publishingStrategy) ->
+    if publishingStrategy is 'always'
+      return true
+    else if publishingStrategy is 'publishedOnly'
+      return product.published
+    else if publishingStrategy is 'published'
+      if product.published is true and product.hasStagedChanges is false then return true else return false
+    else if publishingStrategy is 'stagedAndPublished'
+      if product.published is true and product.hasStagedChanges is true then return true else return false
+    else
+      @logger.warn 'unknown publishing strategy ' + publishingStrategy
+      return false
+
 module.exports = CommonUtils

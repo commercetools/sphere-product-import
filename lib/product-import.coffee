@@ -31,6 +31,9 @@ class ProductImport
     @urlLimit = 8192
     if options.defaultAttributes
       @defaultAttributesService = new EnsureDefaultAttributes @logger, options.defaultAttributes
+    # possible values:
+    # always, publishedOnly, stagedAndPublishedOnly, published
+    @publishingStrategy = options.publishingStrategy or false
     @_configErrorHandling(options)
     @_resetCache()
     @_resetSummary()
