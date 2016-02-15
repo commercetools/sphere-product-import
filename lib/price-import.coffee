@@ -112,6 +112,8 @@ class PriceImport extends ProductImport
             payload = synced.getUpdatePayload()
             if @preventRemoveActions
               payload.actions = @_filterPriceActions(payload.actions)
+            if @publishingStrategy and @commonUtils.canBePublished(existingProduct, @publishingStrategy)
+              payload.actions.push { action: 'publish' }
             updateTask(payload)
           , (e) =>
             if e.statusCode is 409

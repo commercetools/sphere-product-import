@@ -43,6 +43,43 @@ sampleCustomerGroup =
 sampleChannel =
   key: 'test-channel'
 
+prices = [
+  {
+    sku: 'sku1'
+    prices: [
+      {
+        value:
+          centAmount: 9999
+          currencyCode: 'EUR'
+        customerGroup:
+          id: 'test-group'
+      },
+      {
+        value:
+          centAmount: 7999
+          currencyCode: 'EUR'
+        customerGroup:
+          id: 'test-group'
+        channel:
+          id: 'test-channel'
+      }
+    ]
+  }
+  {
+    sku: 'sku2'
+    prices: [
+      {
+        value:
+          centAmount: 666
+          currencyCode: 'JPY'
+        country: 'JP'
+        customerGroup:
+          id: 'test-group'
+      }
+    ]
+  }
+]
+
 ensureResource = (service, predicate, sampleData) ->
   debug 'Ensuring existence for: %s', predicate
   service.where(predicate).fetch()
@@ -55,86 +92,51 @@ ensureResource = (service, predicate, sampleData) ->
     else
       Promise.resolve(result.body.results[0])
 
+logger = new ExtendedLogger
+  additionalFields:
+    project_key: ClientConfig.config.project_key
+  logConfig:
+    name: "#{package_json.name}-#{package_json.version}"
+    streams: [
+      { level: 'error', stream: process.stderr },
+      { level: 'debug', stream: process.stdout }
+    ]
+
+Config =
+  clientConfig: ClientConfig
+  errorLimit: 0
+
 describe 'Price Importer integration tests', ->
 
   beforeEach (done) ->
-    @logger = new ExtendedLogger
-      additionalFields:
-        project_key: ClientConfig.config.project_key
-      logConfig:
-        name: "#{package_json.name}-#{package_json.version}"
-        streams: [
-          { level: 'info', stream: process.stdout },
-          { level: 'error', stream: process.stderr },
-          { level: 'debug', stream: process.stdout }
-        ]
 
-    Config =
-      clientConfig: ClientConfig
-      errorLimit: 0
-
-    @import = new PriceImport @logger, Config
+    @import = new PriceImport logger, Config
 
     @client = @import.client
 
-    @logger.info 'About to setup...'
-    cleanup @logger, @client
+    logger.info 'About to setup...'
+    cleanup logger, @client
     .then => ensureResource(@client.productTypes, 'name="productTypeForPriceImport"', sampleProductTypeForPrice)
     .then (@productType) => ensureResource(@client.customerGroups, 'name="test-group"', sampleCustomerGroup)
     .then (@customerGroup) => ensureResource(@client.channels, 'key="test-channel"', sampleChannel)
     .then (@channel) => ensureResource(@client.products, 'masterData(staged(name(en="foo")))', createProduct(@productType))
     .then (@product) =>
-      @logger.debug "product created with id: #{@product.id}"
+      logger.debug "product created with id: #{@product.id}"
       done()
     .catch (err) ->
       done(_.prettify err)
   , 30000 # 30sec
 
   afterEach (done) ->
-    @logger.info 'About to cleanup...'
-    cleanup(@logger, @client)
+    logger.info 'About to cleanup...'
+    cleanup(logger, @client)
     .then -> done()
     .catch (err) -> done(_.prettify err)
   , 30000 # 30sec
 
   it 'should update prices of a product', (done) ->
-    prices = [
-      {
-        sku: 'sku1'
-        prices: [
-          {
-            value:
-              centAmount: 9999
-              currencyCode: 'EUR'
-            customerGroup:
-              id: 'test-group'
-          },
-          {
-            value:
-              centAmount: 7999
-              currencyCode: 'EUR'
-            customerGroup:
-              id: 'test-group'
-            channel:
-              id: 'test-channel'
-          }
-        ]
-      }
-      {
-        sku: 'sku2'
-        prices: [
-          {
-            value:
-              centAmount: 666
-              currencyCode: 'JPY'
-            country: 'JP'
-            customerGroup:
-              id: 'test-group'
-          }
-        ]
-      }
-    ]
-    @import.performStream prices, (res) =>
+
+    @import.performStream _.deepClone(prices), (res) =>
       expect(res).toBeUndefined()
       @client.productProjections.staged(true).all().fetch()
       .then (res) =>
@@ -157,4 +159,38 @@ describe 'Price Importer integration tests', ->
         done()
       .catch (err) ->
         done(_.prettify err.body)
+  , 30000
+
+  it 'should update prices and publish the product', (done) ->
+
+    @import.publishingStrategy = 'notStagedAndPublishedOnly'
+
+    @client.products.byId(@product.id).update({
+      version: @product.version,
+      actions: [
+        { action: 'publish' }
+      ]
+    })
+    .then =>
+      logger.info 'product published'
+      @import.performStream _.deepClone(prices), (res) =>
+        expect(res).toBeUndefined()
+        @client.productProjections.staged(true).all().fetch()
+    .then (res) =>
+      @publishedProduct = res.body.results[0]
+      expect(@publishedProduct.hasStagedChanges).toBeFalsy()
+      expect(@publishedProduct.published).toBeTruthy()
+    .catch (err) ->
+      logger.error(err)
+      done(_.prettify err.body)
+    .finally =>
+      logger.info 'un publishing the product'
+      @client.products.byId(@publishedProduct.id).update({
+        version: @publishedProduct.version,
+        actions: [
+          { action: 'unpublish' }
+        ]
+      })
+      .then ->
+        done()
   , 30000

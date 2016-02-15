@@ -295,3 +295,129 @@ describe 'PriceImport', ->
         expect(actual).toEqual(expected)
       .catch (err) -> done(err)
       .finally -> done()
+
+  describe 'publish updates', ->
+
+    updateStub =
+      update: (actions) ->
+        new Promise (resolve) -> resolve()
+
+    beforeEach ->
+
+      @priceDe = mockPrice({ country: "DE" })
+      @priceUs = mockPrice({ country: "US" })
+      @sku = cuid()
+      @variantId = cuid()
+
+      spyOn(@import.client.products, 'byId').andReturn(updateStub)
+      spyOn(updateStub, 'update')
+
+    it 'should add publish action to update actions', (done) ->
+      existingProduct =
+        version: 1
+        masterVariant:
+          sku: @sku
+          id: @variantId
+          prices: [ @priceUs ]
+        hasStagedChanges: false
+        published: true
+
+      productToProcess =
+        version: 1
+        masterVariant:
+          sku: @sku
+          id: @variantId
+          prices: [ @priceUs, @priceDe ]
+        hasStagedChanges: false
+        published: true
+
+      @import.publishingStrategy = 'notStagedAndPublishedOnly'
+      @import._createOrUpdate([productToProcess], [existingProduct])
+      .then =>
+        actual = updateStub.update.mostRecentCall.args[0]
+        expected =
+          version: productToProcess.version
+          actions: [
+            priceActionDeprecated(
+              "addPrice",
+              @variantId,
+              _.omit(@priceDe, 'id')
+            ),
+            { action: 'publish' }
+          ]
+        expect(actual).toEqual(expected)
+      .catch (err) -> done(err)
+      .finally -> done()
+
+    it 'should not add publish action to update actions when disabled', (done) ->
+      existingProduct =
+        version: 1
+        masterVariant:
+          sku: @sku
+          id: @variantId
+          prices: [ @priceUs ]
+        hasStagedChanges: false
+        published: true
+
+      productToProcess =
+        version: 1
+        masterVariant:
+          sku: @sku
+          id: @variantId
+          prices: [ @priceUs, @priceDe ]
+        hasStagedChanges: false
+        published: true
+
+      @import.publishingStrategy = false
+      @import._createOrUpdate([productToProcess], [existingProduct])
+      .then =>
+        actual = updateStub.update.mostRecentCall.args[0]
+        expected =
+          version: productToProcess.version
+          actions: [
+            priceActionDeprecated(
+              "addPrice",
+              @variantId,
+              _.omit(@priceDe, 'id')
+            )
+          ]
+        expect(actual).toEqual(expected)
+      .catch (err) -> done(err)
+      .finally -> done()
+
+    it 'should not add publish action to update actions when product not published
+       and has staged changes', (done) ->
+      existingProduct =
+        version: 1
+        masterVariant:
+          sku: @sku
+          id: @variantId
+          prices: [ @priceUs ]
+        hasStagedChanges: true
+        published: false
+
+      productToProcess =
+        version: 1
+        masterVariant:
+          sku: @sku
+          id: @variantId
+          prices: [ @priceUs, @priceDe ]
+        hasStagedChanges: false
+        published: true
+
+      @import.publishingStrategy = 'notStagedAndPublishedOnly'
+      @import._createOrUpdate([productToProcess], [existingProduct])
+      .then =>
+        actual = updateStub.update.mostRecentCall.args[0]
+        expected =
+          version: productToProcess.version
+          actions: [
+            priceActionDeprecated(
+              "addPrice",
+              @variantId,
+              _.omit(@priceDe, 'id')
+            )
+          ]
+        expect(actual).toEqual(expected)
+      .catch (err) -> done(err)
+      .finally -> done()
