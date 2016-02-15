@@ -6,6 +6,7 @@ Promise = require 'bluebird'
 path = require 'path'
 {ExtendedLogger} = require 'sphere-node-utils'
 package_json = require '../package.json'
+randomString = require 'randomstring'
 
 frozenTimeStamp = new Date().getTime()
 
@@ -526,17 +527,14 @@ describe 'ProductImport unit tests', ->
 
   describe '::_getExistingProductsForSkus', ->
 
-    it 'should split into multiple querys', (done) ->
+    it 'should split into multiple queries', (done) ->
       spyOn(@import.client.productProjections, 'fetch').andReturn({
         then: (fn) -> fn({ body: { results: [] } })
       })
-      # 3 bytes string
-      sku = 'SKU'
       skus = []
       for i in [1..10000]
-        skus.push(sku)
+        skus.push(randomString.generate(Math.round(Math.random()*100)))
       chunks = @import.commonUtils._separateSkusChunksIntoSmallerChunks(
-        skus,
         skus,
         @import._getWhereQueryLimit()
       )
@@ -554,13 +552,10 @@ describe 'ProductImport unit tests', ->
       spyOn(@import.client.productProjections, 'fetch').andReturn({
         then: (fn) -> fn({ body: { results: ['result1', 'result2'] } })
       })
-      # 3 bytes string
-      sku = 'SKU'
       skus = []
       for i in [1..10000]
-        skus.push(sku)
+        skus.push(randomString.generate(Math.round(Math.random()*100)))
       chunks = @import.commonUtils._separateSkusChunksIntoSmallerChunks(
-        skus,
         skus,
         @import._getWhereQueryLimit()
       )
@@ -583,8 +578,7 @@ describe 'ProductImport unit tests', ->
         then: (fn) -> fn({ body: { results: ['result1', 'result2'] } })
       })
       spyOn(@import, '_createProductFetchBySkuQueryPredicate')
-      # 3 bytes string
-      sku = 'SKU'
+      sku = 'SK/U'
       skus = []
       for i in [1..10000]
         skus.push("#{sku}#{i}")
