@@ -163,7 +163,7 @@ describe 'Price Importer integration tests', ->
 
   it 'should update prices and publish the product', (done) ->
 
-    @import.publishingStrategy = 'stagedAndPublishedOnly'
+    @import.publishingStrategy = 'notStagedAndPublishedOnly'
 
     @client.products.byId(@product.id).update({
       version: @product.version,

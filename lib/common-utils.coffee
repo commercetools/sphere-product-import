@@ -52,13 +52,14 @@ class CommonUtils
       skus = skus.slice(chunkSize)
     return chunks
 
+  # This assumes that the product always has update actions.
   canBePublished: (product, publishingStrategy) ->
     if publishingStrategy is 'always'
       return true
-    else if publishingStrategy is 'publishedOnly'
-      return product.published
     else if publishingStrategy is 'stagedAndPublishedOnly'
-      if product.published is true and product.hasStagedChanges is false then return true else return false
+      if product.hasStagedChanges is true and product.published is true then return true else return false
+    else if publishingStrategy is 'notStagedAndPublishedOnly'
+      if product.hasStagedChanges is false and product.published is true then return true else return false
     else
       @logger.warn 'unknown publishing strategy ' + publishingStrategy
       return false

@@ -10,6 +10,14 @@ Price Importer is used to import the prices for `existing` products of a project
   * errorDir -> error directory path (absolute), default: `../errors`
   * errorLimit -> maximum number of errors to log, default: 30. If set to 0, logs all errors
   * preventRemoveActions -> When `true` it filters out all remove actions. Defaults to `false`
+  * publishingStrategy -> strategy for publishing the products with updates. Defaults to `false`
+    * `always`: will always publish the products with updates.
+    * `stagedAndPublishedOnly`: will publish the products only if the following conditions are met:
+      * hasStagedChanges = true: if the product as staged changes other than the current updates. 
+      * published = true: if the product was already published earlier.
+    * `notStagedAndPublishedOnly`: will publish the products only if the following conditions are met:
+      * hasStagedChanges = false: if the product has no other staged changes except the current ones.  
+      * published = true: if the product was already published earlier.
 
 #### Default configuration
  * The product sync instance is configured to blacklist all actions and whitelist `price` actions.

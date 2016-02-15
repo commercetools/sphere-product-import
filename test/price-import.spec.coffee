@@ -331,7 +331,7 @@ describe 'PriceImport', ->
         hasStagedChanges: false
         published: true
 
-      @import.publishingStrategy = 'stagedAndPublishedOnly'
+      @import.publishingStrategy = 'notStagedAndPublishedOnly'
       @import._createOrUpdate([productToProcess], [existingProduct])
       .then =>
         actual = updateStub.update.mostRecentCall.args[0]
@@ -405,7 +405,7 @@ describe 'PriceImport', ->
         hasStagedChanges: false
         published: true
 
-      @import.publishingStrategy = 'stagedAndPublishedOnly'
+      @import.publishingStrategy = 'notStagedAndPublishedOnly'
       @import._createOrUpdate([productToProcess], [existingProduct])
       .then =>
         actual = updateStub.update.mostRecentCall.args[0]
