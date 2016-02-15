@@ -530,13 +530,11 @@ describe 'ProductImport unit tests', ->
       spyOn(@import.client.productProjections, 'fetch').andReturn({
         then: (fn) -> fn({ body: { results: [] } })
       })
-      # 3 bytes string
-      sku = 'SKU'
+      sku = 'SK/U'
       skus = []
       for i in [1..10000]
         skus.push(sku)
       chunks = @import.commonUtils._separateSkusChunksIntoSmallerChunks(
-        skus,
         skus,
         @import._getWhereQueryLimit()
       )
@@ -554,13 +552,11 @@ describe 'ProductImport unit tests', ->
       spyOn(@import.client.productProjections, 'fetch').andReturn({
         then: (fn) -> fn({ body: { results: ['result1', 'result2'] } })
       })
-      # 3 bytes string
-      sku = 'SKU'
+      sku = 'SK/U'
       skus = []
       for i in [1..10000]
         skus.push(sku)
       chunks = @import.commonUtils._separateSkusChunksIntoSmallerChunks(
-        skus,
         skus,
         @import._getWhereQueryLimit()
       )
@@ -583,8 +579,7 @@ describe 'ProductImport unit tests', ->
         then: (fn) -> fn({ body: { results: ['result1', 'result2'] } })
       })
       spyOn(@import, '_createProductFetchBySkuQueryPredicate')
-      # 3 bytes string
-      sku = 'SKU'
+      sku = 'SK/U'
       skus = []
       for i in [1..10000]
         skus.push("#{sku}#{i}")

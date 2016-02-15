@@ -141,7 +141,6 @@ class ProductImport
     new Promise (resolve, reject) =>
       skuChunks = @commonUtils._separateSkusChunksIntoSmallerChunks(
         skus,
-        skus,
         @_getWhereQueryLimit()
       )
       Promise.map(skuChunks, (skus) =>
