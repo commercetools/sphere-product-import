@@ -525,28 +525,68 @@ describe 'ProductImport unit tests', ->
         done()
       .catch done
 
+
+  describe '::_getWhereQueryLimit', ->
+
+    it 'should calculate the where query limit depending on project name
+    and ctp rest url', ->
+
+      @import.client.productProjections._rest._options.uri =
+        'http://dev.commercetools.de/mein-test-project'
+      url = '
+        dev.commercetools.de/mein-test-project/product-projections?where=a&staged=true
+      '
+
+      actual = @import._getWhereQueryLimit()
+      expected = @import.urlLimit - Buffer.byteLength((url),'utf-8') - 1
+
+      expect(actual).toEqual(expected)
+
   describe '::_getExistingProductsForSkus', ->
 
-    it 'should split into multiple queries', (done) ->
-      spyOn(@import.client.productProjections, 'fetch').andReturn({
-        then: (fn) -> fn({ body: { results: [] } })
-      })
-      skus = []
-      for i in [1..10000]
-        skus.push(randomString.generate(Math.round(Math.random()*100)))
-      chunks = @import.commonUtils._separateSkusChunksIntoSmallerChunks(
-        skus,
-        @import._getWhereQueryLimit()
-      )
-      # the number of requests should be the same as the number of chunks
-      @import._getExistingProductsForSkus(skus)
-      .then (products) =>
-        actual = @import.client.productProjections.fetch.calls.length
-        expected = chunks.length
+    for i in [1..100]
+      it 'should split into multiple queries', (done) ->
+        spyOn(@import.client.productProjections, 'fetch').andCallFake( ->
+          @_setDefaults()
+          return {
+            then: (fn) -> fn({ body: { results: [] } })
+          }
+        )
+        skus = []
+        for i in [1..Math.round(Math.random()*1000)]
+          skus.push(randomString.generate(Math.round(Math.random()*100)))
 
-        expect(actual).toEqual(expected)
-        done()
-      .finally -> done()
+        chunks = @import.commonUtils._separateSkusChunksIntoSmallerChunks(
+          skus,
+          @import._getWhereQueryLimit()
+        )
+
+        spyOn(@import.client.productProjections, 'where').andCallThrough()
+        # the number of requests should be the same as the number of chunks
+        @import._getExistingProductsForSkus(skus)
+        .then (products) =>
+
+          _.each(
+            @import.client.productProjections.where.calls,
+            (where, index) =>
+              if index is 0 then return
+              expect(where.args.length).toEqual(1)
+              actual = where.args[0]
+              expected = @import._createProductFetchBySkuQueryPredicate(
+                chunks[index-1]
+              )
+              expect(actual).toEqual(expected)
+          )
+
+          actual = @import.client.productProjections.fetch.calls.length
+          expected = chunks.length
+
+          expect(actual).toEqual(expected)
+          done()
+        .catch (err) =>
+          @logger.error err
+          throw err
+          done()
 
     it 'should accumulate the results of split queries', (done) ->
       spyOn(@import.client.productProjections, 'fetch').andReturn({
@@ -559,7 +599,7 @@ describe 'ProductImport unit tests', ->
         skus,
         @import._getWhereQueryLimit()
       )
-      expectedResult = _.flatten(_.map(chunks, () ->
+      expectedResult = _.flatten(_.map(chunks, ->
         return ['result1', 'result2']
       ))
       # the number of requests should be the same as the number of chunks

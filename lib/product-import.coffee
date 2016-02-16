@@ -131,12 +131,13 @@ class ProductImport
     client = @client.productProjections
     .where('a')
     .staged(true)
-    @client.productProjections._setDefaults()
 
     url = _.clone(@client.productProjections._rest._options.uri)
-    url.replace(/.*?:\/\//g, "")
+    url = url.replace(/.*?:\/\//g, "")
     url += @client.productProjections._currentEndpoint
     url += "?" + @client.productProjections._queryString()
+
+    @client.productProjections._setDefaults()
     # subtract 1 since we added 'a' as the where query
     return @urlLimit - Buffer.byteLength((url),'utf-8') - 1
 
@@ -149,7 +150,7 @@ class ProductImport
       Promise.map(skuChunks, (skus) =>
         new Promise (resolve, reject) =>
           predicate = @_createProductFetchBySkuQueryPredicate(skus)
-          client = @client.productProjections
+          @client.productProjections
           .where(predicate)
           .staged(true)
           .fetch()
