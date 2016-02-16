@@ -153,6 +153,7 @@ class ProductImport
           @client.productProjections
           .where(predicate)
           .staged(true)
+          .all()
           .fetch()
           .then ({ body: { results } }) ->
             resolve(results)
