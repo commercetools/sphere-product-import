@@ -23,7 +23,7 @@ Product Discounts Importer is used to create or update discounts for existing pr
             "permyriad": 3000
           },
           "predicate": "attributes.product_id in (\"product_id_1\", \"product_id_2\", \"product_id_3\", \"product_id_4\")",
-          "sortOrder": "0.30"
+          "sortOrder": "0.3"
         },
         {
           "name": {
