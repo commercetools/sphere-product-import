@@ -83,3 +83,32 @@ describe 'Ensure default attributes unit tests', ->
       expect(updatedProduct).toEqual(expectedProduct)
       done()
     .catch done
+
+  it ' :: should not overwrite existing attributes', (done) ->
+    inputVariant = {}
+    extendedVariantAttributes = _.deepClone(variantAttributes)
+    inputVariant.attributes = extendedVariantAttributes
+    inputProduct = {}
+    inputProduct.masterVariant = inputVariant
+    inputProduct.variants = [inputVariant]
+
+    serverVariant = {}
+    expectedAttributeValue = 'attributeValue11'
+    serverAttribute =
+      name: 'defaultAttribute1'
+      value: expectedAttributeValue
+    serverAttributes = [serverAttribute]
+
+    serverVariant.attributes = serverAttributes
+    serverProduct = {}
+    serverProduct.masterVariant = serverVariant
+    serverProduct.variants = [serverVariant]
+
+    @import.ensureDefaultAttributesInProduct(inputProduct, serverProduct)
+    .then (updatedProduct) =>
+      expectedMasterAttribute = @import._isAttributeExisting(serverAttribute, updatedProduct.masterVariant.attributes)
+      expect(expectedMasterAttribute.value).toBe(expectedAttributeValue)
+
+      expectedVariantAttribute = @import._isAttributeExisting(serverAttribute, updatedProduct.variants[0].attributes)
+      expect(expectedVariantAttribute.value).toBe(expectedAttributeValue)
+    .finally done
