@@ -10,6 +10,7 @@ EnumValidator = require './enum-validator'
 UnknownAttributesFilter = require './unknown-attributes-filter'
 CommonUtils = require './common-utils'
 EnsureDefaultAttributes = require './ensure-default-attributes'
+util = require 'util'
 
 class ProductImport
 
@@ -113,19 +114,23 @@ class ProductImport
           uniqueEnumUpdateActions = @_filterUniqueUpdateActions(enumUpdateActions)
           @_updateProductType(uniqueEnumUpdateActions)
       .then =>
-        if @defaultAttributesService
-          debug 'Ensuring default attributes'
-          @_ensureDefaultAttributesInProducts(productsToProcess)
-      .then =>
         skus = @_extractUniqueSkus(productsToProcess)
         @_getExistingProductsForSkus(skus)
+      .then (queriedEntries) =>
+        if @defaultAttributesService
+          debug 'Ensuring default attributes'
+          @_ensureDefaultAttributesInProducts(productsToProcess, queriedEntries)
+          .then () =>
+            Promise.resolve (queriedEntries)
+        else
+          Promise.resolve(queriedEntries)
       .then (queriedEntries) =>
         @_createOrUpdate productsToProcess, queriedEntries
       .then (results) =>
         _.each results, (r) =>
           @_handleProcessResponse(r)
         Promise.resolve(@_summary)
-    , {concurrency: 1} # run 1 batch at a time
+    , { concurrency: 1 } # run 1 batch at a time
 
   _getWhereQueryLimit: () ->
     client = @client.productProjections
@@ -275,9 +280,18 @@ class ProductImport
       @_ensureProductTypeInMemory(product.productType.id)
     , {concurrency: 1}
 
-  _ensureDefaultAttributesInProducts: (products) =>
+  _ensureDefaultAttributesInProducts: (products, queriedEntries) =>
     Promise.map products, (product) =>
-      @defaultAttributesService.ensureDefaultAttributesInProduct(product)
+      if queriedEntries?.length > 0
+        @logger.debug('Find matching product from server')
+        uniqueSkus = @_extractUniqueSkus([product])
+        productFromServer = _.find(queriedEntries, (entry) =>
+          serverUniqueSkus = @_extractUniqueSkus([entry])
+          intersection = _.intersection(uniqueSkus, serverUniqueSkus)
+          return _.compact(intersection).length > 0
+        )
+        @logger.debug("Found matching product from server #{util.inspect(productFromServer, { depth: null })}")
+      @defaultAttributesService.ensureDefaultAttributesInProduct(product, productFromServer)
     , {concurrency: 1}
 
   _ensureProductTypeInMemory: (productTypeId) =>

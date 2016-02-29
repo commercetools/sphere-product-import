@@ -947,6 +947,13 @@ describe 'ProductImport unit tests', ->
 
       sampleInput.masterVariant.attributes.push sampleDefaultExistingAttr
 
+      sampleServerProduct1 = _.deepClone sampleInput
+      sampleServerProduct1.masterVariant.sku = '000'
+      sampleServerProduct1.variants = []
+
+      sampleServerProduct2 = _.deepClone sampleInput
+      sampleServerProduct2.variants = []
+
       expectedOutput = _.deepClone sampleNewProduct
       expectedOutput.masterVariant = _.deepClone sampleMasterVariant
       expectedOutput.variants = []
@@ -958,7 +965,7 @@ describe 'ProductImport unit tests', ->
       expectedOutput.variants[0].attributes = expectedOutput.variants[0].attributes.concat _.deepClone(sampleDefaultAttributes)
       expectedOutput.variants[1].attributes = expectedOutput.variants[1].attributes.concat _.deepClone(sampleDefaultAttributes)
 
-      @import._ensureDefaultAttributesInProducts([sampleInput])
+      @import._ensureDefaultAttributesInProducts([sampleInput], [sampleServerProduct1, sampleServerProduct2])
       .then ->
         expect(sampleInput).toEqual(expectedOutput)
         done()
