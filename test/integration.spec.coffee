@@ -21,8 +21,21 @@ cleanup = (logger, client) ->
   debug "Deleting old product entries..."
   client.products.all().fetch()
   .then (result) ->
-    Promise.map result.body.results, (e) ->
-      client.products.byId(e.id).delete(e.version)
+    unpublishProduct = (product) =>
+      if product.masterData.current.published
+        debug "unpublish product #{product.id}"
+        return client.products.byId(product.id).update({
+          version: product.version,
+          actions: [
+            { action: 'unpublish' }
+          ]
+        })
+      else
+        return Promise.resolve(product)
+    Promise.map result.body.results, (e) =>
+      unpublishProduct(e)
+      .then (response) =>
+        client.products.byId(response.id).delete(response.version)
   .then (results) ->
     debug "#{_.size results} products deleted."
     client.productTypes.where('name="Sample Product Type"').fetch()
