@@ -511,6 +511,7 @@ describe 'ProductImport unit tests', ->
       spyOn(@import, "_createOrUpdate").andCallFake -> Promise.settle([Promise.resolve({statusCode: 201}), Promise.resolve({statusCode: 200})])
       spyOn(@import, "_ensureProductTypesInMemory").andCallFake -> Promise.resolve()
       @import.ensureEnums = false
+      @import.defaultAttributesService = null
       @import._processBatches(sampleProducts)
       .then =>
         expect(@import._extractUniqueSkus).toHaveBeenCalled()

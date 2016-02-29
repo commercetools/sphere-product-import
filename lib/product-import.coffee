@@ -281,6 +281,8 @@ class ProductImport
     , {concurrency: 1}
 
   _ensureDefaultAttributesInProducts: (products, queriedEntries) =>
+    if queriedEntries
+      queriedEntries = _.compact(queriedEntries)
     Promise.map products, (product) =>
       if queriedEntries?.length > 0
         @logger.debug('Find matching product from server')
