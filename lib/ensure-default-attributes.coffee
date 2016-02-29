@@ -2,29 +2,45 @@ _ = require 'underscore'
 _.mixin require 'underscore-mixins'
 Promise = require 'bluebird'
 
-# Recives list of default attributes in the format:
+# Receives list of default attributes in the format:
 # [{ name: attributeName, value: defaultAttributeValue }, { name: attributeName, value: defaultAttributeValue }]
 class EnsureDefaultAttributes
 
   constructor: (@logger, @defaultAttributes) ->
     @logger.debug('Ensuring default attributes')
 
-  ensureDefaultAttributesInProduct: (product) =>
+  ensureDefaultAttributesInProduct: (product, productFromServer) =>
     updatedProduct = _.deepClone(product)
-    updatedProduct.masterVariant = @_ensureInVariant(product.masterVariant)
-    updatedVariants = _.map(product.variants, @_ensureInVariant)
+    if productFromServer
+      masterVariant = productFromServer.masterVariant
+    updatedProduct.masterVariant = @_ensureInVariant(product.masterVariant, masterVariant)
+    updatedVariants = _.map(product.variants,
+      (variant) =>
+        if productFromServer
+          serverVariant = productFromServer.variants.filter((v) => v.sku == variant.sku)[0]
+        @_ensureInVariant(variant, serverVariant)
+    )
     updatedProduct.variants = updatedVariants
     Promise.resolve(updatedProduct)
 
-  _ensureInVariant: (variant) =>
+  _ensureInVariant: (variant, serverVariant) =>
     if not variant.attributes
       return variant
     extendedAttributes = _.deepClone(variant.attributes)
+    if serverVariant
+      serverAttributes = serverVariant.attributes
     for defaultAttribute in @defaultAttributes
       if not @_isAttributeExisting(defaultAttribute, variant.attributes)
-        extendedAttributes.push(defaultAttribute)
+        @_updateAttribute(serverAttributes, defaultAttribute, extendedAttributes)
     variant.attributes = extendedAttributes
     return variant
+
+  _updateAttribute: (serverAttributes, defaultAttribute, extendedAttributes)->
+    if serverAttributes
+      serverAttribute = @_isAttributeExisting(defaultAttribute, serverAttributes)
+      if serverAttribute
+        defaultAttribute.value = serverAttribute.value
+    extendedAttributes.push(defaultAttribute)
 
   _isAttributeExisting: (defaultAttribute, attributeList) ->
     _.findWhere(attributeList, { name: "#{defaultAttribute.name}" })
