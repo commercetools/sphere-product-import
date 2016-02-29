@@ -121,7 +121,7 @@ class ProductImport
           debug 'Ensuring default attributes'
           @_ensureDefaultAttributesInProducts(productsToProcess, queriedEntries)
           .then () =>
-            Promise.resolve (queriedEntries)
+            Promise.resolve(queriedEntries)
         else
           Promise.resolve(queriedEntries)
       .then (queriedEntries) =>
