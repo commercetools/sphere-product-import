@@ -183,8 +183,6 @@ describe 'ProductImport unit tests', ->
 
     errorDir = path.join(__dirname, '../errors')
 
-    console.log('project key is ' + ClientConfig.config.project_key)
-
     Config =
       clientConfig: ClientConfig
       errorDir: errorDir
