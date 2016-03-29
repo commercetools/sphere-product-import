@@ -285,14 +285,12 @@ class ProductImport
       queriedEntries = _.compact(queriedEntries)
     Promise.map products, (product) =>
       if queriedEntries?.length > 0
-        @logger.debug('Find matching product from server')
         uniqueSkus = @_extractUniqueSkus([product])
         productFromServer = _.find(queriedEntries, (entry) =>
           serverUniqueSkus = @_extractUniqueSkus([entry])
           intersection = _.intersection(uniqueSkus, serverUniqueSkus)
           return _.compact(intersection).length > 0
         )
-        @logger.debug("Found matching product from server #{util.inspect(productFromServer, { depth: null })}")
       @defaultAttributesService.ensureDefaultAttributesInProduct(product, productFromServer)
     , {concurrency: 1}
 
