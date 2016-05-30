@@ -479,13 +479,14 @@ class ProductImport
 
 
   _resolveProductCategories: (cats) ->
-    new Promise (resolve) =>
+    new Promise (resolve, reject) =>
       if _.isEmpty(cats)
         resolve()
       else
         Promise.all cats.map (cat) =>
           @_resolveReference(@client.categories, 'categories', cat, "externalId=\"#{cat.id}\"")
         .then (result) -> resolve(result.filter (c) -> c)
+        .catch (err) -> reject(err)
 
   _resolveReference: (service, refKey, ref, predicate) ->
     new Promise (resolve, reject) =>
