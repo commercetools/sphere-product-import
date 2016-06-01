@@ -128,14 +128,14 @@ logger = new ExtendedLogger
       { level: 'debug', stream: process.stdout }
     ]
 
-Config =
+config =
   clientConfig: ClientConfig
   errorLimit: 0
 
 describe 'Product Importer integration tests', ->
 
   beforeEach (done) ->
-    @import = new ProductImport logger, Config
+    @import = new ProductImport logger, config
 
     @client = @import.client
 
