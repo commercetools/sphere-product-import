@@ -11,6 +11,10 @@ randomString = require 'randomstring'
 frozenTimeStamp = new Date().getTime()
 
 sampleProducts = [
+    categories: [
+      typeId: 'category',
+      id: '9a621895-8445-4888-a754-824052872324'
+    ],
     masterVariant:
       sku: 'a'
     variants: [
@@ -23,6 +27,10 @@ sampleProducts = [
       sku: 'c'
     ]
   ,
+    categories: [
+      typeId: 'category',
+      id: 'throw exception'
+    ],
     masterVariant: {}
     variants: [
       id: 2
@@ -32,6 +40,10 @@ sampleProducts = [
       sku: 'd'
     ]
   ,
+    categories: [
+      typeId: 'category',
+      id: '9a621895-8445-4888-a754-824052872324'
+    ],
     masterVariant:
       sku: 'e'
     variants: []
@@ -526,6 +538,30 @@ describe 'ProductImport unit tests', ->
         done()
       .catch done
 
+    it 'should skip product with non-existing category', (done) ->
+      existingProducts = _.deepClone(sampleProducts)
+      existingProducts[1].masterVariant.sku = 'a'
+
+      spyOn(@import.client.productProjections,"fetch").andCallFake -> Promise.resolve({body: {results: existingProducts}})
+      spyOn(@import, "_ensureProductTypesInMemory").andCallFake -> Promise.resolve()
+      spyOn(@import, "_fetchSameForAllAttributesOfProductType").andCallFake -> Promise.resolve([])
+
+      @import.client.products = {}
+      @import.client.products.byId = () => @import.client.products
+      @import.client.products.update = () => @import.client.products
+
+      @import._resolveReference = (service, refKey, ref, predicate) ->
+        if(predicate.indexOf('throw exception') > 0)
+          Promise.reject('for testing purposes')
+        else
+          Promise.resolve(existingProducts)
+      @import.ensureEnums = false
+      @import.defaultAttributesService = null
+      @import._processBatches(sampleProducts)
+      .then =>
+        done()
+      .catch (err) ->
+        done(err)
 
   describe '::_getWhereQueryLimit', ->
 
