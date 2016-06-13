@@ -26,7 +26,12 @@ class ProductImport
     @enumValidator = new EnumValidator @logger
     @unknownAttributesFilter = new UnknownAttributesFilter @logger
     @commonUtils = new CommonUtils @logger
-    @filterActions = options.filterActions or -> true
+    @filterActions = if _.isFunction(options.filterActions)
+      options.filterActions
+    else if _.isArray(options.filterActions)
+      (action) -> !_.contains(options.filterActions, action.action)
+    else
+      (action) -> true
     # default web server url limit in bytes
     # count starts after protocol (eg. https:// does not count)
     @urlLimit = 8192
