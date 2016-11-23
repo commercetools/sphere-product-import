@@ -75,6 +75,7 @@ class ProductImport
       taxCategory: {}
 
   _resetSummary: ->
+    @_errors = []
     @_summary =
       emptySKU: 0
       created: 0
@@ -181,11 +182,13 @@ class ProductImport
       @_summary.failed++
       if @_summary.failed < @errorLimit or @errorLimit is 0
         if r.reason().message
+          @_errors.push(r.reason().message)
           @logger.error(
             r.reason(),
             "Skipping product due to error message: #{r.reason().message}"
           )
         else
+          @_errors.push(r.reason())
           @logger.error(
             r.reason(),
             "Skipping product due to error reason: #{r.reason()}"
@@ -437,7 +440,7 @@ class ProductImport
     .spread (masterVariant, variants) ->
       Promise.resolve _.extend(product, { masterVariant, variants })
 
-  _fetchAndResolveCustomReferencesByVariant: (variant) ->
+  _fetchAndResolveCustomAttributeReferences: (variant) ->
     if variant.attributes and not _.isEmpty(variant.attributes)
       Promise.map variant.attributes, (attribute) =>
         if attribute and _.isArray(attribute.value)
@@ -462,6 +465,28 @@ class ProductImport
     else
       Promise.resolve(variant)
 
+  _fetchAndResolveCustomPriceReferences: (variant) ->
+    if variant.prices and not _.isEmpty(variant.prices)
+      Promise.map variant.prices, (price) =>
+        if price and price.custom and price.custom.type and price.custom.type.id
+          service = @client.types
+          ref = { id: price.custom.type.id}
+          @_resolveReference(service, "types", ref, "key=\"#{ref.id}\"")
+          .then (refId) ->
+            price.custom.type.id = refId
+            Promise.resolve(price)
+        else
+          Promise.resolve(price)
+      .then (prices) ->
+        Promise.resolve _.extend(variant, { prices })
+    else
+      Promise.resolve(variant)
+
+
+  _fetchAndResolveCustomReferencesByVariant: (variant) ->
+    @_fetchAndResolveCustomAttributeReferences(variant)
+    .then (variant) =>
+      @_fetchAndResolveCustomPriceReferences(variant)
 
   _resolveCustomReferenceSet: (attributeValue) ->
     Promise.map attributeValue, (referenceObject) =>

@@ -11,6 +11,7 @@ jasmine = require 'jasmine-node'
 package_json = require '../package.json'
 sampleImportJson = require '../samples/import.json'
 sampleProductType = require '../samples/sample-product-type.json'
+sampleType = require '../samples/sample-type.json'
 sampleCategory = require '../samples/sample-category.json'
 sampleTaxCategory = require '../samples/sample-tax-category.json'
 
@@ -90,6 +91,7 @@ describe 'Product import integration tests', ->
     .then => ensureResource(@client.productTypes, 'name="Sample Product Type"', sampleProductType)
     .then => ensureResource(@client.categories, 'name(en="Snowboard equipment")', sampleCategory)
     .then => ensureResource(@client.taxCategories, 'name="Standard tax category"', sampleTaxCategory)
+    .then => ensureResource(@client.types, "key=\"#{sampleType.key}\"", sampleType)
     .then ->
       done()
     .catch (err) -> done(_.prettify err)
@@ -328,8 +330,72 @@ describe 'Product import integration tests', ->
     .catch done
 
 
+  it ' should create product with custom price attributes', (done) ->
+    @logger.info ':: should create product with custom price attributes'
+    product = _.deepClone sampleImportJson.products[0]
+    predicate = "masterVariant(sku=\"#{product.masterVariant.sku}\")"
+    prices = [
+      value:
+        currencyCode: "EUR",
+        centAmount: 329,
+      country: "DE",
+      validFrom: "2016-10-08T00:00:00.000Z",
+      validUntil: "9999-12-31T00:00:00.000Z",
+      custom:
+        type:
+          typeId: "type",
+          id: sampleType.key,
+        fields:
+          custom1: 20161008063011,
+          custom2: "string",
+    ]
+
+    # inject prices with custom fields
+    product.masterVariant.prices = prices
+    product.variants[0].prices = prices
+    product.variants[1].prices = prices
+
+    @import._processBatches([product])
+    .then =>
+      expect(@import._summary.created).toBe 1
+      @client.productProjections.where(predicate).staged(true).fetch()
+    .then (result) ->
+      expectedFields = prices[0].custom.fields
+      savedFields = result.body.results[0].masterVariant.prices[0].custom.fields
+      expect(savedFields).toEqual(expectedFields)
+      done()
+    .catch done
 
 
+  it ' should throw an error when importing non existing price reference', (done) ->
+    @logger.info ':: should throw an error when importing non existing price reference'
+    product = _.deepClone sampleImportJson.products[0]
+    prices = [
+      value:
+        currencyCode: "EUR",
+        centAmount: 329,
+      country: "DE",
+      validFrom: "2016-10-08T00:00:00.000Z",
+      validUntil: "9999-12-31T00:00:00.000Z",
+      custom:
+        type:
+          typeId: "type",
+          id: "wrong-price-reference",
+        fields:
+          custom1: 20161008063011,
+          custom2: "string",
+    ]
 
+    # inject prices with custom fields
+    product.masterVariant.prices = prices
 
+    @import._processBatches([product])
+    .then =>
+      expectedError = "Didn\'t find any match while resolving types (key=\"#{prices[0].custom.type.id}\")"
+
+      expect(@import._summary.failed).toBe 1
+      expect(@import._errors.length).toBe 1
+      expect(@import._errors[0]).toBe expectedError
+      done()
+    .catch done
 
