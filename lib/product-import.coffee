@@ -18,6 +18,7 @@ class ProductImport
     @sync = new ProductSync
     if options.blackList and ProductSync.actionGroups
       @sync.config @_configureSync(options.blackList)
+    @errorCallback = options.errorCallback or _.noop
     @ensureEnums = options.ensureEnums or false
     @filterUnknownAttributes = options.filterUnknownAttributes or false
     @ignoreSlugUpdates = options.ignoreSlugUpdates or false
@@ -75,7 +76,6 @@ class ProductImport
       taxCategory: {}
 
   _resetSummary: ->
-    @_errors = []
     @_summary =
       emptySKU: 0
       created: 0
@@ -182,15 +182,15 @@ class ProductImport
       @_summary.failed++
       if @_summary.failed < @errorLimit or @errorLimit is 0
         if r.reason().message
-          @_errors.push(r.reason().message)
+          @errorCallback(r)
           @logger.error(
-            r.reason(),
+            r,
             "Skipping product due to error message: #{r.reason().message}"
           )
         else
-          @_errors.push(r.reason())
+          @errorCallback(r)
           @logger.error(
-            r.reason(),
+            r,
             "Skipping product due to error reason: #{r.reason()}"
           )
         if @errorDir

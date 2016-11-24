@@ -370,6 +370,8 @@ describe 'Product import integration tests', ->
   it ' should throw an error when importing non existing price reference', (done) ->
     @logger.info ':: should throw an error when importing non existing price reference'
     product = _.deepClone sampleImportJson.products[0]
+    errorCount = 0
+    error = null
     prices = [
       value:
         currencyCode: "EUR",
@@ -388,14 +390,17 @@ describe 'Product import integration tests', ->
 
     # inject prices with custom fields
     product.masterVariant.prices = prices
+    @import.errorCallback = (r) ->
+      errorCount += 1
+      error = r.reason().toString()
 
     @import._processBatches([product])
     .then =>
       expectedError = "Didn\'t find any match while resolving types (key=\"#{prices[0].custom.type.id}\")"
 
       expect(@import._summary.failed).toBe 1
-      expect(@import._errors.length).toBe 1
-      expect(@import._errors[0]).toBe expectedError
+      expect(errorCount).toBe 1
+      expect(error).toBe expectedError
       done()
     .catch done
 
