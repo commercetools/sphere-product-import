@@ -9,5 +9,6 @@ config.js
 coverage
 package
 sftp-credentials.json
+errors
 *.iml
 .idea
