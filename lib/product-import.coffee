@@ -18,7 +18,7 @@ class ProductImport
     @sync = new ProductSync
     if options.blackList and ProductSync.actionGroups
       @sync.config @_configureSync(options.blackList)
-    @errorCallback = options.errorCallback or _.noop
+    @errorCallback = options.errorCallback or @_errorLogger
     @ensureEnums = options.ensureEnums or false
     @filterUnknownAttributes = options.filterUnknownAttributes or false
     @ignoreSlugUpdates = options.ignoreSlugUpdates or false
@@ -175,31 +175,24 @@ class ProductImport
         resolve(_.flatten(results))
       .catch (err) -> reject(err)
 
+  _errorLogger: (r) =>
+    if @_summary.failed < @errorLimit or @errorLimit is 0
+      @logger.error r, "Skipping product due to an error"
+    else
+      @logger.warn "
+        Error not logged as error limit of #{@errorLimit} has reached.
+      "
+
   _handleProcessResponse: (r) =>
     if r.isFulfilled()
       @_handleFulfilledResponse(r)
     else if r.isRejected()
       @_summary.failed++
-      if @_summary.failed < @errorLimit or @errorLimit is 0
-        if r.reason().message
-          @errorCallback(r)
-          @logger.error(
-            r,
-            "Skipping product due to error message: #{r.reason().message}"
-          )
-        else
-          @errorCallback(r)
-          @logger.error(
-            r,
-            "Skipping product due to error reason: #{r.reason()}"
-          )
-        if @errorDir
-          errorFile = path.join(@errorDir, "error-#{@_summary.failed}.json")
-          fs.outputJsonSync(errorFile, r.reason(), {spaces: 2})
-      else
-        @logger.warn "
-          Error not logged as error limit of #{@errorLimit} has reached.
-        "
+      if @errorDir
+        errorFile = path.join(@errorDir, "error-#{@_summary.failed}.json")
+        fs.outputJsonSync(errorFile, r.reason(), {spaces: 2})
+      _.isFunction(@errorCallback) and @errorCallback(r)
+
 
   _handleFulfilledResponse: (r) =>
     switch r.value().statusCode

@@ -397,7 +397,6 @@ describe 'Product import integration tests', ->
     @import._processBatches([product])
     .then =>
       expectedError = "Didn\'t find any match while resolving types (key=\"#{prices[0].custom.type.id}\")"
-
       expect(@import._summary.failed).toBe 1
       expect(errorCount).toBe 1
       expect(error).toBe expectedError
