@@ -51,8 +51,8 @@ Accepts a list of products in a valid [JSON Schema](https://github.com/sphereio/
         {"name": "attributeName", "value": "defaultValue"},
         {"name": "attributeName", "value": "defaultValue"}
       ],
-      "errorCallback": function(err) {
-        console.error("Error:", err.reason().message)
+      "errorCallback": function(err, logger) {
+        logger.error("Error:", err.reason().message)
       }
     }
 

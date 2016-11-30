@@ -175,11 +175,11 @@ class ProductImport
         resolve(_.flatten(results))
       .catch (err) -> reject(err)
 
-  _errorLogger: (r) =>
+  _errorLogger: (r, logger) =>
     if @_summary.failed < @errorLimit or @errorLimit is 0
-      @logger.error r, "Skipping product due to an error"
+      logger.error r, "Skipping product due to an error"
     else
-      @logger.warn "
+      logger.warn "
         Error not logged as error limit of #{@errorLimit} has reached.
       "
 
@@ -191,8 +191,11 @@ class ProductImport
       if @errorDir
         errorFile = path.join(@errorDir, "error-#{@_summary.failed}.json")
         fs.outputJsonSync(errorFile, r.reason(), {spaces: 2})
-      _.isFunction(@errorCallback) and @errorCallback(r)
 
+      if _.isFunction(@errorCallback)
+        @errorCallback(r, @logger)
+      else
+        @logger.error "Error callback has to be a function!"
 
   _handleFulfilledResponse: (r) =>
     switch r.value().statusCode

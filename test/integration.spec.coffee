@@ -370,6 +370,7 @@ describe 'Product import integration tests', ->
   it ' should throw an error when importing non existing price reference', (done) ->
     @logger.info ':: should throw an error when importing non existing price reference'
     product = _.deepClone sampleImportJson.products[0]
+    errorLogger = null
     errorCount = 0
     error = null
     prices = [
@@ -390,7 +391,8 @@ describe 'Product import integration tests', ->
 
     # inject prices with custom fields
     product.masterVariant.prices = prices
-    @import.errorCallback = (r) ->
+    @import.errorCallback = (r, logger) ->
+      errorLogger = logger
       errorCount += 1
       error = r.reason().toString()
 
@@ -400,6 +402,7 @@ describe 'Product import integration tests', ->
       expect(@import._summary.failed).toBe 1
       expect(errorCount).toBe 1
       expect(error).toBe expectedError
+      expect(_.isObject(errorLogger)).toBe true
       done()
     .catch done
 
