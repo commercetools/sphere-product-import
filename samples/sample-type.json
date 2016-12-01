@@ -1,0 +1,36 @@
+{
+  "key": "sample-price-type",
+  "name": {
+    "de": "Sample-type"
+  },
+  "description": {
+    "de": "Type for price resource"
+  },
+  "resourceTypeIds": [
+    "product-price"
+  ],
+  "fieldDefinitions": [
+    {
+      "name": "custom1",
+      "label": {
+        "de": "custom1"
+      },
+      "required": true,
+      "type": {
+        "name": "Number"
+      },
+      "inputHint": "SingleLine"
+    },
+    {
+      "name": "custom2",
+      "label": {
+        "de": "custom2"
+      },
+      "required": true,
+      "type": {
+        "name": "String"
+      },
+      "inputHint": "SingleLine"
+    }
+  ]
+}

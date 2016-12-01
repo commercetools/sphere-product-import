@@ -23,10 +23,11 @@ Accepts a list of products in a valid [JSON Schema](https://github.com/sphereio/
       * attributes
       * variants
       * categories
-    * ensureEnums: When set to `true`, any new enum keys will be added to existing enums. Default: `false`
+    * ensureEnums: when set to `true`, any new enum keys will be added to existing enums. Default: `false`
     * filterUnknownAttributes: when set to `true` will ignore any attributes not defined in the product type of the product being imported. Default: `false`
     * ignoreSlugUpdates: when set to `true` will ignore all slug updates for existing product updates. Default: `false`
     * batchSize: number of products to be processed in each batch. Default: 30
+    * errorCallback: when set to a custom function, all log messages will be sent to this function. Otherwise, a default logger function will be used
     * defaultAttributes: a list of attributes to be added to all variants if not existing
     * filterActions: can be one of the following:
       * a _function_ that gets called for each action, that the product sync returns. See [here](https://github.com/sphereio/sphere-node-sdk/blob/master/src/coffee/sync/base-sync.coffee#L96) for an example filter. It get's passed the following arguments:
@@ -49,7 +50,10 @@ Accepts a list of products in a valid [JSON Schema](https://github.com/sphereio/
       "defaultAttributes": [
         {"name": "attributeName", "value": "defaultValue"},
         {"name": "attributeName", "value": "defaultValue"}
-      ]
+      ],
+      "errorCallback": function(err, logger) {
+        logger.error("Error:", err.reason().message)
+      }
     }
 
 ### Sample Inputs

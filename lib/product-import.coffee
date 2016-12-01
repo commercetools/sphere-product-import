@@ -18,6 +18,7 @@ class ProductImport
     @sync = new ProductSync
     if options.blackList and ProductSync.actionGroups
       @sync.config @_configureSync(options.blackList)
+    @errorCallback = options.errorCallback or @_errorLogger
     @ensureEnums = options.ensureEnums or false
     @filterUnknownAttributes = options.filterUnknownAttributes or false
     @ignoreSlugUpdates = options.ignoreSlugUpdates or false
@@ -174,32 +175,30 @@ class ProductImport
         resolve(_.flatten(results))
       .catch (err) -> reject(err)
 
-  _handleProcessResponse: (r) =>
-    if r.isFulfilled()
-      @_handleFulfilledResponse(r)
-    else if r.isRejected()
-      @_summary.failed++
-      if @_summary.failed < @errorLimit or @errorLimit is 0
-        if r.reason().message
-          @logger.error(
-            r.reason(),
-            "Skipping product due to error message: #{r.reason().message}"
-          )
-        else
-          @logger.error(
-            r.reason(),
-            "Skipping product due to error reason: #{r.reason()}"
-          )
-        if @errorDir
-          errorFile = path.join(@errorDir, "error-#{@_summary.failed}.json")
-          fs.outputJsonSync(errorFile, r.reason(), {spaces: 2})
-      else
-        @logger.warn "
-          Error not logged as error limit of #{@errorLimit} has reached.
-        "
+  _errorLogger: (res, logger) =>
+    if @_summary.failed < @errorLimit or @errorLimit is 0
+      logger.error res, "Skipping product due to an error"
+    else
+      logger.warn "
+        Error not logged as error limit of #{@errorLimit} has reached.
+      "
 
-  _handleFulfilledResponse: (r) =>
-    switch r.value().statusCode
+  _handleProcessResponse: (res) =>
+    if res.isFulfilled()
+      @_handleFulfilledResponse(res)
+    else if res.isRejected()
+      @_summary.failed++
+      if @errorDir
+        errorFile = path.join(@errorDir, "error-#{@_summary.failed}.json")
+        fs.outputJsonSync(errorFile, res.reason(), {spaces: 2})
+
+      if _.isFunction(@errorCallback)
+        @errorCallback(res, @logger)
+      else
+        @logger.error "Error callback has to be a function!"
+
+  _handleFulfilledResponse: (res) =>
+    switch res.value().statusCode
       when 201 then @_summary.created++
       when 200 then @_summary.updated++
 
@@ -437,7 +436,7 @@ class ProductImport
     .spread (masterVariant, variants) ->
       Promise.resolve _.extend(product, { masterVariant, variants })
 
-  _fetchAndResolveCustomReferencesByVariant: (variant) ->
+  _fetchAndResolveCustomAttributeReferences: (variant) ->
     if variant.attributes and not _.isEmpty(variant.attributes)
       Promise.map variant.attributes, (attribute) =>
         if attribute and _.isArray(attribute.value)
@@ -462,6 +461,28 @@ class ProductImport
     else
       Promise.resolve(variant)
 
+  _fetchAndResolveCustomPriceReferences: (variant) ->
+    if variant.prices and not _.isEmpty(variant.prices)
+      Promise.map variant.prices, (price) =>
+        if price and price.custom and price.custom.type and price.custom.type.id
+          service = @client.types
+          ref = { id: price.custom.type.id}
+          @_resolveReference(service, "types", ref, "key=\"#{ref.id}\"")
+          .then (refId) ->
+            price.custom.type.id = refId
+            Promise.resolve(price)
+        else
+          Promise.resolve(price)
+      .then (prices) ->
+        Promise.resolve _.extend(variant, { prices })
+    else
+      Promise.resolve(variant)
+
+
+  _fetchAndResolveCustomReferencesByVariant: (variant) ->
+    @_fetchAndResolveCustomAttributeReferences(variant)
+    .then (variant) =>
+      @_fetchAndResolveCustomPriceReferences(variant)
 
   _resolveCustomReferenceSet: (attributeValue) ->
     Promise.map attributeValue, (referenceObject) =>
