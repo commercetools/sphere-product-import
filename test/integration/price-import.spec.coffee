@@ -4,31 +4,10 @@ _.mixin require 'underscore-mixins'
 {PriceImport} = require '../../lib'
 ClientConfig = require '../../config'
 Promise = require 'bluebird'
-{ExtendedLogger} = require 'sphere-node-utils'
+{ ExtendedLogger } = require 'sphere-node-utils'
+{ deleteProducts } = require './test-helper'
 package_json = require '../../package.json'
 
-cleanup = (logger, client) ->
-  debug "Deleting old product entries..."
-  client.products.all().fetch()
-  .then (result) ->
-    unpublishProduct = (product) =>
-      if product.masterData.current.published
-        debug "unpublish product #{product.id}"
-        return client.products.byId(product.id).update({
-          version: product.version,
-          actions: [
-            { action: 'unpublish' }
-          ]
-        })
-      else
-        return Promise.resolve(product)
-    Promise.all _.map result.body.results, (e) ->
-      unpublishProduct(e)
-      .then (response) =>
-        client.products.byId(response.id).delete(response.version)
-  .then (results) ->
-    debug "#{_.size results} deleted."
-    Promise.resolve()
 
 sampleProductTypeForPrice =
   name: 'productTypeForPriceImport'
@@ -128,7 +107,7 @@ describe 'Price Importer integration tests', ->
     @client = @import.client
 
     logger.info 'About to setup...'
-    cleanup logger, @client
+    deleteProducts logger, @client
     .then => ensureResource(@client.productTypes, 'name="productTypeForPriceImport"', sampleProductTypeForPrice)
     .then (@productType) => ensureResource(@client.customerGroups, 'name="test-group"', sampleCustomerGroup)
     .then (@customerGroup) => ensureResource(@client.channels, 'key="test-channel"', sampleChannel)
@@ -142,7 +121,7 @@ describe 'Price Importer integration tests', ->
 
   afterEach (done) ->
     logger.info 'About to cleanup...'
-    cleanup(logger, @client)
+    deleteProducts(logger, @client)
     .then -> done()
     .catch (err) -> done(_.prettify err)
   , 30000 # 30sec

@@ -1,10 +1,11 @@
 debug = require('debug')('spec:it:sphere-product-import')
 _ = require 'underscore'
 _.mixin require 'underscore-mixins'
-{ ProductImport } = require '../../lib'
-ClientConfig = require '../../config'
 Promise = require 'bluebird'
 { ExtendedLogger } = require 'sphere-node-utils'
+{ ProductImport } = require '../../lib'
+ClientConfig = require '../../config'
+{ deleteProductById } = require './test-helper'
 package_json = require '../../package.json'
 
 sampleProductTypeForProduct =
@@ -159,7 +160,7 @@ describe 'Product Importer integration tests', ->
       .fetch()
       .then (result) =>
         Promise.map result.body.results, (result) =>
-          cleanup(logger, @client.products, result.id)
+          deleteProductById(logger, @client, result.id)
       .then => cleanup(logger, @client.productTypes, @productType.id)
       .then => cleanup(logger, @client.customerGroups, @customerGroup.id)
       .then => cleanup(logger, @client.channels, @channel.id)
