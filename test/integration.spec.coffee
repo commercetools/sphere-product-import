@@ -213,7 +213,12 @@ describe 'Product import integration tests', ->
       expect(@import._summary.failed).toBe 1
       expect(@import._summary.created).toBe 0
       errorJson = require path.join(@import.errorDir,'error-1.json')
-      expect(errorJson.message).toEqual "A duplicate value '\"product-sync-test-product-1\"' exists for field 'slug'."
+      expect(errorJson.body.errors.length).toBe 1
+
+      error = errorJson.body.errors[0]
+      expect(error.code).toEqual "DuplicateField"
+      expect(error.duplicateValue).toEqual "product-sync-test-product-1"
+      expect(error.field).toEqual "slug.en"
       done()
     .catch done
 
