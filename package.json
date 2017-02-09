@@ -29,7 +29,7 @@
   ],
   "main": "./dist",
   "engines": {
-    "node": ">= 0.10.0"
+    "node": ">= 4.5"
   },
   "scripts": {
     "build": "grunt build",
