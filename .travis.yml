@@ -1,16 +1,14 @@
 language: node_js
 node_js:
-  - '0.10'
+  - '4'
+  - '6'
+
 before_script:
   - ./create_config.sh
+
 script:
   - npm test
+
 branches:
   except:
     - /^v[0-9]\.[0-9]\.[0-9]$/
-env:
-  global:
-  - secure: SjuwZay5HewV8IqlzzL4FFylQV3iptP+ryCMRo6qXgGve/qB4h2lFPWUdKE2fvqSGfXSc/LlFT8maUOuLli4qELBLH1RNFbQMKRkXVtJXg4evgGMAVSz3SeSowW8XT7YSUCP8jK5QzAdBXLg17e4eIcW5hkH/wz3dIGz6a0dsxU=
-  - secure: AoqFbH1w8uu5vMLh2USnKFkJxskiT5XRZGpI6JDjSJ6rkm2KhDsUfM8s5FmXZMp2sCHHrPCavsfE3xpOLhc/6ppTJl1xWMoSRb+2idIUKUrIPcqmzvtL8cqxeOQcZKn2DvD8mI0ha7BK3u/eJxDgsEZsj7cNAE+IitYnqvXtUQ0=
-  - secure: PVOsVz87Hv9gNhDB1O7ssWUt8Z4J63ywY9A+EUJCptl9T+z5CwlIxCmYHWm5sa2Ee2dsm93fUVsq7ZYOj+lAu0hhd3nUHSTqI4JZENneMUPj8Kw6/B8axpSt991Pb9Z7UFSksot9OcjeGGShaB4mf+oMiD64VRcWb+7x9+LuBic=
-sudo: false
