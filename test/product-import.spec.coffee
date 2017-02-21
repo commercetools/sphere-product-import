@@ -1007,3 +1007,23 @@ describe 'ProductImport unit tests', ->
         expect(sampleInput).toEqual(expectedOutput)
         done()
       .catch(done)
+
+  describe '::_escapeQueryString', ->
+
+    it 'should return an array of escaped strings if passed an array', ->
+      sampleString = ["foo\"wet\"bar", "\"Hello\" World"]
+      result = ["foo%22wet%22bar", "%22Hello%22 World"]
+      predicate = @import._escapeQueryString(sampleString)
+      expect(predicate).toEqual(result)
+
+    it 'should return an escaped string if passed a string', ->
+      sampleString = "foo\"wet\"bar"
+      result = "foo%22wet%22bar"
+      predicate = @import._escapeQueryString(sampleString)
+      expect(predicate).toEqual(result)
+
+    it 'should do nothing and return the argument if passed neither an array nor a string', ->
+      sampleString = { foo: "foo\"wet\"bar", bar: "\"Hello\" World" }
+      result = { foo: "foo\"wet\"bar", bar: "\"Hello\" World" }
+      predicate = @import._escapeQueryString(sampleString)
+      expect(predicate).toEqual(result)

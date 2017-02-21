@@ -202,8 +202,16 @@ class ProductImport
       when 201 then @_summary.created++
       when 200 then @_summary.updated++
 
+  _escapeQueryString: (query) ->
+    if query.constructor == Array
+      query.map((str) -> str.replace /"/g, "%22")
+    else if query.constructor == String
+      query.replace /"/g, "%22"
+    else query
+
   _createProductFetchBySkuQueryPredicate: (skus) ->
-    skuString = "sku in (\"#{skus.join('","')}\")"
+    escapedSku = @_escapeQueryString(skus)
+    skuString = "sku in (\"#{escapedSku.join('","')}\")"
     return "masterVariant(#{skuString}) or variants(#{skuString})"
 
   _extractUniqueSkus: (products) ->
