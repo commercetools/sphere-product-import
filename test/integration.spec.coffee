@@ -119,8 +119,7 @@ describe 'Product import integration tests', ->
       sampleSkus = @import._extractUniqueSkus(sampleImport.products)
       commonSkus = _.intersection(sampleSkus,fetchedSkus)
       expect(_.size commonSkus).toBe _.size sampleSkus
-      escapedSku = @import._escapeQueryString(sampleImport.products[0].masterVariant.sku)
-      predicate = "masterVariant(sku=\"#{escapedSku}\")"
+      predicate = "masterVariant(sku=#{JSON.stringify(sampleImport.products[0].masterVariant.sku)})"
       @client.productProjections.where(predicate).staged(true).fetch()
     .then (result) ->
       fetchedProduct = result.body.results
@@ -150,8 +149,7 @@ describe 'Product import integration tests', ->
     .then =>
       expect(@import._summary.created).toBe 2
       expect(@import._summary.updated).toBe 0
-      escapedSku = @import._escapeQueryString(sampleImport.products[0].masterVariant.sku)
-      predicate = "masterVariant(sku=\"#{escapedSku}\")"
+      predicate = "masterVariant(sku=#{JSON.stringify(sampleImport.products[0].masterVariant.sku)})"
       @client.productProjections.where(predicate).staged(true).fetch()
     .then (result) ->
       fetchedProduct = result.body.results
@@ -190,8 +188,7 @@ describe 'Product import integration tests', ->
       expect(@import._summary.created).toBe 1
       expect(@import._summary.updated).toBe 1
       expect(@import.sync.buildActions).toHaveBeenCalledWith(jasmine.any(Object), jasmine.any(Object), ['sample_attribute_1'])
-      escapedSku = @import._escapeQueryString(sampleUpdate.products[0].masterVariant.sku)
-      predicate = "masterVariant(sku=\"#{escapedSku}\")"
+      predicate = "masterVariant(sku=#{JSON.stringify(sampleImport.products[0].masterVariant.sku)})"
       @client.productProjections.where(predicate).staged(true).fetch()
     .then (result) ->
       expect(_.size result.body.results[0].variants).toBe 2
@@ -253,7 +250,7 @@ describe 'Product import integration tests', ->
 
     sampleImport.products[0].masterVariant.attributes.push setTextAttribute
 
-    predicate = 'masterVariant(sku="B3-717597")'
+    predicate = "masterVariant(sku=#{JSON.stringify("eqsmlg-9'2\"\"")})"
     @import._processBatches(sampleImport.products)
     .then =>
       expect(@import._summary.created).toBe 2
@@ -323,7 +320,7 @@ describe 'Product import integration tests', ->
     sampleImport.products[1].variants[0].attributes.push(existingEnumKeyAttr)
     sampleImport.products[1].variants[0].attributes.push(newEnumKeyAttr)
 
-    predicate = 'masterVariant(sku="B3-717597")'
+    predicate = "masterVariant(sku=#{JSON.stringify("eqsmlg-9'2\"\"")})"
 
     @import._processBatches(sampleImport.products)
     .then =>
@@ -341,8 +338,7 @@ describe 'Product import integration tests', ->
   it ' should create product with custom price attributes', (done) ->
     @logger.info ':: should create product with custom price attributes'
     product = _.deepClone sampleImportJson.products[0]
-    escapedSku = @import._escapeQueryString(product.masterVariant.sku)
-    predicate = "masterVariant(sku=\"#{escapedSku}\")"
+    predicate = "masterVariant(sku=#{JSON.stringify(product.masterVariant.sku)})"
     prices = [
       value:
         currencyCode: "EUR",
