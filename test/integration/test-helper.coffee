@@ -2,7 +2,7 @@ _ = require 'underscore'
 Promise = require 'bluebird'
 
 unpublishProduct = (logger, client, product) ->
-  if product.masterData.current.published
+  if product.masterData.published
     logger.debug "unpublish product #{product.id}"
     return client.products.byId(product.id).update({
       version: product.version,
