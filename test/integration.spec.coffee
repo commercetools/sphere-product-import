@@ -7,6 +7,7 @@ Promise = require 'bluebird'
 path = require 'path'
 fs = require 'fs-extra'
 jasmine = require 'jasmine-node'
+{ deleteProducts } = require './integration/test-helper'
 {ExtendedLogger} = require 'sphere-node-utils'
 package_json = require '../package.json'
 sampleImportJson = require '../samples/import.json'
@@ -16,36 +17,6 @@ sampleCategory = require '../samples/sample-category.json'
 sampleTaxCategory = require '../samples/sample-tax-category.json'
 
 frozenTimeStamp = new Date().getTime()
-
-
-cleanup = (logger, client) ->
-  debug "Deleting old product entries..."
-  client.products.all().fetch()
-  .then (result) ->
-    unpublishProduct = (product) =>
-      if product.masterData.current.published
-        debug "unpublish product #{product.id}"
-        return client.products.byId(product.id).update({
-          version: product.version,
-          actions: [
-            { action: 'unpublish' }
-          ]
-        })
-      else
-        return Promise.resolve(product)
-    Promise.map result.body.results, (e) =>
-      unpublishProduct(e)
-      .then (response) =>
-        client.products.byId(response.id).delete(response.version)
-  .then (results) ->
-    debug "#{_.size results} products deleted."
-    client.productTypes.where('name="Sample Product Type"').fetch()
-  .then (result) ->
-    Promise.map result.body.results, (e) ->
-      client.productTypes.byId(e.id).delete(e.version)
-  .then (result) ->
-    debug "#{_.size result} product type(s) deleted."
-    Promise.resolve()
 
 ensureResource = (service, predicate, sampleData) ->
   debug 'Ensuring existence for: %s', predicate
@@ -87,7 +58,7 @@ describe 'Product import integration tests', ->
     @client = @import.client
 
     @logger.info 'About to setup...'
-    cleanup(@logger, @client)
+    deleteProducts(@logger, @client)
     .then => ensureResource(@client.productTypes, 'name="Sample Product Type"', sampleProductType)
     .then => ensureResource(@client.categories, 'name(en="Snowboard equipment")', sampleCategory)
     .then => ensureResource(@client.taxCategories, 'name="Standard tax category"', sampleTaxCategory)
@@ -99,7 +70,7 @@ describe 'Product import integration tests', ->
 
   afterEach (done) ->
     @logger.info 'About to cleanup...'
-    cleanup(@logger, @client)
+    deleteProducts(@logger, @client)
     .then -> done()
     .catch (err) -> done(_.prettify err)
   , 10000 # 10sec
@@ -119,7 +90,7 @@ describe 'Product import integration tests', ->
       sampleSkus = @import._extractUniqueSkus(sampleImport.products)
       commonSkus = _.intersection(sampleSkus,fetchedSkus)
       expect(_.size commonSkus).toBe _.size sampleSkus
-      predicate = "masterVariant(sku=\"#{sampleImport.products[0].masterVariant.sku}\")"
+      predicate = "masterVariant(sku=#{JSON.stringify(sampleImport.products[0].masterVariant.sku)})"
       @client.productProjections.where(predicate).staged(true).fetch()
     .then (result) ->
       fetchedProduct = result.body.results
@@ -149,7 +120,7 @@ describe 'Product import integration tests', ->
     .then =>
       expect(@import._summary.created).toBe 2
       expect(@import._summary.updated).toBe 0
-      predicate = "masterVariant(sku=\"#{sampleImport.products[0].masterVariant.sku}\")"
+      predicate = "masterVariant(sku=#{JSON.stringify(sampleImport.products[0].masterVariant.sku)})"
       @client.productProjections.where(predicate).staged(true).fetch()
     .then (result) ->
       fetchedProduct = result.body.results
@@ -188,7 +159,7 @@ describe 'Product import integration tests', ->
       expect(@import._summary.created).toBe 1
       expect(@import._summary.updated).toBe 1
       expect(@import.sync.buildActions).toHaveBeenCalledWith(jasmine.any(Object), jasmine.any(Object), ['sample_attribute_1'])
-      predicate = "masterVariant(sku=\"#{sampleUpdate.products[0].masterVariant.sku}\")"
+      predicate = "masterVariant(sku=#{JSON.stringify(sampleImport.products[0].masterVariant.sku)})"
       @client.productProjections.where(predicate).staged(true).fetch()
     .then (result) ->
       expect(_.size result.body.results[0].variants).toBe 2
@@ -223,7 +194,7 @@ describe 'Product import integration tests', ->
     .catch done
 
   it ' should continue of error - missing product name', (done) ->
-    cleanup(@logger, @client)
+    deleteProducts(@logger, @client)
     .then => ensureResource(@client.productTypes, 'name="Sample Product Type"', sampleProductType)
     .then =>
       sampleImport = _.deepClone sampleImportJson
@@ -250,7 +221,7 @@ describe 'Product import integration tests', ->
 
     sampleImport.products[0].masterVariant.attributes.push setTextAttribute
 
-    predicate = 'masterVariant(sku="B3-717597")'
+    predicate = "masterVariant(sku=#{JSON.stringify("eqsmlg-9'2\"\"")})"
     @import._processBatches(sampleImport.products)
     .then =>
       expect(@import._summary.created).toBe 2
@@ -320,7 +291,7 @@ describe 'Product import integration tests', ->
     sampleImport.products[1].variants[0].attributes.push(existingEnumKeyAttr)
     sampleImport.products[1].variants[0].attributes.push(newEnumKeyAttr)
 
-    predicate = 'masterVariant(sku="B3-717597")'
+    predicate = "masterVariant(sku=#{JSON.stringify("eqsmlg-9'2\"\"")})"
 
     @import._processBatches(sampleImport.products)
     .then =>
@@ -338,7 +309,7 @@ describe 'Product import integration tests', ->
   it ' should create product with custom price attributes', (done) ->
     @logger.info ':: should create product with custom price attributes'
     product = _.deepClone sampleImportJson.products[0]
-    predicate = "masterVariant(sku=\"#{product.masterVariant.sku}\")"
+    predicate = "masterVariant(sku=#{JSON.stringify(product.masterVariant.sku)})"
     prices = [
       value:
         currencyCode: "EUR",
