@@ -168,16 +168,12 @@ describe 'Product Importer integration tests', ->
       .then -> done()
       .catch (err) -> done(_.prettify err)
   , 30000 # 30sec
-    
 
   cleanup = (logger, service, id) ->
     service.byId(id).fetch()
     .then (result) ->
       service.byId(id).delete(result.body.version)
-    .then (result) ->
-      Promise.resolve()
-      
-      
+
   it 'should skip and continue on category not found', (done) ->
     productDrafts = createProduct()
     @import.performStream(productDrafts, () => {})
@@ -191,3 +187,22 @@ describe 'Product Importer integration tests', ->
         done()
   , 30000
 
+  it 'should import product even when there are no variants are provided', (done) ->
+    productDraft = createProduct()[0]
+    productDraft.masterVariant.sku = 'uniqueSku'
+    delete productDraft.variants
+
+    @import.performStream([productDraft], () => {})
+    .then () =>
+      @client.productProjections.staged(true)
+      .all()
+      .where("productType(id=\"#{@productType.id}\")")
+      .fetch()
+      .then (result) =>
+        expect(result.body.results.length).toBe(1)
+
+        product = result.body.results[0]
+        expect(product.masterVariant.sku).toBe(productDraft.masterVariant.sku)
+        expect(product.variants.length).toBe(0)
+        done()
+  , 30000
