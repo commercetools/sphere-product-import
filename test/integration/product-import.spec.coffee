@@ -187,7 +187,7 @@ describe 'Product Importer integration tests', ->
         done()
   , 30000
 
-  it 'should import product even when there are no variants are provided', (done) ->
+  it 'should import product even when there are no variants provided', (done) ->
     productDraft = createProduct()[0]
     productDraft.masterVariant.sku = 'uniqueSku'
     delete productDraft.variants
