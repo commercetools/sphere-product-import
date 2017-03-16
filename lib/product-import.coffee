@@ -478,7 +478,6 @@ class ProductImport
     else
       Promise.resolve(variant)
 
-
   _fetchAndResolveCustomReferencesByVariant: (variant) ->
     @_fetchAndResolveCustomAttributeReferences(variant)
     .then (variant) =>
@@ -488,10 +487,8 @@ class ProductImport
     Promise.map attributeValue, (referenceObject) =>
       @_resolveCustomReference(referenceObject)
 
-
   _isReferenceTypeAttribute: (attribute) ->
     _.has(attribute, 'type') and attribute.type.name is 'reference'
-
 
   _resolveCustomReference: (referenceObject) ->
     service = switch referenceObject.type.referenceTypeId
@@ -502,7 +499,6 @@ class ProductImport
     ref.id = referenceObject.value
     predicate = referenceObject._custom.predicate
     @_resolveReference service, refKey, ref, predicate
-
 
   _resolveProductCategories: (cats) ->
     new Promise (resolve, reject) =>
