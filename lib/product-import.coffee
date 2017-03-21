@@ -4,6 +4,7 @@ _.mixin require 'underscore-mixins'
 Promise = require 'bluebird'
 slugify = require 'underscore.string/slugify'
 {SphereClient, ProductSync} = require 'sphere-node-sdk'
+{Repeater} = require 'sphere-node-utils'
 fs = require 'fs-extra'
 path = require 'path'
 EnumValidator = require './enum-validator'
@@ -112,6 +113,7 @@ class ProductImport
     batchedList = _.batchList(products, @batchSize) # max parallel elem to process
     Promise.map batchedList, (productsToProcess) =>
       debug 'Ensuring existence of product type in memory.'
+
       @_ensureProductTypesInMemory(productsToProcess)
       .then =>
         if @ensureEnums
@@ -230,6 +232,52 @@ class ProductImport
       else
         false
 
+  _updateProductRepeater: (prodToProcess, existingProduct) ->
+    repeater = new Repeater {attempts: 5}
+    repeater.execute =>
+      @_updateProduct(prodToProcess, existingProduct)
+    , (e) =>
+      if e.statusCode isnt 409 # concurrent modification
+        return Promise.reject e
+
+      @logger.warn "Recovering from 409 concurrentModification error on product '#{existingProduct.id}'"
+
+      Promise.resolve => # next task must be a function
+        @client.productProjections.staged(true).byId(existingProduct.id).fetch()
+        .then (result) =>
+          @_updateProduct(prodToProcess, result.body)
+
+  _updateProduct: (_prodToProcess, existingProduct) ->
+    prodToProcess = _.deepClone(_prodToProcess)
+
+    @_fetchSameForAllAttributesOfProductType(prodToProcess.productType)
+    .then (sameForAllAttributes) =>
+      @_prepareUpdateProduct(prodToProcess, existingProduct)
+      .then (preparedProduct) =>
+        synced = @sync.buildActions(preparedProduct, existingProduct, sameForAllAttributes)
+          .filterActions (action) =>
+            @filterActions(action, existingProduct, preparedProduct)
+        if synced.shouldUpdate()
+          @_updateInBatches(synced.getUpdateId(), synced.getUpdatePayload())
+        else
+          Promise.resolve statusCode: 304
+
+  _updateInBatches: (id, updateRequest) ->
+    latestVersion = updateRequest.version
+    batchedActions = _.batchList(updateRequest.actions, 500) # max 500 actions per update request
+
+    Promise.mapSeries batchedActions, (actions) =>
+      request =
+        version: latestVersion
+        actions: actions
+
+      @client.products
+        .byId(id)
+        .update(request)
+        .tap (res) ->
+          latestVersion = res.body.version
+    .then _.last # return only the last result
+
   _createOrUpdate: (productsToProcess, existingProducts) ->
     debug 'Products to process: %j', {toProcess: productsToProcess, existing: existingProducts}
 
@@ -238,17 +286,7 @@ class ProductImport
       .then (prodToProcess) =>
         existingProduct = @_isExistingEntry(prodToProcess, existingProducts)
         if existingProduct?
-          @_fetchSameForAllAttributesOfProductType(prodToProcess.productType)
-          .then (sameForAllAttributes) =>
-            @_prepareUpdateProduct(prodToProcess, existingProduct).then (preparedProduct) =>
-              synced = @sync.buildActions(preparedProduct, existingProduct, sameForAllAttributes)
-                .filterActions((action) =>
-                  @filterActions(action, existingProduct, preparedProduct)
-                )
-              if synced.shouldUpdate()
-                @client.products.byId(synced.getUpdateId()).update(synced.getUpdatePayload())
-              else
-                Promise.resolve statusCode: 304
+          @_updateProductRepeater(prodToProcess, existingProduct)
         else
           @_prepareNewProduct(prodToProcess)
           .then (product) =>

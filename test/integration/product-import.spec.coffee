@@ -8,11 +8,24 @@ ClientConfig = require '../../config'
 { deleteProductById } = require './test-helper'
 package_json = require '../../package.json'
 
+jasmine.getEnv().defaultTimeoutInterval = 30000
+
 sampleProductTypeForProduct =
   name: 'productTypeForProductImport'
   description: 'test description'
 
-createProduct = () ->
+bigProductType =
+  name: 'bigProductType'
+  description: 'test big poroductType description'
+  attributes: [1..1031].map (i) ->
+    name: "attr_#{i}"
+    label:
+      en: "Attribute #{i}"
+    isRequired: false
+    type:
+      name: 'number'
+
+createProduct = ->
   [
     {
       productType:
@@ -137,7 +150,6 @@ describe 'Product Importer integration tests', ->
 
   beforeEach (done) ->
     @import = new ProductImport logger, config
-
     @client = @import.client
 
     logger.info 'About to setup...'
@@ -150,13 +162,11 @@ describe 'Product Importer integration tests', ->
       done()
     .catch (err) ->
       done(_.prettify err)
-  , 30000 # 30sec
-  
+
   afterEach (done) ->
     logger.info 'About to cleanup...'
     @client.productProjections.staged(true)
       .all()
-      .where("productType(id=\"#{@productType.id}\")")
       .fetch()
       .then (result) =>
         Promise.map result.body.results, (result) =>
@@ -167,27 +177,100 @@ describe 'Product Importer integration tests', ->
       .then => cleanup(logger, @client.categories, @category.id)
       .then -> done()
       .catch (err) -> done(_.prettify err)
-  , 30000 # 30sec
-    
 
   cleanup = (logger, service, id) ->
     service.byId(id).fetch()
     .then (result) ->
       service.byId(id).delete(result.body.version)
-    .then (result) ->
-      Promise.resolve()
-      
-      
+
   it 'should skip and continue on category not found', (done) ->
     productDrafts = createProduct()
-    @import.performStream(productDrafts, () => {})
-    .then () =>
+    @import.performStream(productDrafts, -> {})
+    .then =>
       @client.productProjections.staged(true)
       .all()
       .where("productType(id=\"#{@productType.id}\")")
       .fetch()
-      .then (result) =>
+      .then (result) ->
         expect(result.body.results.length).toBe(2)
         done()
-  , 30000
 
+  it 'should import and update large products', (done) ->
+    productType = null
+
+    productDraft = createProduct()[0]
+    productDraft.productType.id = bigProductType.name
+
+    productDraftClone = _.deepClone(productDraft)
+    productDraftClone.variants[1].attributes = []
+    productDraftClone.variants[1].attributes.push
+      name: 'attr_1'
+      value: 1
+
+    ensureResource(@client.productTypes, "name=\"#{bigProductType.name}\"", bigProductType)
+    .then (_productType) =>
+      productType = _productType
+      @import.performStream([productDraftClone], _.noop)
+    .then =>
+      productDraft.masterVariant.attributes = [1..1031].map (i) ->
+        name: "attr_#{i}"
+        value: i
+
+      productDraft.variants[0].attributes = [1..200].map (i) ->
+        name: "attr_#{i}"
+        value: i
+
+      @import.performStream([productDraft], _.noop)
+    .then =>
+      @client.productProjections.staged(true)
+      .all()
+      .where("productType(id=\"#{productType.id}\")")
+      .fetch()
+      .then (result) ->
+        expect(result.body.results.length).toBe(1)
+        product = result.body.results[0]
+
+        expect(product.masterVariant.attributes.length).toBe(1031)
+        expect(product.variants.length).toBe(2)
+        expect(product.variants[0].attributes.length).toBe(200)
+        expect(product.variants[1].attributes.length).toBe(0)
+        done()
+
+  it 'should update large products and handle concurrentModification error', (done) ->
+    productType = null
+    productDraft = createProduct()[0]
+    productDraft.productType.id = bigProductType.name
+
+    spy = spyOn(@import.client.products, 'update').andCallFake ->
+      spy.andCallThrough() # next time call through
+
+      # return 409 - concurrentModification error code
+      Promise.reject
+        statusCode: 409
+
+    ensureResource(@client.productTypes, "name=\"#{bigProductType.name}\"", bigProductType)
+    .then (_productType) =>
+      productType = _productType
+      productDraftClone = _.deepClone(productDraft)
+      @import.performStream([productDraftClone], _.noop)
+    .then =>
+      productDraft.masterVariant.attributes = [1..900].map (i) ->
+        name: "attr_#{i}"
+        value: i
+
+      productDraft.variants[0].attributes = [1..635].map (i) ->
+        name: "attr_#{i}"
+        value: i
+      @import.performStream([productDraft], _.noop)
+    .then =>
+      @client.productProjections.staged(true)
+      .all()
+      .where("productType(id=\"#{productType.id}\")")
+      .fetch()
+      .then (result) ->
+        expect(result.body.results.length).toBe(1)
+        product = result.body.results[0]
+
+        expect(product.masterVariant.attributes.length).toBe(900)
+        expect(product.variants[0].attributes.length).toBe(635)
+        done()
