@@ -245,14 +245,17 @@ class ProductImport
       Promise.resolve => # next task must be a function
         @client.productProjections.staged(true).byId(existingProduct.id).fetch()
         .then (result) =>
-          @_updateProduct(prodToProcess, result.body)
+          @_updateProduct(prodToProcess, result.body, true)
 
-  _updateProduct: (_prodToProcess, existingProduct) ->
-    prodToProcess = _.deepClone(_prodToProcess)
-
+  _updateProduct: (prodToProcess, existingProduct, productIsPrepared) ->
     @_fetchSameForAllAttributesOfProductType(prodToProcess.productType)
     .then (sameForAllAttributes) =>
-      @_prepareUpdateProduct(prodToProcess, existingProduct)
+      productPromise = Promise.resolve(prodToProcess)
+
+      if not productIsPrepared
+        productPromise = @_prepareUpdateProduct(prodToProcess, existingProduct)
+
+      productPromise
       .then (preparedProduct) =>
         synced = @sync.buildActions(preparedProduct, existingProduct, sameForAllAttributes)
           .filterActions (action) =>
