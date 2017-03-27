@@ -15,7 +15,7 @@ unpublishProduct = (logger, client, product) ->
 
 deleteProduct = (logger, client, product) ->
   unpublishProduct(logger, client, product)
-  .then (response) =>
+  .then (response) ->
     client.products.byId(response.id).delete(response.version)
     .then (results) ->
       logger.debug "#{_.size results} deleted."
