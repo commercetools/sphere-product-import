@@ -24,6 +24,7 @@ class ProductImport
     @filterUnknownAttributes = options.filterUnknownAttributes or false
     @ignoreSlugUpdates = options.ignoreSlugUpdates or false
     @batchSize = options.batchSize or 30
+    @failOnDuplicateAttr = options.failOnDuplicateAttr or false
     @client = new SphereClient options.clientConfig
     @enumValidator = new EnumValidator @logger
     @unknownAttributesFilter = new UnknownAttributesFilter @logger
@@ -281,11 +282,45 @@ class ProductImport
           latestVersion = res.body.version
     .then _.last # return only the last result
 
+  _cleanVariantAttributes: (variant) ->
+    attributeMap = []
+
+    if _.isArray(variant.attributes)
+      variant.attributes = variant.attributes.filter (attribute) =>
+        isDuplicate = attributeMap.indexOf(attribute.name) >= 0
+        attributeMap.push(attribute.name)
+
+        if isDuplicate
+          msg = "Variant with SKU '#{variant.sku}' has duplicate attributes with name '#{attribute.name}'."
+          if @failOnDuplicateAttr
+            throw new Error(msg)
+          else
+            @logger.warn msg
+          return false
+        return true
+    variant
+
+  _cleanDuplicateAttributes: (prodToProcess) ->
+    prodToProcess.variants = prodToProcess.variants || []
+
+    try
+      @_cleanVariantAttributes prodToProcess.masterVariant
+      prodToProcess.variants.forEach (variant) =>
+        @_cleanVariantAttributes variant
+    catch e
+      return Promise.reject({
+        error: e.toString()
+      })
+
+    Promise.resolve(prodToProcess)
+
   _createOrUpdate: (productsToProcess, existingProducts) ->
     debug 'Products to process: %j', {toProcess: productsToProcess, existing: existingProducts}
 
     posts = _.map productsToProcess, (product) =>
       @_filterAttributes(product)
+      .then (prodToProcess) =>
+        @_cleanDuplicateAttributes(prodToProcess)
       .then (prodToProcess) =>
         existingProduct = @_isExistingEntry(prodToProcess, existingProducts)
         if existingProduct?

@@ -1,3 +1,5 @@
+os = require 'os'
+path = require 'path'
 debug = require('debug')('spec:it:sphere-product-import')
 _ = require 'underscore'
 _.mixin require 'underscore-mixins'
@@ -153,7 +155,8 @@ describe 'Product Importer integration tests', ->
     @client = @import.client
 
     logger.info 'About to setup...'
-    ensureResource(@client.productTypes, 'name="productTypeForProductImport"', sampleProductTypeForProduct)
+    cleanProducts(logger, @client)
+    .then () => ensureResource(@client.productTypes, 'name="productTypeForProductImport"', sampleProductTypeForProduct)
     .then (@productType) => ensureResource(@client.customerGroups, 'name="test-group"', sampleCustomerGroup)
     .then (@customerGroup) => ensureResource(@client.channels, 'key="test-channel"', sampleChannel)
     .then (@channel) =>
@@ -165,18 +168,21 @@ describe 'Product Importer integration tests', ->
 
   afterEach (done) ->
     logger.info 'About to cleanup...'
-    @client.productProjections.staged(true)
-      .all()
-      .fetch()
-      .then (result) =>
-        Promise.map result.body.results, (result) =>
-          deleteProductById(logger, @client, result.id)
+    cleanProducts(logger, @client)
       .then => cleanup(logger, @client.productTypes, @productType.id)
       .then => cleanup(logger, @client.customerGroups, @customerGroup.id)
       .then => cleanup(logger, @client.channels, @channel.id)
       .then => cleanup(logger, @client.categories, @category.id)
       .then -> done()
       .catch (err) -> done(_.prettify err)
+
+  cleanProducts = (logger, client) =>
+    client.productProjections.staged(true)
+      .all()
+      .fetch()
+      .then (result) =>
+        Promise.map result.body.results, (result) =>
+          deleteProductById(logger, client, result.id)
 
   cleanup = (logger, service, id) ->
     service.byId(id).fetch()
@@ -194,6 +200,100 @@ describe 'Product Importer integration tests', ->
       .then (result) ->
         expect(result.body.results.length).toBe(2)
         done()
+
+  it 'should import and update products with duplicate attributes', (done) ->
+    productType = null
+
+    productDraft = createProduct()[0]
+    productDraft.productType.id = bigProductType.name
+
+    productDraftClone = _.deepClone(productDraft)
+    productDraftClone.masterVariant.attributes = []
+    productDraftClone.variants[0].attributes = []
+
+    productDraftClone.masterVariant.attributes.push
+      name: 'attr_1'
+      value: 1
+    productDraftClone.masterVariant.attributes.push
+      name: 'attr_1'
+      value: 2
+
+    productDraftClone.variants[0].attributes.push
+      name: 'attr_1'
+      value: 1
+
+    ensureResource(@client.productTypes, "name=\"#{bigProductType.name}\"", bigProductType)
+    .then (_productType) =>
+      productType = _productType
+      @import.performStream([productDraftClone], _.noop)
+    .then =>
+      @client.productProjections.staged(true)
+        .all()
+        .where("productType(id=\"#{productType.id}\")")
+        .fetch()
+    .then (result) =>
+      expect(result.body.results.length).toBe(1)
+      product = result.body.results[0]
+
+      expect(product.masterVariant.attributes.length).toBe(1)
+      expect(product.variants[0].attributes.length).toBe(1)
+
+      # should take first value from duplicate attributes
+      expect(product.masterVariant.attributes[0].name).toBe('attr_1')
+      expect(product.masterVariant.attributes[0].value).toBe(1)
+
+      expect(product.variants[0].attributes[0].name).toBe('attr_1')
+      expect(product.variants[0].attributes[0].value).toBe(1)
+
+      productDraft.masterVariant.attributes = [5..10].map (i) ->
+        name: "attr_1"
+        value: i
+
+      @import.performStream([productDraft], _.noop)
+    .then =>
+      @client.productProjections.staged(true)
+        .all()
+        .where("productType(id=\"#{productType.id}\")")
+        .fetch()
+    .then (result) ->
+      expect(result.body.results.length).toBe(1)
+      product = result.body.results[0]
+
+      expect(product.masterVariant.attributes.length).toBe(1)
+      expect(product.masterVariant.attributes[0].name).toBe('attr_1')
+      expect(product.masterVariant.attributes[0].value).toBe(5)
+
+      done()
+    .catch done
+
+  it 'should fail on duplicate attribute', (done) ->
+    productType = null
+    configLocal = _.deepClone(config)
+    configLocal.errorDir = os.tmpdir()
+    importer = new ProductImport logger, configLocal
+    importer.failOnDuplicateAttr = true
+
+    productDraft = createProduct()[0]
+    productDraft.productType.id = bigProductType.name
+    productDraft.masterVariant.attributes = []
+    productDraft.masterVariant.attributes.push
+      name: 'attr_1'
+      value: 1
+    productDraft.masterVariant.attributes.push
+      name: 'attr_1'
+      value: 2
+
+    ensureResource(@client.productTypes, "name=\"#{bigProductType.name}\"", bigProductType)
+    .then (_productType) =>
+      productType = _productType
+      importer.performStream([productDraft], _.noop)
+    .then () =>
+      expect(importer._summary.failed).toBe(1)
+      errorJson = require path.join(importer._summary.errorDir, 'error-1.json')
+
+      expect(errorJson.error).toBe('Error: Variant with SKU \'sku1\' has duplicate attributes with name \'attr_1\'.')
+      done()
+    .catch done
 
   it 'should import and update large products', (done) ->
     productType = null

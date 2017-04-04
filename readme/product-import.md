@@ -24,6 +24,7 @@ Accepts a list of products in a valid [JSON Schema](https://github.com/sphereio/
       * variants
       * categories
     * ensureEnums: when set to `true`, any new enum keys will be added to existing enums. Default: `false`
+    * failOnDuplicateAttr: when set to `true` import will fail when importing product with duplicate attributes, otherwise will take only the first occurrence and log a warning message. Default: `false` 
     * filterUnknownAttributes: when set to `true` will ignore any attributes not defined in the product type of the product being imported. Default: `false`
     * ignoreSlugUpdates: when set to `true` will ignore all slug updates for existing product updates. Default: `false`
     * batchSize: number of products to be processed in each batch. Default: 30
