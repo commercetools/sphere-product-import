@@ -269,7 +269,7 @@ describe 'Product Importer integration tests', ->
   it 'should fail on duplicate attribute', (done) ->
     productType = null
     configLocal = _.deepClone(config)
-    configLocal.errorDir = os.tmpdir()
+    configLocal.errorDir = path.join(os.tmpdir(), 'errors')
     importer = new ProductImport logger, configLocal
     importer.failOnDuplicateAttr = true
 
