@@ -290,8 +290,7 @@ describe 'Product Importer integration tests', ->
     .then () =>
       expect(importer._summary.failed).toBe(1)
       errorJson = require path.join(importer._summary.errorDir, 'error-1.json')
-
-      expect(errorJson.error).toBe('Error: Variant with SKU \'sku1\' has duplicate attributes with name \'attr_1\'.')
+      expect(errorJson.message).toBe('Variant with SKU \'sku1\' has duplicate attributes with name \'attr_1\'.')
       done()
     .catch done
 

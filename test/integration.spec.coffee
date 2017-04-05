@@ -369,10 +369,10 @@ describe 'Product import integration tests', ->
 
     # inject prices with custom fields
     product.masterVariant.prices = prices
-    @import.errorCallback = (r, logger) ->
+    @import.errorCallback = (err, logger) ->
       errorLogger = logger
       errorCount += 1
-      error = r.reason().toString()
+      error = err.toString()
 
     @import._processBatches([product])
     .then =>

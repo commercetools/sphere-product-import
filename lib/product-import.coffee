@@ -7,6 +7,7 @@ slugify = require 'underscore.string/slugify'
 {Repeater} = require 'sphere-node-utils'
 fs = require 'fs-extra'
 path = require 'path'
+serializeError = require 'serialize-error'
 EnumValidator = require './enum-validator'
 UnknownAttributesFilter = require './unknown-attributes-filter'
 CommonUtils = require './common-utils'
@@ -25,6 +26,7 @@ class ProductImport
     @ignoreSlugUpdates = options.ignoreSlugUpdates or false
     @batchSize = options.batchSize or 30
     @failOnDuplicateAttr = options.failOnDuplicateAttr or false
+    @logOnDuplicateAttr = if options.logOnDuplicateAttr? then options.logOnDuplicateAttr else true
     @client = new SphereClient options.clientConfig
     @enumValidator = new EnumValidator @logger
     @unknownAttributesFilter = new UnknownAttributesFilter @logger
@@ -190,13 +192,15 @@ class ProductImport
     if res.isFulfilled()
       @_handleFulfilledResponse(res)
     else if res.isRejected()
+      error = serializeError res.reason()
+
       @_summary.failed++
       if @errorDir
         errorFile = path.join(@errorDir, "error-#{@_summary.failed}.json")
-        fs.outputJsonSync(errorFile, res.reason(), {spaces: 2})
+        fs.outputJsonSync(errorFile, error, {spaces: 2})
 
       if _.isFunction(@errorCallback)
-        @errorCallback(res, @logger)
+        @errorCallback(error, @logger)
       else
         @logger.error "Error callback has to be a function!"
 
@@ -294,25 +298,19 @@ class ProductImport
           msg = "Variant with SKU '#{variant.sku}' has duplicate attributes with name '#{attribute.name}'."
           if @failOnDuplicateAttr
             throw new Error(msg)
-          else
+          else if @logOnDuplicateAttr
             @logger.warn msg
           return false
         return true
-    variant
 
   _cleanDuplicateAttributes: (prodToProcess) ->
     prodToProcess.variants = prodToProcess.variants || []
 
-    try
-      @_cleanVariantAttributes prodToProcess.masterVariant
-      prodToProcess.variants.forEach (variant) =>
-        @_cleanVariantAttributes variant
-    catch e
-      return Promise.reject({
-        error: e.toString()
-      })
+    @_cleanVariantAttributes prodToProcess.masterVariant
+    prodToProcess.variants.forEach (variant) =>
+      @_cleanVariantAttributes variant
 
-    Promise.resolve(prodToProcess)
+    prodToProcess
 
   _createOrUpdate: (productsToProcess, existingProducts) ->
     debug 'Products to process: %j', {toProcess: productsToProcess, existing: existingProducts}
@@ -320,8 +318,7 @@ class ProductImport
     posts = _.map productsToProcess, (product) =>
       @_filterAttributes(product)
       .then (prodToProcess) =>
-        @_cleanDuplicateAttributes(prodToProcess)
-      .then (prodToProcess) =>
+        prodToProcess = @_cleanDuplicateAttributes(prodToProcess)
         existingProduct = @_isExistingEntry(prodToProcess, existingProducts)
         if existingProduct?
           @_updateProductRepeater(prodToProcess, existingProduct)
