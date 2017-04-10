@@ -310,15 +310,14 @@ class ProductImport
     prodToProcess.variants.forEach (variant) =>
       @_cleanVariantAttributes variant
 
-    prodToProcess
-
   _createOrUpdate: (productsToProcess, existingProducts) ->
     debug 'Products to process: %j', {toProcess: productsToProcess, existing: existingProducts}
 
     posts = _.map productsToProcess, (product) =>
       @_filterAttributes(product)
       .then (prodToProcess) =>
-        prodToProcess = @_cleanDuplicateAttributes(prodToProcess)
+        # will filter out duplicate attributes
+        @_cleanDuplicateAttributes(prodToProcess)
         existingProduct = @_isExistingEntry(prodToProcess, existingProducts)
         if existingProduct?
           @_updateProductRepeater(prodToProcess, existingProduct)
