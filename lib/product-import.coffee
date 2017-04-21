@@ -300,8 +300,8 @@ class ProductImport
             throw new Error(msg)
           else if @logOnDuplicateAttr
             @logger.warn msg
-          return false
-        return true
+        # filter out duplicate attributes
+        not isDuplicate
 
   _cleanDuplicateAttributes: (prodToProcess) ->
     prodToProcess.variants = prodToProcess.variants || []
