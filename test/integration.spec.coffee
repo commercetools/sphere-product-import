@@ -76,7 +76,7 @@ describe 'Product import integration tests', ->
   , 10000 # 10sec
 
 
-  it ' should import two new products', (done) ->
+  it 'should import two new products', (done) ->
     sampleImport = _.deepClone(sampleImportJson)
     @import._processBatches(sampleImport.products)
     .then =>
@@ -101,7 +101,7 @@ describe 'Product import integration tests', ->
     .catch done
   , 10000
 
-  it ' should do nothing for empty products list', (done) ->
+  it 'should do nothing for empty products list', (done) ->
     @import._processBatches([])
     .then =>
       expect(@import._summary.created).toBe 0
@@ -110,7 +110,7 @@ describe 'Product import integration tests', ->
     .catch done
   , 10000
 
-  it ' should generate missing slug', (done) ->
+  it 'should generate missing slug', (done) ->
     sampleImport = _.deepClone(sampleImportJson)
     delete sampleImport.products[0].slug
     delete sampleImport.products[1].slug
@@ -129,7 +129,7 @@ describe 'Product import integration tests', ->
     .catch done
   , 10000
 
-  it ' should update existing product',  (done) ->
+  it 'should update existing product',  (done) ->
     sampleImport = _.deepClone(sampleImportJson)
     sampleUpdateRef = _.deepClone(sampleImportJson)
     sampleUpdate = _.deepClone(sampleImportJson)
@@ -167,7 +167,7 @@ describe 'Product import integration tests', ->
     .catch (err) -> done(_.prettify err.body)
   , 10000
 
-  it ' should continue on error - duplicate slug', (done) ->
+  it 'should continue on error - duplicate slug', (done) ->
     # FIXME: looks like the API doesn't correctly validate for duplicate slugs
     # for 2 concurrent requests (this happens randomly).
     # For now we have to test it as 2 separate imports.
@@ -193,7 +193,7 @@ describe 'Product import integration tests', ->
       done()
     .catch done
 
-  it ' should continue of error - missing product name', (done) ->
+  it 'should continue of error - missing product name', (done) ->
     deleteProducts(@logger, @client)
     .then => ensureResource(@client.productTypes, 'name="Sample Product Type"', sampleProductType)
     .then =>
@@ -208,7 +208,7 @@ describe 'Product import integration tests', ->
       .catch done
   , 10000
 
-  it ' should handle set type attributes correctly', (done) ->
+  it 'should handle set type attributes correctly', (done) ->
     sampleImport = _.deepClone sampleImportJson
 
     setTextAttribute =
@@ -240,7 +240,7 @@ describe 'Product import integration tests', ->
     .catch done
   , 10000
 
-  it ' should filter unknown attributes and import product without errors', (done) ->
+  it 'should filter unknown attributes and import product without errors', (done) ->
     sampleImport = _.deepClone sampleImportJson
 
     unknownAttribute =
@@ -257,9 +257,10 @@ describe 'Product import integration tests', ->
     .catch done
   , 10000
 
-  it ' should update/create product with a new enum key', (done) ->
+  it 'should update/create product with a new enum key', (done) ->
     @logger.info ':: should update/create product with a new enum key'
     sampleImport = _.deepClone sampleImportJson
+    productClone = _.deepClone(sampleImport.products[0])
 
     existingEnumKeyAttr =
       name: 'sample_enum_attribute'
@@ -275,38 +276,39 @@ describe 'Product import integration tests', ->
         key: 'enum-new-key'
         label: 'enum-new-key'
 
-    newEnumKeyAttr2 =
-      name: 'sample_enum_attribute'
-      value: 'enum-3-new-key'
-
-    expectedNewEnumKeyAttr2 =
-      name: 'sample_enum_attribute'
-      value:
-        key: 'enum-3-new-key'
-        label: 'enum-3-new-key'
-
     sampleImport.products[0].masterVariant.attributes.push(existingEnumKeyAttr)
     sampleImport.products[0].masterVariant.attributes.push(newEnumKeyAttr)
-    sampleImport.products[0].masterVariant.attributes.push(newEnumKeyAttr2)
-    sampleImport.products[1].variants[0].attributes.push(existingEnumKeyAttr)
-    sampleImport.products[1].variants[0].attributes.push(newEnumKeyAttr)
 
     predicate = "masterVariant(sku=#{JSON.stringify("eqsmlg-9'2\"\"")})"
 
+    # create product
     @import._processBatches(sampleImport.products)
     .then =>
       expect(@import._summary.created).toBe 2
       @client.productProjections.where(predicate).staged(true).fetch()
+    .then (result) =>
+      product = result.body.results[0]
+      expect(product.masterVariant.attributes[0]).toEqual
+        name: 'sample_enum_attribute',
+        value:
+          label: 'Enum 1 Label',
+          key: 'enum-1-key'
+
+      productClone.masterVariant.attributes.push(newEnumKeyAttr)
+      # update product
+      @import._processBatches([productClone])
+    .then =>
+      expect(@import._summary.updated).toBe 1
+      @client.productProjections.where(predicate).staged(true).fetch()
     .then (result) ->
-      filterPredicate1 = (element) -> _.isEqual(element,expectedNewEnumKeyAttr)
-      filterPredicate2 = (element) -> _.isEqual(element,expectedNewEnumKeyAttr2)
-      expect(_.find(result.body.results[0].masterVariant.attributes, filterPredicate1)).toBeDefined()
-      expect(_.find(result.body.results[0].masterVariant.attributes, filterPredicate2)).toBeDefined()
+      product = result.body.results[0]
+      expect(product.masterVariant.attributes[0]).toEqual expectedNewEnumKeyAttr
+
       done()
     .catch done
 
 
-  it ' should create product with custom price attributes', (done) ->
+  it 'should create product with custom price attributes', (done) ->
     @logger.info ':: should create product with custom price attributes'
     product = _.deepClone sampleImportJson.products[0]
     predicate = "masterVariant(sku=#{JSON.stringify(product.masterVariant.sku)})"
@@ -343,7 +345,7 @@ describe 'Product import integration tests', ->
     .catch done
 
 
-  it ' should throw an error when importing non existing price reference', (done) ->
+  it 'should throw an error when importing non existing price reference', (done) ->
     @logger.info ':: should throw an error when importing non existing price reference'
     product = _.deepClone sampleImportJson.products[0]
     errorLogger = null
@@ -367,10 +369,10 @@ describe 'Product import integration tests', ->
 
     # inject prices with custom fields
     product.masterVariant.prices = prices
-    @import.errorCallback = (r, logger) ->
+    @import.errorCallback = (err, logger) ->
       errorLogger = logger
       errorCount += 1
-      error = r.reason().toString()
+      error = err.toString()
 
     @import._processBatches([product])
     .then =>

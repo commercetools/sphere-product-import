@@ -548,7 +548,7 @@ describe 'ProductImport unit tests', ->
 
       @import.client.products = {}
       @import.client.products.byId = () => @import.client.products
-      @import.client.products.update = () => @import.client.products
+      @import.client.products.update = () => Promise.resolve({ body: {} })
 
       @import._resolveReference = (service, refKey, ref, predicate) ->
         if(predicate.indexOf('throw exception') > 0)
