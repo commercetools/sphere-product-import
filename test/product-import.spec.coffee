@@ -676,12 +676,12 @@ describe 'ProductImport unit tests', ->
       .finally -> done()
 
   describe '::_createProductFetchBySkuQueryPredicate', ->
-    it 'should return valid predicate if no skus is provided', ->
+    it 'should return valid predicate if no skus are provided', ->
       actual = @import._createProductFetchBySkuQueryPredicate []
       expected = 'masterVariant(sku in ("")) or variants(sku in (""))'
       expect(actual).toEqual(expected)
 
-    it 'should return valid predicate if no skus is provided', ->
+    it 'should return valid predicate if no skus are provided', ->
       actual = @import._createProductFetchBySkuQueryPredicate ['sku1', 'sku2']
       expected = 'masterVariant(sku in ("sku1","sku2")) or variants(sku in ("sku1","sku2"))'
       expect(actual).toEqual(expected)
