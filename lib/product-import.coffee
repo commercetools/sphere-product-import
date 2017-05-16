@@ -210,8 +210,11 @@ class ProductImport
       when 200 then @_summary.updated++
 
   _createProductFetchBySkuQueryPredicate: (skus) ->
-    skuString = "sku in (#{skus.map((val) -> JSON.stringify(val))})"
-    return "masterVariant(#{skuString}) or variants(#{skuString})"
+    if skus.length is 0
+      'masterVariant(sku in ("")) or variants(sku in (""))'
+    else
+      skuString = "sku in (#{skus.map((val) -> JSON.stringify(val))})"
+      "masterVariant(#{skuString}) or variants(#{skuString})"
 
   _extractUniqueSkus: (products) ->
     skus = []

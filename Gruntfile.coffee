@@ -66,7 +66,7 @@ module.exports = (grunt) ->
         stderr: true
         failOnError: true
       jasmine:
-        command: "./node_modules/.bin/jasmine-node --verbose --captureExceptions --coffee test"
+        command: "./node_modules/.bin/jasmine-node --captureExceptions --coffee test"
       publish:
         command: 'npm publish'
 
