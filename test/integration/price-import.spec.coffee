@@ -127,30 +127,46 @@ describe 'Price Importer integration tests', ->
   , 30000 # 30sec
 
   it 'should update prices of a product', (done) ->
-
-    @import.performStream _.deepClone(prices), (res) =>
+    _prices = _.deepClone(prices)
+    _prices.push
+      sku: 'unknownSku'
+      prices: [
+        {
+          value:
+            centAmount: 6666
+            currencyCode: 'EUR'
+        }
+      ]
+    @import.performStream _prices, (res) =>
       expect(res).toBeUndefined()
       @client.productProjections.staged(true).all().fetch()
-      .then (res) =>
-        expect(_.size res.body.results).toBe 1
-        product = res.body.results[0]
-        expect(_.size product.masterVariant.prices).toBe 2
-        expect(product.masterVariant.prices[0].customerGroup.id).toBe @customerGroup.id
-        expect(product.masterVariant.prices[1].customerGroup.id).toBe @customerGroup.id
-        expect(product.masterVariant.prices[1].channel.id).toBe @channel.id
-        expect(product.masterVariant.prices[0].value.centAmount).toBe 9999
-        expect(product.masterVariant.prices[0].value.currencyCode).toBe 'EUR'
-        expect(_.size product.variants[0].prices).toBe 1
-        expect(product.variants[0].prices[0].value.centAmount).toBe 666
-        expect(product.variants[0].prices[0].value.currencyCode).toBe 'JPY'
-        expect(product.variants[0].prices[0].country).toBe 'JP'
-        expect(product.variants[0].prices[0].customerGroup.id).toBe @customerGroup.id
-        expect(_.size product.variants[1].prices).toBe 1
-        expect(product.variants[1].prices[0].value.centAmount).toBe 9
-        expect(product.variants[1].prices[0].value.currencyCode).toBe 'GBP'
-        done()
-      .catch (err) ->
-        done(_.prettify err.body)
+    .then (res) =>
+      expect(@import._summary).toEqual
+        unknownSKUCount: 1
+        duplicatedSKUs: 0
+        variantWithoutPriceUpdates: 1
+        updated: 1
+        failed: 0
+
+      expect(_.size res.body.results).toBe 1
+      product = res.body.results[0]
+      expect(_.size product.masterVariant.prices).toBe 2
+      expect(product.masterVariant.prices[0].customerGroup.id).toBe @customerGroup.id
+      expect(product.masterVariant.prices[1].customerGroup.id).toBe @customerGroup.id
+      expect(product.masterVariant.prices[1].channel.id).toBe @channel.id
+      expect(product.masterVariant.prices[0].value.centAmount).toBe 9999
+      expect(product.masterVariant.prices[0].value.currencyCode).toBe 'EUR'
+      expect(_.size product.variants[0].prices).toBe 1
+      expect(product.variants[0].prices[0].value.centAmount).toBe 666
+      expect(product.variants[0].prices[0].value.currencyCode).toBe 'JPY'
+      expect(product.variants[0].prices[0].country).toBe 'JP'
+      expect(product.variants[0].prices[0].customerGroup.id).toBe @customerGroup.id
+      expect(_.size product.variants[1].prices).toBe 1
+      expect(product.variants[1].prices[0].value.centAmount).toBe 9
+      expect(product.variants[1].prices[0].value.currencyCode).toBe 'GBP'
+      done()
+    .catch (err) ->
+      done(_.prettify err.body)
   , 30000
 
   it 'should update prices and publish the product', (done) ->
