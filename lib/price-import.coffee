@@ -25,13 +25,8 @@ class PriceImport extends ProductImport
       failed: 0
 
   summaryReport: ->
-    if @_summary.updated is 0
-      message = 'Summary: nothing to update'
-    else
-      message = "Summary: there were #{@_summary.updated} price update(s)." +
-        "(unknown skus: #{@_summary.unknownSKUCount}, duplicate skus: #{@_summary.duplicatedSKUs}, variants without price updates: #{@_summary.variantWithoutPriceUpdates})"
-
-    message
+    "Summary: there were #{@_summary.updated} price update(s). " +
+      "(unknown skus: #{@_summary.unknownSKUCount}, duplicate skus: #{@_summary.duplicatedSKUs}, variants without price updates: #{@_summary.variantWithoutPriceUpdates})"
 
   _processBatches: (prices) ->
     batchedList = _.batchList(prices, @batchSize) # max parallel elements to process
@@ -153,17 +148,22 @@ class PriceImport extends ProductImport
         @logger.warn "Duplicate SKU found - '#{p.sku}' - ignoring!"
         @_summary.duplicatedSKUs++
 
-    _.map products, (p) =>
+    productsWithPrices = _.map products, (p) =>
       product = _.deepClone p
       @_wrapPricesIntoVariant product.masterVariant, prices, sku2index
       _.each product.variants, (v) =>
         @_wrapPricesIntoVariant v, prices, sku2index
       product
 
+    # Add prices which were not mapped into any product
+    @_summary.unknownSKUCount += Object.keys(sku2index).length
+    productsWithPrices
+
   _wrapPricesIntoVariant: (variant, prices, sku2index) ->
     if _.has(sku2index, variant.sku)
       index = sku2index[variant.sku]
       variant.prices = _.deepClone prices[index].prices
+      delete sku2index[variant.sku]
     else
       @_summary.variantWithoutPriceUpdates++
 
