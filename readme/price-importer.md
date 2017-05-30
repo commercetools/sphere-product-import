@@ -24,7 +24,7 @@ Price Importer is used to import the prices for `existing` products of a project
 
 ### Sample Input
 
-      prices = [
+      [
             {
               sku: 'sku1'
               prices: [
