@@ -168,6 +168,7 @@ class ProductImport
         @client.productProjections
         .where(predicate)
         .staged(true)
+        .perPage(100)
         .all()
         .fetch()
         .then (res) ->
