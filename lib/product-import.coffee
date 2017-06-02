@@ -126,7 +126,7 @@ class ProductImport
           @_updateProductType(uniqueEnumUpdateActions)
       .then =>
         skus = @_extractUniqueSkus(productsToProcess)
-        @_getExistingProductsForSkus(skus)
+        if skus.length then @_getExistingProductsForSkus(skus) else []
       .then (queriedEntries) =>
         if @defaultAttributesService
           debug 'Ensuring default attributes'
@@ -164,16 +164,15 @@ class ProductImport
         @_getWhereQueryLimit()
       )
       Promise.map(skuChunks, (skus) =>
-        new Promise (resolve, reject) =>
-          predicate = @_createProductFetchBySkuQueryPredicate(skus)
-          @client.productProjections
-          .where(predicate)
-          .staged(true)
-          .all()
-          .fetch()
-          .then ({ body: { results } }) ->
-            resolve(results)
-          .catch (err) -> reject(err)
+        predicate = @_createProductFetchBySkuQueryPredicate(skus)
+        @client.productProjections
+        .where(predicate)
+        .staged(true)
+        .perPage(100)
+        .all()
+        .fetch()
+        .then (res) ->
+          res.body.results
       , { concurrency: 30 })
       .then (results) ->
         debug 'Fetched products: %j', results
@@ -210,11 +209,8 @@ class ProductImport
       when 200 then @_summary.updated++
 
   _createProductFetchBySkuQueryPredicate: (skus) ->
-    if skus.length is 0
-      'masterVariant(sku in ("")) or variants(sku in (""))'
-    else
-      skuString = "sku in (#{skus.map((val) -> JSON.stringify(val))})"
-      "masterVariant(#{skuString}) or variants(#{skuString})"
+    skuString = "sku in (#{skus.map((val) -> JSON.stringify(val))})"
+    "masterVariant(#{skuString}) or variants(#{skuString})"
 
   _extractUniqueSkus: (products) ->
     skus = []

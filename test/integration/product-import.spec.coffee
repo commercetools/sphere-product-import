@@ -189,6 +189,36 @@ describe 'Product Importer integration tests', ->
     .then (result) ->
       service.byId(id).delete(result.body.version)
 
+  it 'should handle an empty import', (done) ->
+    @import.performStream([], -> {})
+    .then =>
+      @client.productProjections.staged(true)
+      .all()
+      .where("productType(id=\"#{@productType.id}\")")
+      .fetch()
+    .then (result) ->
+      expect(result.body.results.length).toBe(0)
+      done()
+
+  it 'should import products even when they do not have SKUs', (done) ->
+    productDraft = createProduct()[0]
+    productDraft.masterVariant.id = 1
+    delete productDraft.masterVariant.sku
+    productDraft.variants[0].id = 2
+    delete productDraft.variants[0].sku
+    productDraft.variants[1].id = 3
+    delete productDraft.variants[1].sku
+
+    @import.performStream([productDraft], -> {})
+    .then =>
+      @client.productProjections.staged(true)
+      .all()
+      .where("productType(id=\"#{@productType.id}\")")
+      .fetch()
+    .then (result) ->
+      expect(result.body.results.length).toBe(1)
+      done()
+
   it 'should skip and continue on category not found', (done) ->
     productDrafts = createProduct()
     @import.performStream(productDrafts, -> {})
