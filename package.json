@@ -33,6 +33,7 @@
   },
   "scripts": {
     "build": "grunt build",
+    "lint": "grunt coffeelint",
     "grunt": "grunt",
     "test": "grunt test"
   },
