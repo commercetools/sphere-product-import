@@ -24,6 +24,9 @@ class EnsureDefaultAttributes
     Promise.resolve(updatedProduct)
 
   _ensureInVariant: (variant, serverVariant) =>
+    # This variable gets updated in the _updateAttribute method
+    # so we should ensure that the original @defaultAttributes won't change
+    # because they can be used later also on other products
     defaultAttributes = _.deepClone(@defaultAttributes)
     if not variant.attributes
       return variant

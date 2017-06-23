@@ -131,7 +131,7 @@ class ProductImport
         if @defaultAttributesService
           debug 'Ensuring default attributes'
           @_ensureDefaultAttributesInProducts(productsToProcess, queriedEntries)
-          .then () =>
+          .then ->
             Promise.resolve(queriedEntries)
         else
           Promise.resolve(queriedEntries)
@@ -143,7 +143,7 @@ class ProductImport
         Promise.resolve(@_summary)
     , { concurrency: 1 } # run 1 batch at a time
 
-  _getWhereQueryLimit: () ->
+  _getWhereQueryLimit: ->
     client = @client.productProjections
     .where('a')
     .staged(true)
@@ -168,6 +168,7 @@ class ProductImport
         @client.productProjections
         .where(predicate)
         .staged(true)
+        .perPage(200)
         .all()
         .fetch()
         .then (res) ->
