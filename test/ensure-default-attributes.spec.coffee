@@ -13,6 +13,12 @@ defaultAttributes = [
 ,
   name: 'defaultAttribute3'
   value: 'attributeValue3'
+,
+  name: 'booleanTrueAttribute'
+  value: true
+,
+  name: 'booleanFalseAttribute'
+  value: false
 ]
 
 variantAttributes = [
@@ -60,6 +66,8 @@ describe 'Ensure default attributes unit tests', ->
     expectedVariant = _.deepClone(inputVariant)
     expectedVariant.attributes.push(defaultAttributes[1])
     expectedVariant.attributes.push(defaultAttributes[2])
+    expectedVariant.attributes.push(defaultAttributes[3])
+    expectedVariant.attributes.push(defaultAttributes[4])
     expect(@import._ensureInVariant(inputVariant)).toEqual(expectedVariant)
 
   it ' :: should ensure default attributes in product', (done) ->
@@ -70,6 +78,8 @@ describe 'Ensure default attributes unit tests', ->
     expectedVariant = _.deepClone(inputVariant)
     expectedVariant.attributes.push(defaultAttributes[1])
     expectedVariant.attributes.push(defaultAttributes[2])
+    expectedVariant.attributes.push(defaultAttributes[3])
+    expectedVariant.attributes.push(defaultAttributes[4])
     inputProduct = {}
     inputProduct.masterVariant = inputVariant
     inputProduct.variants = []
@@ -86,6 +96,7 @@ describe 'Ensure default attributes unit tests', ->
 
   it ' :: should not overwrite existing attributes', (done) ->
     inputVariant = {}
+    oldDefaultAttributes = _.deepClone(defaultAttributes)
     extendedVariantAttributes = _.deepClone(variantAttributes)
     inputVariant.attributes = extendedVariantAttributes
     inputProduct = {}
@@ -111,4 +122,5 @@ describe 'Ensure default attributes unit tests', ->
 
       expectedVariantAttribute = @import._isAttributeExisting(serverAttribute, updatedProduct.variants[0].attributes)
       expect(expectedVariantAttribute.value).toBe(expectedAttributeValue)
+      expect(defaultAttributes).toEqual(oldDefaultAttributes)
     .finally done
