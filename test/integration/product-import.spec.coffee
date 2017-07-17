@@ -156,7 +156,7 @@ describe 'Product Importer integration tests', ->
 
     logger.info 'About to setup...'
     cleanProducts(logger, @client)
-    .then () => ensureResource(@client.productTypes, 'name="productTypeForProductImport"', sampleProductTypeForProduct)
+    .then => ensureResource(@client.productTypes, 'name="productTypeForProductImport"', sampleProductTypeForProduct)
     .then (@productType) => ensureResource(@client.customerGroups, 'name="test-group"', sampleCustomerGroup)
     .then (@customerGroup) => ensureResource(@client.channels, 'key="test-channel"', sampleChannel)
     .then (@channel) =>
@@ -176,12 +176,12 @@ describe 'Product Importer integration tests', ->
       .then -> done()
       .catch (err) -> done(_.prettify err)
 
-  cleanProducts = (logger, client) =>
+  cleanProducts = (logger, client) ->
     client.productProjections.staged(true)
       .all()
       .fetch()
-      .then (result) =>
-        Promise.map result.body.results, (result) =>
+      .then (result) ->
+        Promise.map result.body.results, (result) ->
           deleteProductById(logger, client, result.id)
 
   cleanup = (logger, service, id) ->
@@ -200,7 +200,7 @@ describe 'Product Importer integration tests', ->
       expect(result.body.results.length).toBe(0)
       done()
 
-  it 'should import products even when they do not have SKUs', (done) ->
+  it 'should not import products when they do not have SKUs', (done) ->
     productDraft = createProduct()[0]
     productDraft.masterVariant.id = 1
     delete productDraft.masterVariant.sku
@@ -215,8 +215,9 @@ describe 'Product Importer integration tests', ->
       .all()
       .where("productType(id=\"#{@productType.id}\")")
       .fetch()
-    .then (result) ->
-      expect(result.body.results.length).toBe(1)
+    .then (result) =>
+      expect(result.body.results.length).toBe(0)
+      expect(@import._summary.missingSKU).toBe(1)
       done()
 
   it 'should skip and continue on category not found', (done) ->
@@ -314,10 +315,10 @@ describe 'Product Importer integration tests', ->
       value: 2
 
     ensureResource(@client.productTypes, "name=\"#{bigProductType.name}\"", bigProductType)
-    .then (_productType) =>
+    .then (_productType) ->
       productType = _productType
       importer.performStream([productDraft], _.noop)
-    .then () =>
+    .then ->
       expect(importer._summary.failed).toBe(1)
       errorJson = require path.join(importer._summary.errorDir, 'error-1.json')
       expect(errorJson.message).toBe('Variant with SKU \'sku1\' has duplicate attributes with name \'attr_1\'.')

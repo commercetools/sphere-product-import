@@ -7,6 +7,8 @@ Accepts a list of products in a valid [JSON Schema](https://github.com/sphereio/
  * All the `categories` with the correct external ids used by the data to be imported
  * All `tax categories` be existing with the correct names to be used by the date to be imported
 
+Note that this tool can import only products which have at least one variant with SKU so it can check whether this product already exists on the API.
+
 ### Configuration
  The constructor requires the following:
   * logger instance

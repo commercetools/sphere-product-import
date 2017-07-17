@@ -81,7 +81,7 @@ class ProductImport
 
   _resetSummary: ->
     @_summary =
-      emptySKU: 0
+      missingSKU: 0
       created: 0
       updated: 0
       failed: 0
@@ -90,14 +90,11 @@ class ProductImport
     if @filterUnknownAttributes then @_summary.unknownAttributeNames = []
 
   summaryReport: (filename) ->
-    if @_summary.created is 0 and @_summary.updated is 0 and @_summary.failed is 0
-      message = 'Summary: nothing to do, everything is fine'
-    else
-      message = "Summary: there were #{@_summary.created + @_summary.updated} imported products " +
-        "(#{@_summary.created} were new and #{@_summary.updated} were updates)"
+    message = "Summary: there were #{@_summary.created + @_summary.updated} imported products " +
+      "(#{@_summary.created} were new and #{@_summary.updated} were updates)."
 
-    if @_summary.emptySKU > 0
-      message += "\nFound #{@_summary.emptySKU} empty SKUs from file input"
+    if @_summary.missingSKU > 0
+      message += "\nFound #{@_summary.missingSKU} products which do not have SKU and won't be imported."
       message += " '#{filename}'" if filename
 
     if @_summary.failed > 0
@@ -125,6 +122,16 @@ class ProductImport
           uniqueEnumUpdateActions = @_filterUniqueUpdateActions(enumUpdateActions)
           @_updateProductType(uniqueEnumUpdateActions)
       .then =>
+        # filter out products which do not have at least one SKU
+        originalLength = productsToProcess.length
+        productsToProcess = productsToProcess.filter(@_doesProductHaveSku)
+        filteredProductsLength = originalLength - productsToProcess.length
+
+        # if there are some products which do not have SKU
+        if filteredProductsLength
+          @logger.warn "Filtering out #{filteredProductsLength} product(s) which do not have SKU"
+          @_summary.missingSKU += filteredProductsLength
+
         skus = @_extractUniqueSkus(productsToProcess)
         if skus.length then @_getExistingProductsForSkus(skus) else []
       .then (queriedEntries) =>
@@ -212,17 +219,25 @@ class ProductImport
     skuString = "sku in (#{skus.map((val) -> JSON.stringify(val))})"
     "masterVariant(#{skuString}) or variants(#{skuString})"
 
+  _doesProductHaveSku: (product) ->
+    if product.masterVariant?.sku
+      return true
+
+    if product.variants?.length
+      for variant in product.variants
+        if variant.sku
+          return true
+    false
+
   _extractUniqueSkus: (products) ->
     skus = []
     for product in products
       if product.masterVariant?.sku
         skus.push(product.masterVariant.sku)
-      else @_summary.emptySKU++
-      if product.variants and not _.isEmpty(product.variants)
+      if product.variants?.length
         for variant in product.variants
           if variant.sku
             skus.push(variant.sku)
-          else @_summary.emptySKU++
     return _.uniq(skus,false)
 
 
