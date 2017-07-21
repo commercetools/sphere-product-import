@@ -81,7 +81,7 @@ class ProductImport
 
   _resetSummary: ->
     @_summary =
-      missingSKU: 0
+      productsWithMissingSKU: 0
       created: 0
       updated: 0
       failed: 0
@@ -93,8 +93,8 @@ class ProductImport
     message = "Summary: there were #{@_summary.created + @_summary.updated} imported products " +
       "(#{@_summary.created} were new and #{@_summary.updated} were updates)."
 
-    if @_summary.missingSKU > 0
-      message += "\nFound #{@_summary.missingSKU} products which do not have SKU and won't be imported."
+    if @_summary.productsWithMissingSKU > 0
+      message += "\nFound #{@_summary.productsWithMissingSKU} product(s) which do not have SKU and won't be imported."
       message += " '#{filename}'" if filename
 
     if @_summary.failed > 0
@@ -122,15 +122,15 @@ class ProductImport
           uniqueEnumUpdateActions = @_filterUniqueUpdateActions(enumUpdateActions)
           @_updateProductType(uniqueEnumUpdateActions)
       .then =>
-        # filter out products which do not have at least one SKU
+        # filter out products which do not have SKUs on all variants
         originalLength = productsToProcess.length
-        productsToProcess = productsToProcess.filter(@_doesProductHaveSku)
+        productsToProcess = productsToProcess.filter(@_doesProductHaveSkus)
         filteredProductsLength = originalLength - productsToProcess.length
 
         # if there are some products which do not have SKU
         if filteredProductsLength
           @logger.warn "Filtering out #{filteredProductsLength} product(s) which do not have SKU"
-          @_summary.missingSKU += filteredProductsLength
+          @_summary.productsWithMissingSKU += filteredProductsLength
 
         skus = @_extractUniqueSkus(productsToProcess)
         if skus.length then @_getExistingProductsForSkus(skus) else []
@@ -219,15 +219,15 @@ class ProductImport
     skuString = "sku in (#{skus.map((val) -> JSON.stringify(val))})"
     "masterVariant(#{skuString}) or variants(#{skuString})"
 
-  _doesProductHaveSku: (product) ->
-    if product.masterVariant?.sku
-      return true
+  _doesProductHaveSkus: (product) ->
+    if product.masterVariant and not product.masterVariant.sku
+      return false
 
     if product.variants?.length
       for variant in product.variants
-        if variant.sku
-          return true
-    false
+        if not variant.sku
+          return false
+    true
 
   _extractUniqueSkus: (products) ->
     skus = []

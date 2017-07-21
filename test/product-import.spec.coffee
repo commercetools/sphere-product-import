@@ -539,7 +539,7 @@ describe 'ProductImport unit tests', ->
         expect(@import._extractUniqueSkus).toHaveBeenCalled()
         expect(@import._createProductFetchBySkuQueryPredicate).toHaveBeenCalled()
         expect(@import._summary).toEqual
-          missingSKU: 1
+          productsWithMissingSKU: 3
           created: 1
           updated: 1
           failed: 0

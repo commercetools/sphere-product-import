@@ -154,6 +154,12 @@ describe 'Product Importer integration tests', ->
     @import = new ProductImport logger, config
     @client = @import.client
 
+    @fetchProducts = (productTypeId) =>
+      @client.productProjections.staged(true)
+        .all()
+        .where("productType(id=\"#{productTypeId}\")")
+        .fetch()
+
     logger.info 'About to setup...'
     cleanProducts(logger, @client)
     .then => ensureResource(@client.productTypes, 'name="productTypeForProductImport"', sampleProductTypeForProduct)
@@ -192,42 +198,29 @@ describe 'Product Importer integration tests', ->
   it 'should handle an empty import', (done) ->
     @import.performStream([], -> {})
     .then =>
-      @client.productProjections.staged(true)
-      .all()
-      .where("productType(id=\"#{@productType.id}\")")
-      .fetch()
+      @fetchProducts(@productType.id)
     .then (result) ->
       expect(result.body.results.length).toBe(0)
       done()
 
   it 'should not import products when they do not have SKUs', (done) ->
     productDraft = createProduct()[0]
-    productDraft.masterVariant.id = 1
-    delete productDraft.masterVariant.sku
     productDraft.variants[0].id = 2
     delete productDraft.variants[0].sku
-    productDraft.variants[1].id = 3
-    delete productDraft.variants[1].sku
 
     @import.performStream([productDraft], -> {})
     .then =>
-      @client.productProjections.staged(true)
-      .all()
-      .where("productType(id=\"#{@productType.id}\")")
-      .fetch()
+      @fetchProducts(@productType.id)
     .then (result) =>
       expect(result.body.results.length).toBe(0)
-      expect(@import._summary.missingSKU).toBe(1)
+      expect(@import._summary.productsWithMissingSKU).toBe(1)
       done()
 
   it 'should skip and continue on category not found', (done) ->
     productDrafts = createProduct()
     @import.performStream(productDrafts, -> {})
     .then =>
-      @client.productProjections.staged(true)
-      .all()
-      .where("productType(id=\"#{@productType.id}\")")
-      .fetch()
+      @fetchProducts(@productType.id)
       .then (result) ->
         expect(result.body.results.length).toBe(2)
         done()
@@ -258,10 +251,7 @@ describe 'Product Importer integration tests', ->
       productType = _productType
       @import.performStream([productDraftClone], _.noop)
     .then =>
-      @client.productProjections.staged(true)
-        .all()
-        .where("productType(id=\"#{productType.id}\")")
-        .fetch()
+      @fetchProducts(productType.id)
     .then (result) =>
       expect(result.body.results.length).toBe(1)
       product = result.body.results[0]
@@ -282,10 +272,7 @@ describe 'Product Importer integration tests', ->
 
       @import.performStream([productDraft], _.noop)
     .then =>
-      @client.productProjections.staged(true)
-        .all()
-        .where("productType(id=\"#{productType.id}\")")
-        .fetch()
+      @fetchProducts(productType.id)
     .then (result) ->
       expect(result.body.results.length).toBe(1)
       product = result.body.results[0]
@@ -293,7 +280,6 @@ describe 'Product Importer integration tests', ->
       expect(product.masterVariant.attributes.length).toBe(1)
       expect(product.masterVariant.attributes[0].name).toBe('attr_1')
       expect(product.masterVariant.attributes[0].value).toBe(5)
-
       done()
     .catch done
 
@@ -352,10 +338,7 @@ describe 'Product Importer integration tests', ->
 
       @import.performStream([productDraft], _.noop)
     .then =>
-      @client.productProjections.staged(true)
-      .all()
-      .where("productType(id=\"#{productType.id}\")")
-      .fetch()
+      @fetchProducts(productType.id)
       .then (result) ->
         expect(result.body.results.length).toBe(1)
         product = result.body.results[0]
@@ -393,10 +376,7 @@ describe 'Product Importer integration tests', ->
         value: i
       @import.performStream([productDraft], _.noop)
     .then =>
-      @client.productProjections.staged(true)
-      .all()
-      .where("productType(id=\"#{productType.id}\")")
-      .fetch()
+      @fetchProducts(productType.id)
       .then (result) ->
         expect(result.body.results.length).toBe(1)
         product = result.body.results[0]
