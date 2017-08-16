@@ -517,6 +517,16 @@ describe 'ProductImport unit tests', ->
       delete existingProducts[1]
       delete existingProducts[2]
 
+      # create product without SKU
+      sampleProducts.push
+        categories: [
+          {
+            typeId: 'category'
+            id: sampleProducts[0].categories[0].id
+          }
+        ]
+        masterVariant: {}
+
       spyOn(@import, "_extractUniqueSkus").andCallThrough()
       spyOn(@import, "_createProductFetchBySkuQueryPredicate").andCallThrough()
       spyOn(@import.client.productProjections,"fetch").andCallFake -> Promise.resolve({body: {results: existingProducts}})
@@ -529,7 +539,7 @@ describe 'ProductImport unit tests', ->
         expect(@import._extractUniqueSkus).toHaveBeenCalled()
         expect(@import._createProductFetchBySkuQueryPredicate).toHaveBeenCalled()
         expect(@import._summary).toEqual
-          emptySKU: 2
+          productsWithMissingSKU: 3
           created: 1
           updated: 1
           failed: 0
@@ -547,8 +557,8 @@ describe 'ProductImport unit tests', ->
       spyOn(@import, "_fetchSameForAllAttributesOfProductType").andCallFake -> Promise.resolve([])
 
       @import.client.products = {}
-      @import.client.products.byId = () => @import.client.products
-      @import.client.products.update = () => Promise.resolve({ body: {} })
+      @import.client.products.byId = => @import.client.products
+      @import.client.products.update = -> Promise.resolve({ body: {} })
 
       @import._resolveReference = (service, refKey, ref, predicate) ->
         if(predicate.indexOf('throw exception') > 0)
@@ -558,7 +568,7 @@ describe 'ProductImport unit tests', ->
       @import.ensureEnums = false
       @import.defaultAttributesService = null
       @import._processBatches(sampleProducts)
-      .then =>
+      .then ->
         done()
       .catch (err) ->
         done(err)
@@ -590,8 +600,8 @@ describe 'ProductImport unit tests', ->
           }
         )
         skus = []
-        for i in [1..Math.round(Math.random()*1000)]
-          skus.push(randomString.generate(Math.round(Math.random()*100)))
+        for i in [1..Math.round(Math.random() * 1000)]
+          skus.push(randomString.generate(Math.round(Math.random() * 100)))
 
         chunks = @import.commonUtils._separateSkusChunksIntoSmallerChunks(
           skus,
@@ -610,7 +620,7 @@ describe 'ProductImport unit tests', ->
               expect(where.args.length).toEqual(1)
               actual = where.args[0]
               expected = @import._createProductFetchBySkuQueryPredicate(
-                chunks[index-1]
+                chunks[index - 1]
               )
               expect(actual).toEqual(expected)
           )
@@ -631,7 +641,7 @@ describe 'ProductImport unit tests', ->
       })
       skus = []
       for i in [1..10000]
-        skus.push(randomString.generate(Math.round(Math.random()*100)))
+        skus.push(randomString.generate(Math.round(Math.random() * 100)))
       chunks = @import.commonUtils._separateSkusChunksIntoSmallerChunks(
         skus,
         @import._getWhereQueryLimit()
