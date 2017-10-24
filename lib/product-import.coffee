@@ -13,6 +13,7 @@ UnknownAttributesFilter = require './unknown-attributes-filter'
 CommonUtils = require './common-utils'
 EnsureDefaultAttributes = require './ensure-default-attributes'
 util = require 'util'
+Reassignment = require('commercetools-node-variant-reassignment').default
 
 class ProductImport
 
@@ -45,6 +46,7 @@ class ProductImport
     # possible values:
     # always, publishedOnly, stagedAndPublishedOnly
     @publishingStrategy = options.publishingStrategy or false
+    @variantReassignmentOptions = options.variantReassignmentOptions or {}
     @_configErrorHandling(options)
     @_resetCache()
     @_resetSummary()
@@ -134,6 +136,21 @@ class ProductImport
 
         skus = @_extractUniqueSkus(productsToProcess)
         if skus.length then @_getExistingProductsForSkus(skus) else []
+      .then (queriedEntries) =>
+        if (@variantReassignmentOptions.enabled)
+          @logger.debug 'execute reassignment process'
+          reassignmentService = new Reassignment(@client, @logger,
+            @variantReassignmentOptions.retainExistingData)
+          reassignmentService.execute(productsToProcess, @_cache.productType)
+          .then((wasReassignmentExecuted) =>
+            if (wasReassignmentExecuted)
+              skus = @_extractUniqueSkus(productsToProcess)
+              if skus.length then @_getExistingProductsForSkus(skus) else []
+            else
+              return []
+          )
+        else
+          return queriedEntries
       .then (queriedEntries) =>
         if @defaultAttributesService
           debug 'Ensuring default attributes'
