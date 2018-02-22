@@ -181,11 +181,10 @@ describe 'PriceImport', ->
         expected =
           version: productsToProcess.version
           actions: [
-            priceActionDeprecated(
-              "removePrice"
-              @variantId,
-              _.omit(@priceUs, 'id')
-            )
+            {
+              action: "removePrice"
+              priceId: @priceUs.id
+            }
           ]
 
         expect(actual).toEqual(expected)
@@ -251,7 +250,7 @@ describe 'PriceImport', ->
             priceActionDeprecated(
               "addPrice",
               @variantId,
-              _.omit(@priceUs, 'id')
+              @priceUs
             )
           ]
 
@@ -261,7 +260,7 @@ describe 'PriceImport', ->
 
     it 'should generate change actions', (done) ->
 
-      productsToProcess =
+      existingProduct =
         version: 1
         masterVariant:
           sku: @sku
@@ -271,7 +270,7 @@ describe 'PriceImport', ->
       changedPrice = _.deepClone(@priceDe)
       changedPrice.value.centAmount = 0
 
-      existingProduct =
+      productsToProcess =
         version: 1
         masterVariant:
           sku: @sku
@@ -285,11 +284,11 @@ describe 'PriceImport', ->
         expected =
           version: productsToProcess.version
           actions: [
-            priceActionDeprecated(
-              "changePrice",
-              @variantId,
-              _.omit(changedPrice, 'id')
-            )
+            {
+              action: "changePrice",
+              priceId: @priceDe.id
+              price: _.omit(changedPrice, 'id')
+            }
           ]
 
         expect(actual).toEqual(expected)
@@ -341,7 +340,7 @@ describe 'PriceImport', ->
             priceActionDeprecated(
               "addPrice",
               @variantId,
-              _.omit(@priceDe, 'id')
+              @priceDe
             ),
             { action: 'publish' }
           ]
@@ -378,7 +377,7 @@ describe 'PriceImport', ->
             priceActionDeprecated(
               "addPrice",
               @variantId,
-              _.omit(@priceDe, 'id')
+              @priceDe
             )
           ]
         expect(actual).toEqual(expected)
@@ -415,7 +414,7 @@ describe 'PriceImport', ->
             priceActionDeprecated(
               "addPrice",
               @variantId,
-              _.omit(@priceDe, 'id')
+              @priceDe
             )
           ]
         expect(actual).toEqual(expected)
