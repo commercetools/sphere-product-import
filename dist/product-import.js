@@ -220,10 +220,10 @@ ProductImport = (function() {
                 if (skus.length) {
                   return _this._getExistingProductsForSkus(skus);
                 } else {
-                  return [];
+                  return queriedEntries;
                 }
               } else {
-                return [];
+                return queriedEntries;
               }
             });
           } else {

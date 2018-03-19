@@ -145,9 +145,9 @@ class ProductImport
           .then((wasReassignmentExecuted) =>
             if (wasReassignmentExecuted)
               skus = @_extractUniqueSkus(productsToProcess)
-              if skus.length then @_getExistingProductsForSkus(skus) else []
+              if skus.length then @_getExistingProductsForSkus(skus) else queriedEntries
             else
-              return []
+              return queriedEntries
           )
         else
           return queriedEntries
