@@ -103,13 +103,6 @@ class ProductImport
     if @_summary.failed > 0
       message += "\n #{@_summary.failed} product imports failed. Error reports stored at: #{@errorDir}"
 
-    reassignments = @_summary.variantReassignment
-    if reassignments
-      message += "\n Variant reassignment statistics: processed: "
-      + "#{reassignments.processed}, succeeded: #{reassignments.succeeded}, "
-      + "errors: #{reassignments.errors}, anonymized: #{reassignments.anonymized}, "
-      + "productTypeChanged: #{reassignments.productTypeChanged}, retries: #{reassignments.retries}"
-
     report = {
       reportMessage: message
       detailedSummary: @_summary
