@@ -90,6 +90,7 @@ class ProductImport
       productTypeUpdated: 0
       errorDir: @errorDir
     if @filterUnknownAttributes then @_summary.unknownAttributeNames = []
+    if @variantReassignmentOptions.enabled then @_summary.variantReassignment = null
 
   summaryReport: (filename) ->
     message = "Summary: there were #{@_summary.created + @_summary.updated} imported products " +
@@ -101,6 +102,13 @@ class ProductImport
 
     if @_summary.failed > 0
       message += "\n #{@_summary.failed} product imports failed. Error reports stored at: #{@errorDir}"
+
+    reassignments = @_summary.variantReassignment
+    if reassignments
+      message += "\n Variant reassignment statistics: processed: "
+      + "#{reassignments.processed}, succeeded: #{reassignments.succeeded}, "
+      + "errors: #{reassignments.errors}, anonymized: #{reassignments.anonymized}, "
+      + "productTypeChanged: #{reassignments.productTypeChanged}, retries: #{reassignments.retries}"
 
     report = {
       reportMessage: message
@@ -142,8 +150,9 @@ class ProductImport
           reassignmentService = new Reassignment(@client, @logger,
             @variantReassignmentOptions.retainExistingData)
           reassignmentService.execute(productsToProcess, @_cache.productType)
-          .then((wasReassignmentExecuted) =>
-            if (wasReassignmentExecuted)
+          .then((statistics) =>
+            @_summary.variantReassignment = statistics
+            if (statistics.processed > 0)
               skus = @_extractUniqueSkus(productsToProcess)
               if skus.length then @_getExistingProductsForSkus(skus) else queriedEntries
             else
