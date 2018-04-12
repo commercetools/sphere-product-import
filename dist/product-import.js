@@ -150,7 +150,10 @@ ProductImport = (function() {
       errorDir: this.errorDir
     };
     if (this.filterUnknownAttributes) {
-      return this._summary.unknownAttributeNames = [];
+      this._summary.unknownAttributeNames = [];
+    }
+    if (this.variantReassignmentOptions.enabled) {
+      return this._summary.variantReassignment = null;
     }
   };
 
@@ -213,9 +216,10 @@ ProductImport = (function() {
           if (_this.variantReassignmentOptions.enabled) {
             _this.logger.debug('execute reassignment process');
             reassignmentService = new Reassignment(_this.client, _this.logger, _this.variantReassignmentOptions.retainExistingData);
-            return reassignmentService.execute(productsToProcess, _this._cache.productType).then(function(wasReassignmentExecuted) {
+            return reassignmentService.execute(productsToProcess, _this._cache.productType).then(function(statistics) {
               var skus;
-              if (wasReassignmentExecuted) {
+              _this._summary.variantReassignment = statistics;
+              if (statistics.processed > 0) {
                 skus = _this._extractUniqueSkus(productsToProcess);
                 if (skus.length) {
                   return _this._getExistingProductsForSkus(skus);
