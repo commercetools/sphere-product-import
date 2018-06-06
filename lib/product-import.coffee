@@ -165,12 +165,9 @@ class ProductImport
                 "Removing #{res.failedSkus} skus from processing due to a reassignment error"
               )
               productsToProcess = @_filterOutProductsBySkus(productsToProcess, res.failedSkus)
-
-            # fetch existing products - they should be reassigned now
-            @_getExistingProductsForSkus(@_extractUniqueSkus(productsToProcess))
           )
-        else
-          @_getExistingProductsForSkus(@_extractUniqueSkus(productsToProcess))
+      .then () =>
+        @_getExistingProductsForSkus(@_extractUniqueSkus(productsToProcess))
       .then (queriedEntries) =>
         if @defaultAttributesService
           debug 'Ensuring default attributes'
