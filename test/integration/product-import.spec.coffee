@@ -1,5 +1,6 @@
 os = require 'os'
 path = require 'path'
+sinon = require 'sinon'
 debug = require('debug')('spec:it:sphere-product-import')
 _ = require 'underscore'
 _.mixin require 'underscore-mixins'
@@ -470,6 +471,87 @@ describe 'Product Importer integration tests', ->
           .map((v) => v.sku)
         expect(skus).toContain('sku5')
         expect(skus).toContain('sku6')
+        done()
+      .catch (err) =>
+        done(_.prettify err)
+
+    it 'should handle product reassignment error', (done) ->
+      stubCreateOrUpdate = sinon.stub(@import, '_createOrUpdate')
+        .callThrough()
+
+      productDraft1 = createProduct()[0]
+      productDraft1.productType.id = @productType.id
+      productDraft1.categories[0].id = @category.id
+      productDraft2 = createProduct()[1]
+      productDraft2.productType.id = @productType.id
+      productDraft2.categories[0].id = @category.id
+      Promise.all([
+        ensureResource(@client.products, "masterData(staged(slug(en=\"#{productDraft1.slug.en}\")))", productDraft1)
+        ensureResource(@client.products, "masterData(staged(slug(en=\"#{productDraft2.slug.en}\")))", productDraft2)
+      ])
+      .then () =>
+        productDraftChunk = {
+          productType:
+            typeId: 'product-type'
+            id: @productType.name
+          "name": {
+            "en": "reassigned-product"
+          },
+          "categories": [
+            {
+              "typeId": "category",
+              "id": "test-category"
+            }
+          ],
+          "categoryOrderHints": {},
+          "slug": {
+            "en": "reassigned-product"
+          },
+          "masterVariant": {
+            "sku": "sku4",
+            "prices": [],
+            "images": [],
+            "attributes": [],
+            "assets": []
+          },
+          "variants": [
+            {
+              "sku": "sku3",
+              "prices": [
+                {
+                  "value": {
+                    "currencyCode": "GBP",
+                    "centAmount": 'INVALID PRICE'
+                  },
+                  "id": "e9748681-e42f-45c4-b07f-48b92c6e910a"
+                }
+              ],
+              "images": [],
+              "attributes": [],
+              "assets": []
+            }
+          ],
+          "searchKeywords": {}
+        }
+        @import.performStream([productDraftChunk], Promise.resolve)
+      .then =>
+        expect(stubCreateOrUpdate.callCount).toEqual(1)
+        productsToProcess = stubCreateOrUpdate.firstCall.args[0]
+        queriedEntries = stubCreateOrUpdate.firstCall.args[1]
+
+        expect(productsToProcess.length).toBe(0)
+        expect(queriedEntries.length).toBe(0)
+        expect(@import._summary.failed).toBe(1)
+
+        expect(@import._summary.variantReassignment).toEqual({
+          anonymized: 0,
+          productTypeChanged: 0,
+          processed: 1,
+          succeeded: 0,
+          retries: 0,
+          errors: 1,
+          failedSkus: [ 'sku4', 'sku3' ]
+        })
         done()
       .catch (err) =>
         done(_.prettify err)
