@@ -109,6 +109,21 @@ class ProductImport
     }
     report
 
+  _filterOutProductsBySkus: (products, blacklistSkus) ->
+    return products.filter (product) =>
+      variants = product.variants.concat(product.masterVariant)
+      variantSkus = variants.map (v) -> v.sku
+
+      # check if at least one SKU from product is in the blacklist
+      isProductBlacklisted = variantSkus.find (sku) ->
+        blacklistSkus.indexOf(sku) >= 0
+
+      if isProductBlacklisted
+        @_summary.failed++
+
+      # filter only products which are NOT blacklisted
+      not isProductBlacklisted
+
   performStream: (chunk, cb) ->
     @_processBatches(chunk).then -> cb()
 
@@ -135,24 +150,27 @@ class ProductImport
           @logger.warn "Filtering out #{filteredProductsLength} product(s) which do not have SKU"
           @_summary.productsWithMissingSKU += filteredProductsLength
 
-        skus = @_extractUniqueSkus(productsToProcess)
-        if skus.length then @_getExistingProductsForSkus(skus) else []
-      .then (queriedEntries) =>
         if (@variantReassignmentOptions.enabled)
           @logger.debug 'execute reassignment process'
+
           reassignmentService = new Reassignment(@client, @logger,
-            @variantReassignmentOptions.retainExistingData)
+             @variantReassignmentOptions.retainExistingData)
           reassignmentService.execute(productsToProcess, @_cache.productType)
-          .then((statistics) =>
-            @_summary.variantReassignment = statistics
-            if (statistics.processed > 0)
-              skus = @_extractUniqueSkus(productsToProcess)
-              if skus.length then @_getExistingProductsForSkus(skus) else queriedEntries
-            else
-              return queriedEntries
+          .then((res) =>
+            @_summary.variantReassignment = res.statistics
+
+            # if there are products which failed during reassignment, remove them from processing
+            if(res.failedSkus.length)
+              @logger.warn(
+                "Removing #{res.failedSkus} skus from processing due to a reassignment error"
+              )
+              productsToProcess = @_filterOutProductsBySkus(productsToProcess, res.failedSkus)
+
+            # fetch existing products - they should be reassigned now
+            @_getExistingProductsForSkus(@_extractUniqueSkus(productsToProcess))
           )
         else
-          return queriedEntries
+          @_getExistingProductsForSkus(@_extractUniqueSkus(productsToProcess))
       .then (queriedEntries) =>
         if @defaultAttributesService
           debug 'Ensuring default attributes'
@@ -185,6 +203,9 @@ class ProductImport
 
   _getExistingProductsForSkus: (skus) =>
     new Promise (resolve, reject) =>
+      if skus.length == 0
+        return resolve([])
+
       skuChunks = @commonUtils._separateSkusChunksIntoSmallerChunks(
         skus,
         @_getWhereQueryLimit()

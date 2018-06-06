@@ -176,6 +176,25 @@ ProductImport = (function() {
     return report;
   };
 
+  ProductImport.prototype._filterOutProductsBySkus = function(products, blacklistSkus) {
+    return products.filter((function(_this) {
+      return function(product) {
+        var isProductBlacklisted, variantSkus, variants;
+        variants = product.variants.concat(product.masterVariant);
+        variantSkus = variants.map(function(v) {
+          return v.sku;
+        });
+        isProductBlacklisted = variantSkus.find(function(sku) {
+          return blacklistSkus.indexOf(sku) >= 0;
+        });
+        if (isProductBlacklisted) {
+          _this._summary.failed++;
+        }
+        return !isProductBlacklisted;
+      };
+    })(this));
+  };
+
   ProductImport.prototype.performStream = function(chunk, cb) {
     return this._processBatches(chunk).then(function() {
       return cb();
@@ -197,7 +216,7 @@ ProductImport = (function() {
             return _this._updateProductType(uniqueEnumUpdateActions);
           }
         }).then(function() {
-          var filteredProductsLength, originalLength, skus;
+          var filteredProductsLength, originalLength, reassignmentService;
           originalLength = productsToProcess.length;
           productsToProcess = productsToProcess.filter(_this._doesProductHaveSkus);
           filteredProductsLength = originalLength - productsToProcess.length;
@@ -205,33 +224,19 @@ ProductImport = (function() {
             _this.logger.warn("Filtering out " + filteredProductsLength + " product(s) which do not have SKU");
             _this._summary.productsWithMissingSKU += filteredProductsLength;
           }
-          skus = _this._extractUniqueSkus(productsToProcess);
-          if (skus.length) {
-            return _this._getExistingProductsForSkus(skus);
-          } else {
-            return [];
-          }
-        }).then(function(queriedEntries) {
-          var reassignmentService;
           if (_this.variantReassignmentOptions.enabled) {
             _this.logger.debug('execute reassignment process');
             reassignmentService = new Reassignment(_this.client, _this.logger, _this.variantReassignmentOptions.retainExistingData);
-            return reassignmentService.execute(productsToProcess, _this._cache.productType).then(function(statistics) {
-              var skus;
-              _this._summary.variantReassignment = statistics;
-              if (statistics.processed > 0) {
-                skus = _this._extractUniqueSkus(productsToProcess);
-                if (skus.length) {
-                  return _this._getExistingProductsForSkus(skus);
-                } else {
-                  return queriedEntries;
-                }
-              } else {
-                return queriedEntries;
+            return reassignmentService.execute(productsToProcess, _this._cache.productType).then(function(res) {
+              _this._summary.variantReassignment = res.statistics;
+              if (res.failedSkus.length) {
+                _this.logger.warn("Removing " + res.failedSkus + " skus from processing due to a reassignment error");
+                productsToProcess = _this._filterOutProductsBySkus(productsToProcess, res.failedSkus);
               }
+              return _this._getExistingProductsForSkus(_this._extractUniqueSkus(productsToProcess));
             });
           } else {
-            return queriedEntries;
+            return _this._getExistingProductsForSkus(_this._extractUniqueSkus(productsToProcess));
           }
         }).then(function(queriedEntries) {
           if (_this.defaultAttributesService) {
@@ -271,6 +276,9 @@ ProductImport = (function() {
     return new Promise((function(_this) {
       return function(resolve, reject) {
         var skuChunks;
+        if (skus.length === 0) {
+          return resolve([]);
+        }
         skuChunks = _this.commonUtils._separateSkusChunksIntoSmallerChunks(skus, _this._getWhereQueryLimit());
         return Promise.map(skuChunks, function(skus) {
           var predicate;
