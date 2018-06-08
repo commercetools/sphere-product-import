@@ -229,15 +229,15 @@ ProductImport = (function() {
             reassignmentService = new Reassignment(_this.client, _this.logger, _this.variantReassignmentOptions.retainExistingData);
             return reassignmentService.execute(productsToProcess, _this._cache.productType).then(function(res) {
               _this._summary.variantReassignment = res.statistics;
+              console.log("REASSIGN_STATS:", res.statistics);
               if (res.failedSkus.length) {
                 _this.logger.warn("Removing " + res.failedSkus + " skus from processing due to a reassignment error");
-                productsToProcess = _this._filterOutProductsBySkus(productsToProcess, res.failedSkus);
+                return productsToProcess = _this._filterOutProductsBySkus(productsToProcess, res.failedSkus);
               }
-              return _this._getExistingProductsForSkus(_this._extractUniqueSkus(productsToProcess));
             });
-          } else {
-            return _this._getExistingProductsForSkus(_this._extractUniqueSkus(productsToProcess));
           }
+        }).then(function() {
+          return _this._getExistingProductsForSkus(_this._extractUniqueSkus(productsToProcess));
         }).then(function(queriedEntries) {
           if (_this.defaultAttributesService) {
             debug('Ensuring default attributes');
