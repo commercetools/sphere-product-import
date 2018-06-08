@@ -159,6 +159,7 @@ class ProductImport
           .then((res) =>
             @_summary.variantReassignment = res.statistics
 
+            console.log("REASSIGN_STATS:", res.statistics)
             # if there are products which failed during reassignment, remove them from processing
             if(res.failedSkus.length)
               @logger.warn(
