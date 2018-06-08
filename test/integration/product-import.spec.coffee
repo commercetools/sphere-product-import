@@ -449,6 +449,17 @@ describe 'Product Importer integration tests', ->
         }
         @import.performStream([productDraftChunk], Promise.resolve)
       .then =>
+        expect(@import._summary.variantReassignment).toEqual({
+          anonymized: 1
+          productTypeChanged: 0,
+          processed: 1,
+          succeeded: 1,
+          retries: 0,
+          errors: 0,
+          processedSkus: [ 'sku4', 'sku3' ]
+          failedSkus: []
+        })
+
         @fetchProducts(@productType.id)
       .then ({ body: { results } }) =>
         expect(results.length).toEqual(3)
@@ -550,6 +561,7 @@ describe 'Product Importer integration tests', ->
           succeeded: 0,
           retries: 0,
           errors: 1,
+          processedSkus: []
           failedSkus: [ 'sku4', 'sku3' ]
         })
         done()
