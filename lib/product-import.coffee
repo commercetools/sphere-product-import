@@ -47,6 +47,9 @@ class ProductImport
     # always, publishedOnly, stagedAndPublishedOnly
     @publishingStrategy = options.publishingStrategy or false
     @variantReassignmentOptions = options.variantReassignmentOptions or {}
+    @reassignmentService = new Reassignment(@client, @logger,
+      @variantReassignmentOptions.retainExistingData)
+
     @_configErrorHandling(options)
     @_resetCache()
     @_resetSummary()
@@ -153,13 +156,11 @@ class ProductImport
         if (@variantReassignmentOptions.enabled)
           @logger.debug 'execute reassignment process'
 
-          reassignmentService = new Reassignment(@client, @logger,
-             @variantReassignmentOptions.retainExistingData)
-          reassignmentService.execute(productsToProcess, @_cache.productType)
+          @reassignmentService.execute(productsToProcess, @_cache.productType)
           .then((res) =>
             @_summary.variantReassignment = res.statistics
 
-            console.log("REASSIGN_STATS:", res.statistics)
+            console.log("REASSIGN_RESULT:", res)
             # if there are products which failed during reassignment, remove them from processing
             if(res.failedSkus.length)
               @logger.warn(
