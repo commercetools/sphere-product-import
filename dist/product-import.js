@@ -82,6 +82,7 @@ ProductImport = (function() {
     }
     this.publishingStrategy = options.publishingStrategy || false;
     this.variantReassignmentOptions = options.variantReassignmentOptions || {};
+    this.reassignmentService = new Reassignment(this.client, this.logger, this.variantReassignmentOptions.retainExistingData);
     this._configErrorHandling(options);
     this._resetCache();
     this._resetSummary();
@@ -216,7 +217,7 @@ ProductImport = (function() {
             return _this._updateProductType(uniqueEnumUpdateActions);
           }
         }).then(function() {
-          var filteredProductsLength, originalLength, reassignmentService;
+          var filteredProductsLength, originalLength;
           originalLength = productsToProcess.length;
           productsToProcess = productsToProcess.filter(_this._doesProductHaveSkus);
           filteredProductsLength = originalLength - productsToProcess.length;
@@ -226,10 +227,9 @@ ProductImport = (function() {
           }
           if (_this.variantReassignmentOptions.enabled) {
             _this.logger.debug('execute reassignment process');
-            reassignmentService = new Reassignment(_this.client, _this.logger, _this.variantReassignmentOptions.retainExistingData);
-            return reassignmentService.execute(productsToProcess, _this._cache.productType).then(function(res) {
+            return _this.reassignmentService.execute(productsToProcess, _this._cache.productType).then(function(res) {
               _this._summary.variantReassignment = res.statistics;
-              console.log("REASSIGN_STATS:", res.statistics);
+              console.log("REASSIGN_RESULT:", res);
               if (res.failedSkus.length) {
                 _this.logger.warn("Removing " + res.failedSkus + " skus from processing due to a reassignment error");
                 return productsToProcess = _this._filterOutProductsBySkus(productsToProcess, res.failedSkus);
