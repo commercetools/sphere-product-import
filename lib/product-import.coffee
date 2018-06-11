@@ -48,6 +48,7 @@ class ProductImport
     @publishingStrategy = options.publishingStrategy or false
     @variantReassignmentOptions = options.variantReassignmentOptions or {}
     @reassignmentService = new Reassignment(@client, @logger,
+      (error) => @_handleErrorResponse(error),
       @variantReassignmentOptions.retainExistingData)
 
     @_configErrorHandling(options)
@@ -121,9 +122,6 @@ class ProductImport
       isProductBlacklisted = variantSkus.find (sku) ->
         blacklistSkus.indexOf(sku) >= 0
 
-      if isProductBlacklisted
-        @_summary.failed++
-
       # filter only products which are NOT blacklisted
       not isProductBlacklisted
 
@@ -182,7 +180,11 @@ class ProductImport
         @_createOrUpdate productsToProcess, queriedEntries
       .then (results) =>
         _.each results, (r) =>
-          @_handleProcessResponse(r)
+          if r.isFulfilled()
+            @_handleFulfilledResponse(r)
+          else if r.isRejected()
+            @_handleErrorResponse(r.reason())
+
         Promise.resolve(@_summary)
     , { concurrency: 1 } # run 1 batch at a time
 
@@ -233,21 +235,18 @@ class ProductImport
         Error not logged as error limit of #{@errorLimit} has reached.
       "
 
-  _handleProcessResponse: (res) =>
-    if res.isFulfilled()
-      @_handleFulfilledResponse(res)
-    else if res.isRejected()
-      error = serializeError res.reason()
+  _handleErrorResponse: (error) =>
+    error = serializeError error
 
-      @_summary.failed++
-      if @errorDir
-        errorFile = path.join(@errorDir, "error-#{@_summary.failed}.json")
-        fs.outputJsonSync(errorFile, error, {spaces: 2})
+    @_summary.failed++
+    if @errorDir
+      errorFile = path.join(@errorDir, "error-#{@_summary.failed}.json")
+      fs.outputJsonSync(errorFile, error, {spaces: 2})
 
-      if _.isFunction(@errorCallback)
-        @errorCallback(error, @logger)
-      else
-        @logger.error "Error callback has to be a function!"
+    if _.isFunction(@errorCallback)
+      @errorCallback(error, @logger)
+    else
+      @logger.error "Error callback has to be a function!"
 
   _handleFulfilledResponse: (res) =>
     switch res.value().statusCode
