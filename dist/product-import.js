@@ -51,7 +51,7 @@ ProductImport = (function() {
     this._filterUniqueUpdateActions = bind(this._filterUniqueUpdateActions, this);
     this._filterAttributes = bind(this._filterAttributes, this);
     this._handleFulfilledResponse = bind(this._handleFulfilledResponse, this);
-    this._handleProcessResponse = bind(this._handleProcessResponse, this);
+    this._handleErrorResponse = bind(this._handleErrorResponse, this);
     this._errorLogger = bind(this._errorLogger, this);
     this._getExistingProductsForSkus = bind(this._getExistingProductsForSkus, this);
     this._configErrorHandling = bind(this._configErrorHandling, this);
@@ -82,7 +82,11 @@ ProductImport = (function() {
     }
     this.publishingStrategy = options.publishingStrategy || false;
     this.variantReassignmentOptions = options.variantReassignmentOptions || {};
-    this.reassignmentService = new Reassignment(this.client, this.logger, this.variantReassignmentOptions.retainExistingData);
+    this.reassignmentService = new Reassignment(this.client, this.logger, (function(_this) {
+      return function(error) {
+        return _this._handleErrorResponse(error);
+      };
+    })(this), this.variantReassignmentOptions.retainExistingData);
     this._configErrorHandling(options);
     this._resetCache();
     this._resetSummary();
@@ -188,9 +192,6 @@ ProductImport = (function() {
         isProductBlacklisted = variantSkus.find(function(sku) {
           return blacklistSkus.indexOf(sku) >= 0;
         });
-        if (isProductBlacklisted) {
-          _this._summary.failed++;
-        }
         return !isProductBlacklisted;
       };
     })(this));
@@ -228,8 +229,7 @@ ProductImport = (function() {
           if (_this.variantReassignmentOptions.enabled) {
             _this.logger.debug('execute reassignment process');
             return _this.reassignmentService.execute(productsToProcess, _this._cache.productType).then(function(res) {
-              _this._summary.variantReassignment = res.statistics;
-              console.log("REASSIGN_RESULT:", res);
+              console.log("RESULT:", _this._summary, res);
               if (res.failedSkus.length) {
                 _this.logger.warn("Removing " + res.failedSkus + " skus from processing due to a reassignment error");
                 return productsToProcess = _this._filterOutProductsBySkus(productsToProcess, res.failedSkus);
@@ -251,14 +251,22 @@ ProductImport = (function() {
           return _this._createOrUpdate(productsToProcess, queriedEntries);
         }).then(function(results) {
           _.each(results, function(r) {
-            return _this._handleProcessResponse(r);
+            if (r.isFulfilled()) {
+              return _this._handleFulfilledResponse(r);
+            } else if (r.isRejected()) {
+              return _this._handleErrorResponse(r.reason());
+            }
           });
           return Promise.resolve(_this._summary);
         });
       };
     })(this), {
       concurrency: 1
-    });
+    }).then((function(_this) {
+      return function() {
+        return _this._summary.variantReassignment = _this.reassignmentService.statistics;
+      };
+    })(this));
   };
 
   ProductImport.prototype._getWhereQueryLimit = function() {
@@ -306,24 +314,20 @@ ProductImport = (function() {
     }
   };
 
-  ProductImport.prototype._handleProcessResponse = function(res) {
-    var error, errorFile;
-    if (res.isFulfilled()) {
-      return this._handleFulfilledResponse(res);
-    } else if (res.isRejected()) {
-      error = serializeError(res.reason());
-      this._summary.failed++;
-      if (this.errorDir) {
-        errorFile = path.join(this.errorDir, "error-" + this._summary.failed + ".json");
-        fs.outputJsonSync(errorFile, error, {
-          spaces: 2
-        });
-      }
-      if (_.isFunction(this.errorCallback)) {
-        return this.errorCallback(error, this.logger);
-      } else {
-        return this.logger.error("Error callback has to be a function!");
-      }
+  ProductImport.prototype._handleErrorResponse = function(error) {
+    var errorFile;
+    error = serializeError(error);
+    this._summary.failed++;
+    if (this.errorDir) {
+      errorFile = path.join(this.errorDir, "error-" + this._summary.failed + ".json");
+      fs.outputJsonSync(errorFile, error, {
+        spaces: 2
+      });
+    }
+    if (_.isFunction(this.errorCallback)) {
+      return this.errorCallback(error, this.logger);
+    } else {
+      return this.logger.error("Error callback has to be a function!");
     }
   };
 

@@ -156,9 +156,7 @@ class ProductImport
 
           @reassignmentService.execute(productsToProcess, @_cache.productType)
           .then((res) =>
-            @_summary.variantReassignment = res.statistics
-
-            console.log("REASSIGN_RESULT:", res)
+            console.log("RESULT:", @_summary, res)
             # if there are products which failed during reassignment, remove them from processing
             if(res.failedSkus.length)
               @logger.warn(
@@ -187,6 +185,10 @@ class ProductImport
 
         Promise.resolve(@_summary)
     , { concurrency: 1 } # run 1 batch at a time
+    .then =>
+      @_summary.variantReassignment = @reassignmentService.statistics
+
+
 
   _getWhereQueryLimit: ->
     client = @client.productProjections
