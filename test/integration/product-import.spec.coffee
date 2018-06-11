@@ -561,8 +561,8 @@ describe 'Product Importer integration tests', ->
           succeeded: 0,
           retries: 0,
           errors: 1,
-          processedSkus: []
-          failedSkus: [ 'sku4', 'sku3' ]
+          processedSkus: ['sku4', 'sku3']
+          failedSkus: ['sku4', 'sku3']
         })
         done()
       .catch (err) =>
