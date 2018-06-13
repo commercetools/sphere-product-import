@@ -94,7 +94,9 @@ class ProductImport
       productTypeUpdated: 0
       errorDir: @errorDir
     if @filterUnknownAttributes then @_summary.unknownAttributeNames = []
-    if @variantReassignmentOptions.enabled then @_summary.variantReassignment = null
+    if @variantReassignmentOptions.enabled
+      @_summary.variantReassignment = null
+      @variantReassignmentOptions._resetStats()
 
   summaryReport: (filename) ->
     message = "Summary: there were #{@_summary.created + @_summary.updated} imported products " +
@@ -156,7 +158,6 @@ class ProductImport
 
           @reassignmentService.execute(productsToProcess, @_cache.productType)
           .then((res) =>
-            console.log("RESULT:", @_summary, res)
             # if there are products which failed during reassignment, remove them from processing
             if(res.failedSkus.length)
               @logger.warn(
@@ -186,9 +187,9 @@ class ProductImport
         Promise.resolve(@_summary)
     , { concurrency: 1 } # run 1 batch at a time
     .then =>
-      @_summary.variantReassignment = @reassignmentService.statistics
-
-
+      if @variantReassignmentOptions.enabled
+        @_summary.variantReassignment = @reassignmentService.statistics
+      console.log("TEMP_SUMMARY:", @_summary)
 
   _getWhereQueryLimit: ->
     client = @client.productProjections

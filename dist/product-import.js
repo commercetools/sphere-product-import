@@ -158,7 +158,8 @@ ProductImport = (function() {
       this._summary.unknownAttributeNames = [];
     }
     if (this.variantReassignmentOptions.enabled) {
-      return this._summary.variantReassignment = null;
+      this._summary.variantReassignment = null;
+      return this.variantReassignmentOptions._resetStats();
     }
   };
 
@@ -229,7 +230,6 @@ ProductImport = (function() {
           if (_this.variantReassignmentOptions.enabled) {
             _this.logger.debug('execute reassignment process');
             return _this.reassignmentService.execute(productsToProcess, _this._cache.productType).then(function(res) {
-              console.log("RESULT:", _this._summary, res);
               if (res.failedSkus.length) {
                 _this.logger.warn("Removing " + res.failedSkus + " skus from processing due to a reassignment error");
                 return productsToProcess = _this._filterOutProductsBySkus(productsToProcess, res.failedSkus);
@@ -264,7 +264,10 @@ ProductImport = (function() {
       concurrency: 1
     }).then((function(_this) {
       return function() {
-        return _this._summary.variantReassignment = _this.reassignmentService.statistics;
+        if (_this.variantReassignmentOptions.enabled) {
+          _this._summary.variantReassignment = _this.reassignmentService.statistics;
+        }
+        return console.log("TEMP_SUMMARY:", _this._summary);
       };
     })(this));
   };

@@ -31,6 +31,7 @@ PriceImport = (function(superClass) {
     this._preparePrice = bind(this._preparePrice, this);
     this._preparePrices = bind(this._preparePrices, this);
     this._handleFulfilledResponse = bind(this._handleFulfilledResponse, this);
+    this._handleProcessResponse = bind(this._handleProcessResponse, this);
     PriceImport.__super__.constructor.call(this, this.logger, options);
     this.batchSize = options.batchSize || 30;
     this.sync.config([
@@ -93,6 +94,27 @@ PriceImport = (function(superClass) {
     })(this), {
       concurrency: 1
     });
+  };
+
+  PriceImport.prototype._handleProcessResponse = function(res) {
+    var error, errorFile;
+    if (res.isFulfilled()) {
+      return this._handleFulfilledResponse(res);
+    } else if (res.isRejected()) {
+      error = serializeError(res.reason());
+      this._summary.failed++;
+      if (this.errorDir) {
+        errorFile = path.join(this.errorDir, "error-" + this._summary.failed + ".json");
+        fs.outputJsonSync(errorFile, error, {
+          spaces: 2
+        });
+      }
+      if (_.isFunction(this.errorCallback)) {
+        return this.errorCallback(error, this.logger);
+      } else {
+        return this.logger.error("Error callback has to be a function!");
+      }
+    }
   };
 
   PriceImport.prototype._handleFulfilledResponse = function(r) {
