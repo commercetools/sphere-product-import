@@ -159,7 +159,7 @@ ProductImport = (function() {
     }
     if (this.variantReassignmentOptions.enabled) {
       this._summary.variantReassignment = null;
-      return this.variantReassignmentOptions._resetStats();
+      return this.reassignmentService._resetStats();
     }
   };
 

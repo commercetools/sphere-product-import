@@ -96,7 +96,7 @@ class ProductImport
     if @filterUnknownAttributes then @_summary.unknownAttributeNames = []
     if @variantReassignmentOptions.enabled
       @_summary.variantReassignment = null
-      @variantReassignmentOptions._resetStats()
+      @reassignmentService._resetStats()
 
   summaryReport: (filename) ->
     message = "Summary: there were #{@_summary.created + @_summary.updated} imported products " +
