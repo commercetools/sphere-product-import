@@ -169,6 +169,50 @@ describe 'Price Importer integration tests', ->
       done(_.prettify err.body)
   , 30000
 
+  it 'should delete empty prices', (done) ->
+    _prices = _.deepClone(prices)
+    _prices[0].prices[1].value.centAmount = 1234
+    # delete rest of prices
+    _prices[0].prices[0].value.centAmount = ''
+    _prices[1].prices[0].value.centAmount = ''
+    _prices.push({
+      sku: 'sku3',
+      prices: [{
+        value: {
+          centAmount: '',
+          currencyCode: 'GBP'
+        }
+      }]
+    })
+
+    @import.deleteOnEmpty = true
+    @import.performStream _prices, (res) =>
+      expect(res).toBeUndefined()
+      @client.productProjections.staged(true).all().fetch()
+    .then (res) =>
+      expect(@import._summary).toEqual
+        unknownSKUCount: 0
+        duplicatedSKUs: 0
+        variantWithoutPriceUpdates: 0
+        updated: 1
+        failed: 0
+
+      expect(_.size res.body.results).toBe 1
+      product = res.body.results[0]
+      expect(_.size product.masterVariant.prices).toBe 1
+      expect(product.masterVariant.prices[0].value.currencyCode).toBe 'EUR'
+      expect(product.masterVariant.prices[0].value.centAmount).toBe 1234
+
+      expect(_.size product.variants[0].prices).toBe 0
+      expect(_.size product.variants[1].prices).toBe 0
+
+      @import.deleteOnEmpty = false
+      done()
+    .catch (err) =>
+      @import.deleteOnEmpty = false
+      done(_.prettify err.body)
+  , 30000
+
   it 'should update prices and publish the product', (done) ->
 
     @import.publishingStrategy = 'notStagedAndPublishedOnly'
