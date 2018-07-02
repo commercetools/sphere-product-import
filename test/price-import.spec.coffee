@@ -149,7 +149,6 @@ describe 'PriceImport', ->
         new Promise (resolve) -> resolve()
 
     beforeEach ->
-
       @priceDe = mockPrice({ country: "DE" })
       @priceUs = mockPrice({ country: "US" })
       @sku = cuid()
@@ -294,6 +293,48 @@ describe 'PriceImport', ->
         expect(actual).toEqual(expected)
       .catch (err) -> done(err)
       .finally -> done()
+
+    it 'should allow removal for empty prices when enabled', (done) ->
+      existingProduct =
+        version: 1
+        masterVariant:
+          sku: @sku
+          id: @variantId
+          prices: [ @priceDe ]
+
+      prices = [
+        _.deepClone(@priceDe),
+        _.deepClone(@priceUs)
+      ]
+      prices[0].value.centAmount = ''
+      prices[1].value.centAmount = ''
+
+      productsToProcess =
+        version: 1
+        masterVariant:
+          sku: @sku
+          id: @variantId
+          prices: prices
+
+      @import.deleteOnEmpty = true
+      @import._createOrUpdate([ productsToProcess ], [ existingProduct ])
+      .then =>
+        actual = updateStub.update.mostRecentCall.args[0]
+        expected =
+          version: productsToProcess.version
+          actions: [
+            {
+              action: 'removePrice',
+              priceId: @priceDe.id
+            }
+          ]
+
+        expect(actual).toEqual(expected)
+        done()
+        @import.deleteOnEmpty = false
+      .catch (err) =>
+        @import.deleteOnEmpty = false
+        done(err)
 
   describe 'publish updates', ->
 
