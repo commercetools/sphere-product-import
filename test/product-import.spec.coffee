@@ -61,6 +61,7 @@ sampleNewProduct =
   ,
     id: 'category_external_id2'
   ]
+  state: null
 
 sampleMasterVariant =
   sku: '12345'
@@ -113,6 +114,10 @@ sampleNewPreparedProduct =
     typeId: 'category'
   ]
 
+  state:
+    typeId: "state"
+    id: 'new-state-id'
+
 sampleProductProjectionResponse = [
   masterVariant:
     sku: 'e'
@@ -148,6 +153,21 @@ sampleTaxCategoryResponse =
       ]
       createdAt: '2015-03-03T10:12:22.136Z'
       lastModifiedAt: '2015-04-16T07:36:36.123Z'
+    ]
+
+sampleStatesResponse =
+  body:
+    results: [
+      id: 'new-state-id'
+      version: 2
+      key: "New"
+      type: "ProductState",
+      name: [ en: "New", de: "Neu" ]
+      description: [ en: "New is the first state of a product. It stays in here until someone checks it." ]
+      builtIn: false
+      initial: true
+      createdAt: "2017-11-27T09:44:12.487Z"
+      lastModifiedAt: "2017-11-30T10:41:58.819Z"
     ]
 
 sampleCategoriesResponse =
@@ -203,8 +223,8 @@ describe 'ProductImport unit tests', ->
       blackList: ['prices']
       defaultAttributes: sampleDefaultAttributes
 
-
     @import = new ProductImport @logger, Config
+    spyOn(@import.client.states, "fetch").andCallFake -> Promise.resolve(sampleStatesResponse)
 
   it 'should initialize', ->
     expect(@import).toBeDefined()
@@ -378,7 +398,7 @@ describe 'ProductImport unit tests', ->
   describe '::_prepareNewProduct', ->
 
     beforeEach ->
-      spyOn(@import, "_resolveReference").andCallFake (service, refKey, ref) ->
+      spyOn(@import, "_resolveReference").andCallFake (service, refKey, ref, predicate) ->
         switch refKey
           when "productType"
             if ref then Promise.resolve(sampleProductTypeResponse.body.results[0].id) else Promise.resolve()
@@ -389,6 +409,9 @@ describe 'ProductImport unit tests', ->
           when "categories"
             if ref then Promise.resolve("category_internal_id1") else Promise.resolve([])
 
+          when "state"
+            Promise.resolve(sampleStatesResponse.body.results[0].id)
+
       spyOn(@import, "_generateUniqueToken").andReturn("#{frozenTimeStamp}")
 
 
@@ -396,7 +419,7 @@ describe 'ProductImport unit tests', ->
 
       @import._prepareNewProduct(_.deepClone(sampleNewProduct))
       .then (result) =>
-        expect(@import._resolveReference.calls.length).toBe 4
+        expect(@import._resolveReference.calls.length).toBe 5
         expect(result).toEqual @import._ensureDefaults(sampleNewPreparedProduct)
         done()
       .catch done
@@ -409,7 +432,7 @@ describe 'ProductImport unit tests', ->
         preparedWithoutProductType = _.deepClone(sampleNewPreparedProduct)
         delete preparedWithoutProductType.productType
         expect(result).toEqual preparedWithoutProductType
-        expect(@import._resolveReference.calls.length).toBe 4
+        expect(@import._resolveReference.calls.length).toBe 5
         expect(@import._resolveReference.calls[0].args[2]).toBe undefined
         done()
       .catch done
@@ -422,7 +445,7 @@ describe 'ProductImport unit tests', ->
         preparedWithoutProductCategories = _.deepClone(sampleNewPreparedProduct)
         delete preparedWithoutProductCategories.categories
         expect(result).toEqual preparedWithoutProductCategories
-        expect(@import._resolveReference.calls.length).toBe 2
+        expect(@import._resolveReference.calls.length).toBe 3
         done()
       .catch done
 
@@ -434,7 +457,7 @@ describe 'ProductImport unit tests', ->
         preparedWithoutTaxCategory = _.deepClone(sampleNewPreparedProduct)
         delete preparedWithoutTaxCategory.taxCategory
         expect(result).toEqual preparedWithoutTaxCategory
-        expect(@import._resolveReference.calls.length).toBe 4
+        expect(@import._resolveReference.calls.length).toBe 5
         expect(@import._resolveReference.calls[3].args[2]).toBe undefined
         done()
       .catch done

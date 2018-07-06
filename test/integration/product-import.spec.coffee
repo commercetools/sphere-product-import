@@ -18,7 +18,7 @@ sampleProductTypeForProduct =
 
 bigProductType =
   name: 'bigProductType'
-  description: 'test big poroductType description'
+  description: 'test big productType description'
   attributes: [1..1031].map (i) ->
     name: "attr_#{i}"
     label:
@@ -122,6 +122,21 @@ sampleCustomerGroup =
 sampleChannel =
   key: 'test-channel'
 
+newState =
+  key: "New"
+  type: "ProductState"
+  initial: true
+
+extantState =
+  key: "AlsoNewButIWantToCheckPopulatingWithANonDefaultState"
+  type: "ProductState"
+  initial: true
+
+updatedState =
+  key: "Updated"
+  type: "ProductState"
+  initial: false
+
 ensureResource = (service, predicate, sampleData) ->
   debug 'Ensuring existence for: %s', predicate
   service.where(predicate).fetch()
@@ -165,8 +180,10 @@ describe 'Product Importer integration tests', ->
     .then => ensureResource(@client.productTypes, 'name="productTypeForProductImport"', sampleProductTypeForProduct)
     .then (@productType) => ensureResource(@client.customerGroups, 'name="test-group"', sampleCustomerGroup)
     .then (@customerGroup) => ensureResource(@client.channels, 'key="test-channel"', sampleChannel)
-    .then (@channel) =>
-      ensureResource(@client.categories, 'externalId="test-category"', sampleCategory)
+    .then (@channel) => ensureResource(@client.states, 'key="New"', newState)
+    .then (@newState) => ensureResource(@client.states, 'key="AlsoNewButIWantToCheckPopulatingWithANonDefaultState"', extantState)
+    .then (@extantState) => ensureResource(@client.states, 'key="Updated"', updatedState)
+    .then (@updatedState) => ensureResource(@client.categories, 'externalId="test-category"', sampleCategory)
     .then (@category) =>
       done()
     .catch (err) ->
@@ -214,6 +231,98 @@ describe 'Product Importer integration tests', ->
     .then (result) =>
       expect(result.body.results.length).toBe(0)
       expect(@import._summary.productsWithMissingSKU).toBe(1)
+      done()
+
+  it 'should assign New state to products without a state specified', (done) ->
+    productDraft = createProduct()[0]
+
+    @import.performStream([productDraft], -> {})
+    .then =>
+      @fetchProducts(@productType.id)
+    .then (result) =>
+      expect(result.body.results.length).toBe(1)
+      product = result.body.results[0]
+
+      expect(product.state.id).toBe(@newState.id)
+      expect(@import._cache["state"][product.state.id].key).toBe("New")
+      done()
+
+  it 'should assign the appropriate state to products with a state specified', (done) ->
+    productDraft = createProduct()[0]
+
+    productDraft.state = {
+      typeId: "state",
+      id: @extantState.id
+    }
+
+    @import.performStream([productDraft], -> {})
+      .then =>
+        @fetchProducts(@productType.id)
+      .then (result) =>
+        expect(result.body.results.length).toBe(1)
+        product = result.body.results[0]
+
+        expect(product.state.id).toBe(@extantState.id)
+        expect(@import._cache["state"][product.state.id].key).toBe("AlsoNewButIWantToCheckPopulatingWithANonDefaultState")
+        done()
+
+  it 'should process updates for products where the update does not specify the state', (done) ->
+    productDraft = _.deepClone(createProduct()[0])
+
+    @import.performStream([productDraft], -> {})
+    .then =>
+      @fetchProducts(@productType.id)
+    .then (result) =>
+      expect(result.body.results.length).toBe(1)
+      product = result.body.results[0]
+
+      expect(product.state.id).toBe(@newState.id)
+      expect(@import._cache["state"][product.state.id].key).toBe("New")
+
+      productDraft = createProduct()[0]
+      productDraft.name.en = "Updated name"
+
+      @import.performStream([productDraft], _.noop)
+    .then =>
+      @fetchProducts(@productType.id)
+    .then (result) =>
+      expect(result.body.results.length).toBe(1)
+      product = result.body.results[0]
+
+      expect(product.name.en).toBe("Updated name")
+      expect(product.state.id).toBe(@newState.id)
+      expect(@import._cache["state"][product.state.id].key).toBe("New")
+      done()
+
+  it 'should process updates for products where the update does specifies a state', (done) ->
+    productDraft = _.deepClone(createProduct()[0])
+
+    @import.performStream([productDraft], -> {})
+    .then =>
+      @fetchProducts(@productType.id)
+    .then (result) =>
+      expect(result.body.results.length).toBe(1)
+      product = result.body.results[0]
+
+      expect(product.state.id).toBe(@newState.id)
+      expect(@import._cache["state"][product.state.id].key).toBe("New")
+
+      productDraft = createProduct()[0]
+      productDraft.name.en = "Updated name"
+      productDraft.state = {
+        typeId: "state",
+        id: @updatedState.id
+      }
+      @import.performStream([productDraft], -> {})
+    .then =>
+      @fetchProducts(@productType.id)
+    .then (result) =>
+      expect(result.body.results.length).toBe(1)
+      product = result.body.results[0]
+
+      expect(product.name.en).toBe("Updated name")
+      expect(product.state.id).toBe(@updatedState.id)
+      expect(@import._cache["state"][product.state.id].key).toBe("Updated")
       done()
 
   it 'should skip and continue on category not found', (done) ->
