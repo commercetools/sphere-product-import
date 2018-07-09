@@ -462,19 +462,22 @@ class ProductImport
       @_fetchAndResolveCustomReferences(productToProcess)
     ]
     .spread (prodCatsIds, taxCatId, stateId) =>
-      if taxCatId
-        productToProcess.taxCategory =
-          id: taxCatId
-          typeId: 'tax-category'
-      if prodCatsIds
-        productToProcess.categories = _.map prodCatsIds, (catId) ->
-          id: catId
-          typeId: 'category'
-      productToProcess.state =
-        id: stateId
-        typeId: 'state'
+      @_assignCommonIds(productToProcess, taxCatId, prodCatsIds, stateId)
       productToProcess.slug = @_updateProductSlug productToProcess, existingProduct
       Promise.resolve productToProcess
+
+  _assignCommonIds: (productToProcess, taxCatId, prodCatsIds, stateId) ->
+    if taxCatId
+      productToProcess.taxCategory =
+        id: taxCatId
+        typeId: 'tax-category'
+    if prodCatsIds
+      productToProcess.categories = _.map prodCatsIds, (catId) ->
+        id: catId
+        typeId: 'category'
+    productToProcess.state =
+      id: stateId
+      typeId: 'state'
 
   _updateProductSlug: (productToProcess, existingProduct) =>
     if @ignoreSlugUpdates
@@ -486,43 +489,33 @@ class ProductImport
       slug = productToProcess.slug
     slug
 
-  _prepareNewProduct: (product) ->
-    product = @_ensureDefaults(product)
-    if (product.state)
-      stateRef = product.state
-      statePredicate = "id=\"#{product.state.id}\" and type=\"ProductState\""
+  _prepareNewProduct: (productToProcess) ->
+    productToProcess = @_ensureDefaults(productToProcess)
+    if (productToProcess.state)
+      stateRef = productToProcess.state
+      statePredicate = "id=\"#{productToProcess.state.id}\" and type=\"ProductState\""
     else
       stateRef = ''
       statePredicate = 'key="New" and type="ProductState"'
 
     Promise.all [
-      @_resolveReference(@client.productTypes, 'productType', product.productType, "name=\"#{product.productType?.id}\"")
-      @_resolveProductCategories(product.categories)
-      @_resolveReference(@client.taxCategories, 'taxCategory', product.taxCategory, "name=\"#{product.taxCategory?.id}\"")
+      @_resolveReference(@client.productTypes, 'productType', productToProcess.productType, "name=\"#{productToProcess.productType?.id}\"")
+      @_resolveProductCategories(productToProcess.categories)
+      @_resolveReference(@client.taxCategories, 'taxCategory', productToProcess.taxCategory, "name=\"#{productToProcess.taxCategory?.id}\"")
       @_resolveReference(@client.states, 'state', stateRef, statePredicate)
-      @_fetchAndResolveCustomReferences(product)
+      @_fetchAndResolveCustomReferences(productToProcess)
     ]
     .spread (prodTypeId, prodCatsIds, taxCatId, stateId) =>
+      @_assignCommonIds(productToProcess, taxCatId, prodCatsIds, stateId)
       if prodTypeId
-        product.productType =
+        productToProcess.productType =
           id: prodTypeId
           typeId: 'product-type'
-      if taxCatId
-        product.taxCategory =
-          id: taxCatId
-          typeId: 'tax-category'
-      if prodCatsIds
-        product.categories = _.map prodCatsIds, (catId) ->
-          id: catId
-          typeId: 'category'
-      if not product.slug
-        if product.name
+      if not productToProcess.slug
+        if productToProcess.name
           #Promise.reject 'Product name is required.'
-          product.slug = @_generateSlug product.name
-      product.state =
-        id: stateId
-        typeId: 'state'
-      Promise.resolve product
+          productToProcess.slug = @_generateSlug productToProcess.name
+      Promise.resolve productToProcess
 
 
   _generateSlug: (name) ->
@@ -624,27 +617,14 @@ class ProductImport
 
   _resolveReference: (service, refKey, ref, predicate) ->
     new Promise (resolve, reject) =>
+      if not @_cache[refKey]
+        @_cache[refKey] = {}
       if not ref
         if (refKey is 'state') # References are needed to states even if the incoming product doesn't itself (yet) have one.
-          if not @_cache[refKey]
-            @_cache[refKey] = {}
-          if @_cache[refKey][predicate]
-            if (typeof @_cache[refKey][predicate] is 'object' and @_cache[refKey][predicate].constructor.name is 'Promise')
-              @_cache[refKey][predicate].then (result) =>
-                @_processCompletedStateRequest(refKey, predicate, result, resolve, reject)
-            else
-              resolve(@_cache[refKey][predicate].id)
-          else
-            request = service.where(predicate)
-            fetch = request.fetch()
-            @_cache[refKey][predicate] = fetch
-            fetch.then (result) =>
-              @_processCompletedStateRequest(refKey, predicate, result, resolve, reject)
+          @_resolveStateReferenceForProductWithoutOne(service, refKey, predicate, resolve, reject)
         else
           resolve()
       else
-        if not @_cache[refKey]
-          @_cache[refKey] = {}
         if @_cache[refKey][ref.id]
           resolve(@_cache[refKey][ref.id].id)
         else
@@ -662,6 +642,20 @@ class ProductImport
               if refKey is 'productType'
                 @_cache[refKey][result.body.results[0].id] = result.body.results[0]
               resolve(result.body.results[0].id)
+
+  _resolveStateReferenceForProductWithoutOne: (service, refKey, predicate, resolve, reject) =>
+    if @_cache[refKey][predicate]
+      if (typeof @_cache[refKey][predicate] is 'object' and @_cache[refKey][predicate].constructor.name is 'Promise')
+        @_cache[refKey][predicate].then (result) =>
+          @_processCompletedStateRequest(refKey, predicate, result, resolve, reject)
+      else
+        resolve(@_cache[refKey][predicate].id)
+    else
+      request = service.where(predicate)
+      fetch = request.fetch()
+      @_cache[refKey][predicate] = fetch
+      fetch.then (result) =>
+        @_processCompletedStateRequest(refKey, predicate, result, resolve, reject)
 
   _processCompletedStateRequest: (refKey, predicate, result, resolve, reject) =>
     if result.body.count is 0
