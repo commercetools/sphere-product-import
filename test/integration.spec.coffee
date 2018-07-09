@@ -18,6 +18,11 @@ sampleTaxCategory = require '../samples/sample-tax-category.json'
 
 frozenTimeStamp = new Date().getTime()
 
+newState =
+  key: "New"
+  type: "ProductState"
+  initial: true
+
 TEST_TIMEOUT = 15000
 
 ensureResource = (service, predicate, sampleData) ->
@@ -65,6 +70,7 @@ describe 'Product import integration tests', ->
     .then => ensureResource(@client.categories, 'name(en="Snowboard equipment")', sampleCategory)
     .then => ensureResource(@client.taxCategories, 'name="Standard tax category"', sampleTaxCategory)
     .then => ensureResource(@client.types, "key=\"#{sampleType.key}\"", sampleType)
+    .then => ensureResource(@client.states, 'key="New"', newState)
     .then ->
       done()
     .catch (err) -> done(_.prettify err)

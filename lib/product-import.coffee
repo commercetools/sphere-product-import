@@ -653,6 +653,7 @@ class ProductImport
     else
       request = service.where(predicate)
       fetch = request.fetch()
+      # Prevent subsequent requests for this state before CTP has returned the first one has from triggering unnecessary calls to CTP.
       @_cache[refKey][predicate] = fetch
       fetch.then (result) =>
         @_processCompletedStateRequest(refKey, predicate, result, resolve, reject)

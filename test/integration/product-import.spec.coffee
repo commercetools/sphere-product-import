@@ -196,6 +196,9 @@ describe 'Product Importer integration tests', ->
       .then => cleanup(logger, @client.customerGroups, @customerGroup.id)
       .then => cleanup(logger, @client.channels, @channel.id)
       .then => cleanup(logger, @client.categories, @category.id)
+      .then => cleanup(logger, @client.states, @newState.id)
+      .then => cleanup(logger, @client.states, @extantState.id)
+      .then => cleanup(logger, @client.states, @updatedState.id)
       .then -> done()
       .catch (err) -> done(_.prettify err)
 
