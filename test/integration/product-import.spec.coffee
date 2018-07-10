@@ -128,7 +128,7 @@ newState =
   initial: true
 
 extantState =
-  key: "AlsoNewButIWantToCheckPopulatingWithANonDefaultState"
+  key: "AlsoNew" # Also new, but I want to check populating with a non-default state
   type: "ProductState"
   initial: true
 
@@ -181,7 +181,7 @@ describe 'Product Importer integration tests', ->
     .then (@productType) => ensureResource(@client.customerGroups, 'name="test-group"', sampleCustomerGroup)
     .then (@customerGroup) => ensureResource(@client.channels, 'key="test-channel"', sampleChannel)
     .then (@channel) => ensureResource(@client.states, 'key="New"', newState)
-    .then (@newState) => ensureResource(@client.states, 'key="AlsoNewButIWantToCheckPopulatingWithANonDefaultState"', extantState)
+    .then (@newState) => ensureResource(@client.states, 'key="AlsoNew"', extantState)
     .then (@extantState) => ensureResource(@client.states, 'key="Updated"', updatedState)
     .then (@updatedState) => ensureResource(@client.categories, 'externalId="test-category"', sampleCategory)
     .then (@category) =>
@@ -266,7 +266,7 @@ describe 'Product Importer integration tests', ->
         product = result.body.results[0]
 
         expect(product.state.id).toBe(@extantState.id)
-        expect(@import._cache["state"][product.state.id].key).toBe("AlsoNewButIWantToCheckPopulatingWithANonDefaultState")
+        expect(@import._cache["state"][product.state.id].key).toBe("AlsoNew")
         done()
 
   it 'should process updates for products where the update does not specify the state', (done) ->
