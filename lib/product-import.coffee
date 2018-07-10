@@ -448,17 +448,11 @@ class ProductImport
 
   _prepareUpdateProduct: (productToProcess, existingProduct) ->
     productToProcess = @_ensureDefaults(productToProcess)
-    if (productToProcess.state)
-      stateRef = productToProcess.state
-      statePredicate = "id=\"#{productToProcess.state.id}\" and type=\"ProductState\""
-    else
-      stateRef = { id: existingProduct.state.id }
-      statePredicate = "id=\"#{existingProduct.state.id}\" and type=\"ProductState\""
 
     Promise.all [
       @_resolveProductCategories(productToProcess.categories)
       @_resolveReference(@client.taxCategories, 'taxCategory', productToProcess.taxCategory, "name=\"#{productToProcess.taxCategory?.id}\"")
-      @_resolveReference(@client.states, 'state', stateRef, statePredicate)
+      @_resolveStateReference(productToProcess, { id: existingProduct.state.id }, "id=\"#{existingProduct.state.id}\"")
       @_fetchAndResolveCustomReferences(productToProcess)
     ]
     .spread (prodCatsIds, taxCatId, stateId) =>
@@ -491,18 +485,12 @@ class ProductImport
 
   _prepareNewProduct: (productToProcess) ->
     productToProcess = @_ensureDefaults(productToProcess)
-    if (productToProcess.state)
-      stateRef = productToProcess.state
-      statePredicate = "id=\"#{productToProcess.state.id}\" and type=\"ProductState\""
-    else
-      stateRef = ''
-      statePredicate = 'key="New" and type="ProductState"'
 
     Promise.all [
       @_resolveReference(@client.productTypes, 'productType', productToProcess.productType, "name=\"#{productToProcess.productType?.id}\"")
       @_resolveProductCategories(productToProcess.categories)
       @_resolveReference(@client.taxCategories, 'taxCategory', productToProcess.taxCategory, "name=\"#{productToProcess.taxCategory?.id}\"")
-      @_resolveReference(@client.states, 'state', stateRef, statePredicate)
+      @_resolveStateReference(productToProcess, '', "key=\"New\"")
       @_fetchAndResolveCustomReferences(productToProcess)
     ]
     .spread (prodTypeId, prodCatsIds, taxCatId, stateId) =>
@@ -614,6 +602,15 @@ class ProductImport
           @_resolveReference(@client.categories, 'categories', cat, "externalId=\"#{cat.id}\"")
         .then (result) -> resolve(result.filter (c) -> c)
         .catch (err) -> reject(err)
+
+  _resolveStateReference: (productToProcess, fallbackRef, fallbackPredicate) ->
+    if (productToProcess.state)
+      stateRef = productToProcess.state
+      statePredicate = "id=\"#{productToProcess.state.id}\" and type=\"ProductState\""
+    else
+      stateRef = fallbackRef
+      statePredicate = "#{fallbackPredicate} and type=\"ProductState\""
+    @_resolveReference(@client.states, 'state', stateRef, statePredicate)
 
   _resolveReference: (service, refKey, ref, predicate) ->
     new Promise (resolve, reject) =>
