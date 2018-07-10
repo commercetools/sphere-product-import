@@ -18,12 +18,12 @@ sampleTaxCategory = require '../samples/sample-tax-category.json'
 
 frozenTimeStamp = new Date().getTime()
 
+jasmine.getEnv().defaultTimeoutInterval = 30000
+
 newState =
   key: "New"
   type: "ProductState"
   initial: true
-
-TEST_TIMEOUT = 15000
 
 ensureResource = (service, predicate, sampleData) ->
   debug 'Ensuring existence for: %s', predicate
@@ -74,14 +74,12 @@ describe 'Product import integration tests', ->
     .then ->
       done()
     .catch (err) -> done(_.prettify err)
-  , TEST_TIMEOUT
 
   afterEach (done) ->
     @logger.info 'About to cleanup...'
     deleteProducts(@logger, @client)
     .then -> done()
     .catch (err) -> done(_.prettify err)
-  , TEST_TIMEOUT
 
 
   it 'should import two new products', (done) ->
@@ -107,7 +105,6 @@ describe 'Product import integration tests', ->
       expect(fetchedProduct[0].slug).toEqual sampleImport.products[0].slug
       done()
     .catch done
-  , TEST_TIMEOUT
 
   it 'should do nothing for empty products list', (done) ->
     @import._processBatches([])
@@ -116,7 +113,6 @@ describe 'Product import integration tests', ->
       expect(@import._summary.updated).toBe 0
       done()
     .catch done
-  , TEST_TIMEOUT
 
   it 'should generate missing slug', (done) ->
     sampleImport = _.deepClone(sampleImportJson)
@@ -135,7 +131,6 @@ describe 'Product import integration tests', ->
       expect(fetchedProduct[0].slug.en).toBe "product-sync-test-product-1-#{frozenTimeStamp}"
       done()
     .catch done
-  , TEST_TIMEOUT
 
   it 'should update existing product',  (done) ->
     sampleImport = _.deepClone(sampleImportJson)
@@ -173,7 +168,6 @@ describe 'Product import integration tests', ->
       expect(_.size result.body.results[0].variants).toBe 2
       done()
     .catch (err) -> done(_.prettify err.body)
-  , TEST_TIMEOUT
 
   it 'should continue on error - duplicate slug', (done) ->
     # FIXME: looks like the API doesn't correctly validate for duplicate slugs
@@ -214,7 +208,6 @@ describe 'Product import integration tests', ->
         expect(@import._summary.created).toBe 1
         done()
       .catch done
-  , TEST_TIMEOUT
 
   it 'should handle set type attributes correctly', (done) ->
     sampleImport = _.deepClone sampleImportJson
@@ -246,7 +239,6 @@ describe 'Product import integration tests', ->
       expect(result.body.results[0].masterVariant.attributes[0].value).toEqual setTextAttributeUpdated.value
       done()
     .catch done
-  , TEST_TIMEOUT
 
   it 'should filter unknown attributes and import product without errors', (done) ->
     sampleImport = _.deepClone sampleImportJson
@@ -263,7 +255,6 @@ describe 'Product import integration tests', ->
       expect(@import._summary.unknownAttributeNames).toEqual ['unknownAttribute']
       done()
     .catch done
-  , TEST_TIMEOUT
 
 
   it 'should update/create product with a new enum key', (done) ->
