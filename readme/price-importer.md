@@ -10,6 +10,7 @@ Price Importer is used to import the prices for `existing` products of a project
   * errorDir -> error directory path (absolute), default: `../errors`
   * errorLimit -> maximum number of errors to log, default: 30. If set to 0, logs all errors
   * preventRemoveActions -> When `true` it filters out all remove actions. Defaults to `false`
+  * deleteOnEmpty -> When `true` it removes existing prices which have an empty string in `centAmount` in the import file. Defaults to `false`
   * publishingStrategy -> strategy for publishing the products with updates. Defaults to `false`
     * `always`: will always publish the products with updates.
     * `stagedAndPublishedOnly`: will publish the products only if the following conditions are met:
@@ -60,3 +61,20 @@ Price Importer is used to import the prices for `existing` products of a project
               ]
             }
           ]
+
+### Sample Input for removing a specific price
+Will match and remove price where `country == 'DE'` and `currencyCode == 'EUR'` 
+
+      prices = [
+            {
+              sku: 'sku1'
+              prices: [
+                {
+                  country: 'DE'
+                  value:
+                    centAmount: ''
+                    currencyCode: 'EUR'
+                }
+              ]
+            }
+    

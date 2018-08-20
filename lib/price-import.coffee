@@ -15,6 +15,7 @@ class PriceImport extends ProductImport
     @sync.config [{type: 'prices', group: 'white'}].concat(['base', 'references', 'attributes', 'images', 'variants', 'metaAttributes'].map (type) -> {type, group: 'black'})
     @repeater = new Repeater
     @preventRemoveActions = options.preventRemoveActions || false
+    @deleteOnEmpty = options.deleteOnEmpty || false
 
   _resetSummary: ->
     @_summary =
@@ -108,6 +109,21 @@ class PriceImport extends ProductImport
           typeId: 'channel'
       Promise.resolve price
 
+  _removeEmptyPrices: (actions) =>
+    # filter out new prices with empty centAmount
+    actions
+      .filter (action) ->
+        action.action isnt 'addPrice' or action.price.value.centAmount isnt ''
+
+      # remove prices which have empty centAmount in import file
+      .map (action) ->
+        if action.action is 'changePrice' and action.price.value.centAmount is ''
+          return {
+            action: 'removePrice'
+            priceId: action.priceId
+          }
+        action
+
   _createOrUpdate: (productsToProcess, existingProducts) ->
     debug 'Products to process: %j', {toProcess: productsToProcess, existing: existingProducts}
 
@@ -123,6 +139,10 @@ class PriceImport extends ProductImport
             payload = synced.getUpdatePayload()
             if @preventRemoveActions
               payload.actions = @_filterPriceActions(payload.actions)
+
+            if @deleteOnEmpty
+              payload.actions = @_removeEmptyPrices(payload.actions)
+
             if @publishingStrategy and @commonUtils.canBePublished(existingProduct, @publishingStrategy)
               payload.actions.push { action: 'publish' }
             updateTask(payload)
