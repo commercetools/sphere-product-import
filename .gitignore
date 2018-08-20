@@ -1,6 +1,7 @@
 .DS_Store
 node_modules
 *.log
+dist
 dist-test
 tmp
 config.js
