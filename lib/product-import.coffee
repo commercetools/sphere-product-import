@@ -159,11 +159,11 @@ class ProductImport
           @reassignmentService.execute(productsToProcess, @_cache.productType)
           .then((res) =>
             # if there are products which failed during reassignment, remove them from processing
-            if(res.failedSkus.length)
+            if(res.badRequestSKUs.length)
               @logger.warn(
-                "Removing #{res.failedSkus} skus from processing due to a reassignment error"
+                "Removing #{res.badRequestSKUs} skus from processing due to a reassignment error"
               )
-              productsToProcess = @_filterOutProductsBySkus(productsToProcess, res.failedSkus)
+              productsToProcess = @_filterOutProductsBySkus(productsToProcess, res.badRequestSKUs)
           )
       .then () =>
         @_getExistingProductsForSkus(@_extractUniqueSkus(productsToProcess))
@@ -189,7 +189,6 @@ class ProductImport
     .then =>
       if @variantReassignmentOptions.enabled
         @_summary.variantReassignment = @reassignmentService.statistics
-      console.log("TEMP_SUMMARY:", @_summary)
 
   _getWhereQueryLimit: ->
     client = @client.productProjections

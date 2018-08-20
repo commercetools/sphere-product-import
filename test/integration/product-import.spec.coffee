@@ -449,16 +449,15 @@ describe 'Product Importer integration tests', ->
         }
         @import.performStream([productDraftChunk], Promise.resolve)
       .then =>
-        expect(@import._summary.variantReassignment).toEqual({
-          anonymized: 1
-          productTypeChanged: 0,
-          processed: 1,
-          succeeded: 1,
-          retries: 0,
-          errors: 0,
-          processedSkus: [ 'sku4', 'sku3' ]
-          failedSkus: []
-        })
+        expect(@import._summary.variantReassignment.anonymized).toEqual(1)
+        expect(@import._summary.variantReassignment.productTypeChanged).toEqual(0)
+        expect(@import._summary.variantReassignment.processed).toEqual(1)
+        expect(@import._summary.variantReassignment.succeeded).toEqual(1)
+        expect(@import._summary.variantReassignment.transactionRetries).toEqual(0)
+        expect(@import._summary.variantReassignment.badRequestErrors).toEqual(0)
+        expect(@import._summary.variantReassignment.processedSkus).toEqual([ 'sku4', 'sku3' ])
+        expect(@import._summary.variantReassignment.badRequestSKUs).toEqual([])
+        expect(@import._summary.variantReassignment.anonymizedSlug.indexOf('no-category')).not.toEqual(1)
 
         @fetchProducts(@productType.id)
       .then ({ body: { results } }) =>
@@ -559,10 +558,11 @@ describe 'Product Importer integration tests', ->
           productTypeChanged: 0,
           processed: 1,
           succeeded: 0,
-          retries: 0,
-          errors: 1,
+          transactionRetries: 0,
+          badRequestErrors: 1,
           processedSkus: ['sku4', 'sku3']
-          failedSkus: ['sku4', 'sku3']
+          badRequestSKUs: ['sku4', 'sku3']
+          anonymizedSlug: []
         })
         done()
       .catch (err) =>
