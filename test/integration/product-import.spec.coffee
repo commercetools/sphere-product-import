@@ -388,8 +388,8 @@ describe 'Product Importer integration tests', ->
 
   describe 'product variant reassignment', ->
     beforeEach (done) ->
-      @import = new ProductImport logger, config
-      @import.variantReassignmentOptions = { enabled: true }
+      reassignmentConfig = _.extend config, { variantReassignmentOptions: { enabled: true } }
+      @import = new ProductImport logger, reassignmentConfig
       done()
 
     it 'should reassign product variants', (done) ->

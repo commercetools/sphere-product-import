@@ -47,9 +47,10 @@ class ProductImport
     # always, publishedOnly, stagedAndPublishedOnly
     @publishingStrategy = options.publishingStrategy or false
     @variantReassignmentOptions = options.variantReassignmentOptions or {}
-    @reassignmentService = new Reassignment(@client, @logger,
-      (error) => @_handleErrorResponse(error),
-      @variantReassignmentOptions.retainExistingData)
+    if @variantReassignmentOptions.enabled
+      @reassignmentService = new Reassignment(@client, @logger,
+        (error) => @_handleErrorResponse(error),
+        @variantReassignmentOptions.retainExistingData)
 
     @_configErrorHandling(options)
     @_resetCache()
