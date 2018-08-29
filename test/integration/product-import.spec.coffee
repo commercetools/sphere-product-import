@@ -392,6 +392,15 @@ describe 'Product Importer integration tests', ->
       @import = new ProductImport logger, reassignmentConfig
       done()
 
+#   Reassignment before:
+#   existing product "foo": sku1, sku2, sku3
+#   existing product "no-category": sku4, sku5, sku6
+#   new product draft "reassigned-product": sku4, sku3
+#   ---
+#   Reassignment before:
+#   "no-category" will be reassigned because of matched by master variant "reassinged-product": sku4, sku3
+#   1 new anonymized product "no-category-randomSlug": sku5, sku6
+#   existing product "foo": sku1, sku2
     it 'should reassign product variants', (done) ->
       productDraft1 = createProduct()[0]
       productDraft1.productType.id = @productType.id
@@ -457,7 +466,7 @@ describe 'Product Importer integration tests', ->
         expect(@import._summary.variantReassignment.badRequestErrors).toEqual(0)
         expect(@import._summary.variantReassignment.processedSkus).toEqual([ 'sku4', 'sku3' ])
         expect(@import._summary.variantReassignment.badRequestSKUs).toEqual([])
-        expect(@import._summary.variantReassignment.anonymizedSlug.indexOf('no-category')).not.toEqual(1)
+        expect(@import._summary.variantReassignment.anonymizedSlug[0].indexOf('no-category')).not.toEqual(-1)
 
         @fetchProducts(@productType.id)
       .then ({ body: { results } }) =>
