@@ -39,6 +39,8 @@ Note that this tool can import only products which have at least one variant wit
         * the product that should be updated
         * the product that is being imported
       * an _array_ of update actions that should be ignored
+    * variantReassignmentOptions
+      * enabled: when set to `true`, [reassignment module](https://github.com/commercetools/commercetools-node-variant-reassignment) will run before product import.
 
 #### Sample configuration object for cli:
 

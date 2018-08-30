@@ -52,6 +52,22 @@ class PriceImport extends ProductImport
             Promise.resolve(@_summary)
     ,{concurrency: 1}
 
+  _handleProcessResponse: (res) =>
+    if res.isFulfilled()
+      @_handleFulfilledResponse(res)
+    else if res.isRejected()
+      error = serializeError res.reason()
+
+      @_summary.failed++
+      if @errorDir
+        errorFile = path.join(@errorDir, "error-#{@_summary.failed}.json")
+        fs.outputJsonSync(errorFile, error, {spaces: 2})
+
+      if _.isFunction(@errorCallback)
+        @errorCallback(error, @logger)
+      else
+        @logger.error "Error callback has to be a function!"
+
   _handleFulfilledResponse: (r) =>
     switch r.value().statusCode
       when 201 then @_summary.created++

@@ -1,5 +1,6 @@
 os = require 'os'
 path = require 'path'
+sinon = require 'sinon'
 debug = require('debug')('spec:it:sphere-product-import')
 _ = require 'underscore'
 _.mixin require 'underscore-mixins'
@@ -384,3 +385,194 @@ describe 'Product Importer integration tests', ->
         expect(product.masterVariant.attributes.length).toBe(900)
         expect(product.variants[0].attributes.length).toBe(635)
         done()
+
+  describe 'product variant reassignment', ->
+    beforeEach (done) ->
+      reassignmentConfig = _.extend config, { variantReassignmentOptions: { enabled: true } }
+      @import = new ProductImport logger, reassignmentConfig
+      done()
+
+#   Reassignment before:
+#   existing product "foo": sku1, sku2, sku3
+#   existing product "no-category": sku4, sku5, sku6
+#   new product draft "reassigned-product": sku4, sku3
+#   ---
+#   Reassignment before:
+#   "no-category" will be reassigned because of matched by master variant "reassinged-product": sku4, sku3
+#   1 new anonymized product "no-category-randomSlug": sku5, sku6
+#   existing product "foo": sku1, sku2
+    it 'should reassign product variants', (done) ->
+      productDraft1 = createProduct()[0]
+      productDraft1.productType.id = @productType.id
+      productDraft1.categories[0].id = @category.id
+      productDraft2 = createProduct()[1]
+      productDraft2.productType.id = @productType.id
+      productDraft2.categories[0].id = @category.id
+      Promise.all([
+        ensureResource(@client.products, "masterData(staged(slug(en=\"#{productDraft1.slug.en}\")))", productDraft1)
+        ensureResource(@client.products, "masterData(staged(slug(en=\"#{productDraft2.slug.en}\")))", productDraft2)
+      ])
+      .then () =>
+        productDraftChunk = {
+          productType:
+            typeId: 'product-type'
+            id: @productType.name
+          "name": {
+            "en": "reassigned-product"
+          },
+          "categories": [
+            {
+              "typeId": "category",
+              "id": "test-category"
+            }
+          ],
+          "categoryOrderHints": {},
+          "slug": {
+            "en": "reassigned-product"
+          },
+          "masterVariant": {
+            "sku": "sku4",
+            "prices": [],
+            "images": [],
+            "attributes": [],
+            "assets": []
+          },
+          "variants": [
+            {
+              "sku": "sku3",
+              "prices": [
+                {
+                  "value": {
+                    "currencyCode": "GBP",
+                    "centAmount": 9
+                  },
+                  "id": "e9748681-e42f-45c4-b07f-48b92c6e910a"
+                }
+              ],
+              "images": [],
+              "attributes": [],
+              "assets": []
+            }
+          ],
+          "searchKeywords": {}
+        }
+        @import.performStream([productDraftChunk], Promise.resolve)
+      .then =>
+        expect(@import._summary.variantReassignment.anonymized).toEqual(1)
+        expect(@import._summary.variantReassignment.productTypeChanged).toEqual(0)
+        expect(@import._summary.variantReassignment.processed).toEqual(1)
+        expect(@import._summary.variantReassignment.succeeded).toEqual(1)
+        expect(@import._summary.variantReassignment.transactionRetries).toEqual(0)
+        expect(@import._summary.variantReassignment.badRequestErrors).toEqual(0)
+        expect(@import._summary.variantReassignment.processedSkus).toEqual([ 'sku4', 'sku3' ])
+        expect(@import._summary.variantReassignment.badRequestSKUs).toEqual([])
+        expect(@import._summary.variantReassignment.anonymizedSlug[0].indexOf('no-category')).not.toEqual(-1)
+
+        @fetchProducts(@productType.id)
+      .then ({ body: { results } }) =>
+        expect(results.length).toEqual(3)
+        reassignedProductNoCategory = _.find results, (p) => p.name.en == 'reassigned-product'
+        expect(reassignedProductNoCategory.slug.en).toEqual('reassigned-product')
+        expect(reassignedProductNoCategory.masterVariant.sku).toEqual('sku4')
+        expect(reassignedProductNoCategory.variants.length).toEqual(1)
+        expect(reassignedProductNoCategory.variants[0].sku).toEqual('sku3')
+
+        fooProduct = _.find results, (p) => p.name.en == 'foo'
+        expect(fooProduct.slug.en).toEqual('foo')
+        expect(fooProduct.masterVariant.sku).toEqual('sku1')
+        expect(fooProduct.variants.length).toEqual(1)
+        expect(fooProduct.variants[0].sku).toEqual('sku2')
+
+        anonymizedProduct = _.find results, (p) => p.name.en == 'no-category'
+        expect(anonymizedProduct.slug.ctsd).toBeDefined()
+        expect(anonymizedProduct.variants.length).toEqual(1)
+        skus = anonymizedProduct.variants.concat(anonymizedProduct.masterVariant)
+          .map((v) => v.sku)
+        expect(skus).toContain('sku5')
+        expect(skus).toContain('sku6')
+        done()
+      .catch (err) =>
+        done(_.prettify err)
+
+    it 'should handle product reassignment error', (done) ->
+      stubCreateOrUpdate = sinon.stub(@import, '_createOrUpdate')
+        .callThrough()
+
+      productDraft1 = createProduct()[0]
+      productDraft1.productType.id = @productType.id
+      productDraft1.categories[0].id = @category.id
+      productDraft2 = createProduct()[1]
+      productDraft2.productType.id = @productType.id
+      productDraft2.categories[0].id = @category.id
+      Promise.all([
+        ensureResource(@client.products, "masterData(staged(slug(en=\"#{productDraft1.slug.en}\")))", productDraft1)
+        ensureResource(@client.products, "masterData(staged(slug(en=\"#{productDraft2.slug.en}\")))", productDraft2)
+      ])
+      .then () =>
+        productDraftChunk = {
+          productType:
+            typeId: 'product-type'
+            id: @productType.name
+          "name": {
+            "en": "reassigned-product"
+          },
+          "categories": [
+            {
+              "typeId": "category",
+              "id": "test-category"
+            }
+          ],
+          "categoryOrderHints": {},
+          "slug": {
+            "en": "reassigned-product"
+          },
+          "masterVariant": {
+            "sku": "sku4",
+            "prices": [],
+            "images": [],
+            "attributes": [],
+            "assets": []
+          },
+          "variants": [
+            {
+              "sku": "sku3",
+              "prices": [
+                {
+                  "value": {
+                    "currencyCode": "GBP",
+                    "centAmount": 'INVALID PRICE'
+                  },
+                  "id": "e9748681-e42f-45c4-b07f-48b92c6e910a"
+                }
+              ],
+              "images": [],
+              "attributes": [],
+              "assets": []
+            }
+          ],
+          "searchKeywords": {}
+        }
+        @import.performStream([productDraftChunk], Promise.resolve)
+      .then =>
+        expect(stubCreateOrUpdate.callCount).toEqual(1)
+        productsToProcess = stubCreateOrUpdate.firstCall.args[0]
+        queriedEntries = stubCreateOrUpdate.firstCall.args[1]
+
+        expect(productsToProcess.length).toBe(0)
+        expect(queriedEntries.length).toBe(0)
+        expect(@import._summary.failed).toBe(1)
+
+        expect(@import._summary.variantReassignment).toEqual({
+          anonymized: 0,
+          productTypeChanged: 0,
+          processed: 1,
+          succeeded: 0,
+          transactionRetries: 0,
+          badRequestErrors: 1,
+          processedSkus: ['sku4', 'sku3']
+          badRequestSKUs: ['sku4', 'sku3']
+          anonymizedSlug: []
+        })
+        done()
+      .catch (err) =>
+        done(_.prettify err)
