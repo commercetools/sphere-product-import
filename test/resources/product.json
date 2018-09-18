@@ -1,0 +1,66 @@
+{
+  "productType": {
+    "typeId": "product-type",
+    "id": "productTypeId"
+  },
+  "name": {
+    "en": "testProduct"
+  },
+  "description": {
+    "en": "testProduct"
+  },
+  "categories": [],
+  "categoryOrderHints": {},
+  "slug": {
+    "en": "testProduct"
+  },
+  "masterVariant": {
+    "id": 1,
+    "sku": "sku12",
+    "key": "sku12",
+    "prices": [
+      {
+        "value": {
+          "type": "centPrecision",
+          "currencyCode": "EUR",
+          "centAmount": 12900,
+          "fractionDigits": 2
+        },
+        "country": "DE"
+      },
+      {
+        "value": {
+          "type": "centPrecision",
+          "currencyCode": "EUR",
+          "centAmount": 12900,
+          "fractionDigits": 2
+        },
+        "country": "LT"
+      },
+      {
+        "value": {
+          "type": "centPrecision",
+          "currencyCode": "EUR",
+          "centAmount": 12900,
+          "fractionDigits": 2
+        },
+        "country": "LV"
+      },
+      {
+        "value": {
+          "type": "centPrecision",
+          "currencyCode": "EUR",
+          "centAmount": 12900,
+          "fractionDigits": 2
+        },
+        "country": "IT"
+      }
+    ],
+    "images": [],
+    "attributes": [],
+    "assets": []
+  },
+  "variants": [],
+  "searchKeywords": {},
+  "key": "testProduct"
+}

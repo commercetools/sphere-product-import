@@ -1,0 +1,29 @@
+{
+  "prices": [
+    {
+      "country": "DE",
+      "value": {
+        "centAmount": 12900,
+        "currencyCode": "EUR"
+      },
+      "variant-sku": "sku12"
+    },
+    {
+      "country": "IT",
+      "value": {
+        "centAmount": 12900,
+        "currencyCode": "EUR"
+      },
+      "variant-sku": "sku12"
+    },
+    {
+      "country": "LT",
+      "value": {
+        "centAmount": 12900,
+        "currencyCode": "EUR"
+      },
+      "variant-sku": "sku12"
+    }
+  ],
+  "sku": "sku12"
+}

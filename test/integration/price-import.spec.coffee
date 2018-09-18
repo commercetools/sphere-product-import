@@ -1,13 +1,14 @@
 debug = require('debug')('spec:it:sphere-product-import')
 _ = require 'underscore'
 _.mixin require 'underscore-mixins'
+Promise = require 'bluebird'
 {PriceImport} = require '../../lib'
 ClientConfig = require '../../config'
-Promise = require 'bluebird'
 { ExtendedLogger } = require 'sphere-node-utils'
 { deleteProducts } = require './test-helper'
 package_json = require '../../package.json'
-
+testProduct = require '../resources/product.json'
+testProductPrices = require '../resources/product-prices.json'
 
 sampleProductTypeForPrice =
   name: 'productTypeForPriceImport'
@@ -101,9 +102,7 @@ Config =
 describe 'Price Importer integration tests', ->
 
   beforeEach (done) ->
-
     @import = new PriceImport logger, Config
-
     @client = @import.client
 
     logger.info 'About to setup...'
@@ -214,7 +213,6 @@ describe 'Price Importer integration tests', ->
   , 30000
 
   it 'should update prices and publish the product', (done) ->
-
     @import.publishingStrategy = 'notStagedAndPublishedOnly'
 
     @client.products.byId(@product.id).update({
@@ -245,4 +243,31 @@ describe 'Price Importer integration tests', ->
       })
       .then ->
         done()
+  , 30000
+
+  it 'should remove missing prices', (done) ->
+    importer = new PriceImport logger, Config
+    importer.preventRemoveActions = true # disable price removing
+
+    _testProduct = _.deepClone(testProduct)
+    _testProduct.productType.id = @productType.id
+    logger.info 'importing test product'
+    ensureResource(@client.products, "key=\"#{_testProduct.key}\"", _testProduct)
+      .then () =>
+        logger.info 'importing prices'
+        importer.performStream [_.deepClone(testProductPrices)], _.noop
+      .then =>
+        @client.productProjections
+          .staged(true)
+          .where("key=\"#{_testProduct.key}\"")
+          .fetch()
+      .then (res) ->
+        product = res.body.results[0]
+        expect(product).toBeTruthy()
+        expect(product.masterVariant.prices.length).toBe(3)
+      .then ->
+        done()
+      .catch (err) ->
+        done(_.prettify err)
+
   , 30000

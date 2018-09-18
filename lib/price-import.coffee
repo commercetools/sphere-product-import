@@ -1,10 +1,13 @@
 debug = require('debug')('sphere-price-import')
+path = require 'path'
+fs = require 'fs-extra'
 _ = require 'underscore'
 _.mixin require 'underscore-mixins'
 Promise = require 'bluebird'
 slugify = require 'underscore.string/slugify'
 {SphereClient, ProductSync} = require 'sphere-node-sdk'
 {Repeater} = require 'sphere-node-utils'
+serializeError = require 'serialize-error'
 ProductImport = require './product-import'
 
 class PriceImport extends ProductImport
