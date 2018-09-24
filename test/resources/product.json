@@ -23,7 +23,7 @@
         "value": {
           "type": "centPrecision",
           "currencyCode": "EUR",
-          "centAmount": 12900,
+          "centAmount": 1111,
           "fractionDigits": 2
         },
         "country": "DE"
@@ -32,7 +32,7 @@
         "value": {
           "type": "centPrecision",
           "currencyCode": "EUR",
-          "centAmount": 12900,
+          "centAmount": 1111,
           "fractionDigits": 2
         },
         "country": "LT"
@@ -41,7 +41,7 @@
         "value": {
           "type": "centPrecision",
           "currencyCode": "EUR",
-          "centAmount": 12900,
+          "centAmount": 1111,
           "fractionDigits": 2
         },
         "country": "LV"
@@ -50,7 +50,7 @@
         "value": {
           "type": "centPrecision",
           "currencyCode": "EUR",
-          "centAmount": 12900,
+          "centAmount": 1111,
           "fractionDigits": 2
         },
         "country": "IT"

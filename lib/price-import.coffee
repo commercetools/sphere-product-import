@@ -2,10 +2,10 @@ debug = require('debug')('sphere-price-import')
 path = require 'path'
 fs = require 'fs-extra'
 _ = require 'underscore'
+{createSyncProducts} = require '@commercetools/sync-actions'
 _.mixin require 'underscore-mixins'
 Promise = require 'bluebird'
 slugify = require 'underscore.string/slugify'
-{SphereClient, ProductSync} = require 'sphere-node-sdk'
 {Repeater} = require 'sphere-node-utils'
 serializeError = require 'serialize-error'
 ProductImport = require './product-import'
@@ -14,8 +14,22 @@ class PriceImport extends ProductImport
 
   constructor: (@logger, options = {}) ->
     super @logger, options
+
+    disabledActionGroups = [
+      'base',
+      'meta',
+      'references',
+      'attributes',
+      'images',
+      'variants',
+      'categories',
+      'categoryOrderHints',
+    ]
+    actionGroups = [{ type: 'prices', group: 'white' }]
+      .concat(disabledActionGroups.map (type) -> {type, group: 'black'})
+
+    @syncProducts = createSyncProducts(actionGroups)
     @batchSize = options.batchSize or 30
-    @sync.config [{type: 'prices', group: 'white'}].concat(['base', 'references', 'attributes', 'images', 'variants', 'metaAttributes'].map (type) -> {type, group: 'black'})
     @repeater = new Repeater
     @preventRemoveActions = options.preventRemoveActions || false
     @deleteOnEmpty = options.deleteOnEmpty || false
@@ -83,7 +97,6 @@ class PriceImport extends ProductImport
       @_preparePrice priceToProcess
     , {concurrency: 1}
 
-
   _preparePrice: (priceToProcess) =>
     resolvedPrices = []
     Promise.map priceToProcess.prices, (price) =>
@@ -94,7 +107,6 @@ class PriceImport extends ProductImport
     .then ->
       priceToProcess.prices = resolvedPrices
       Promise.resolve(priceToProcess)
-
 
   _resolvePriceReferences: (price) =>
     Promise.all [
@@ -134,12 +146,16 @@ class PriceImport extends ProductImport
       existingProduct = @_isExistingEntry(prodToProcess, existingProducts)
 
       if existingProduct?
-        synced = @sync.buildActions(prodToProcess, existingProduct)
-        if synced.shouldUpdate()
-          updateTask = (payload) =>
-            @client.products.byId(synced.getUpdateId()).update(payload)
+        actions = @syncProducts.buildActions(prodToProcess, existingProduct)
+        if actions.length
+          updateTask = (existingProduct, payload) =>
+            @client.products.byId(existingProduct.id).update(payload)
+
           @repeater.execute =>
-            payload = synced.getUpdatePayload()
+            payload =
+              version: existingProduct.version
+              actions: actions
+
             if @preventRemoveActions
               payload.actions = @_filterPriceActions(payload.actions)
 
@@ -148,17 +164,17 @@ class PriceImport extends ProductImport
 
             if @publishingStrategy and @commonUtils.canBePublished(existingProduct, @publishingStrategy)
               payload.actions.push { action: 'publish' }
-            updateTask(payload)
+            updateTask(existingProduct, payload)
           , (e) =>
             if e.statusCode is 409
-              debug 'retrying to update %s because of 409', synced.getUpdateId()
+              debug 'retrying to update %s because of 409', existingProduct.id
               newTask = =>
                 @client.productProjections.staged(true)
-                .byId(synced.getUpdateId())
+                .byId(existingProduct.id)
                 .fetch()
                 .then (result) ->
-                  newPayload = _.extend {}, synced.getUpdatePayload(), {version: result.body.version}
-                  updateTask(newPayload)
+                  newPayload = _.extend {}, { actions }, {version: result.body.version}
+                  updateTask(existingProduct, newPayload)
               Promise.resolve(newTask)
             else Promise.reject(e) # do not retry in this case
         else

@@ -2,6 +2,7 @@ debug = require('debug')('spec:it:sphere-product-import')
 _ = require 'underscore'
 _.mixin require 'underscore-mixins'
 Promise = require 'bluebird'
+sinon = require 'sinon'
 {PriceImport} = require '../../lib'
 ClientConfig = require '../../config'
 { ExtendedLogger } = require 'sphere-node-utils'
@@ -245,9 +246,10 @@ describe 'Price Importer integration tests', ->
         done()
   , 30000
 
-  it 'should remove missing prices', (done) ->
+  it 'should not remove missing prices when preventRemoveActions is set to true', (done) ->
     importer = new PriceImport logger, Config
     importer.preventRemoveActions = true # disable price removing
+    filterSpy = sinon.spy(importer, '_filterPriceActions')
 
     _testProduct = _.deepClone(testProduct)
     _testProduct.productType.id = @productType.id
@@ -257,6 +259,10 @@ describe 'Price Importer integration tests', ->
         logger.info 'importing prices'
         importer.performStream [_.deepClone(testProductPrices)], _.noop
       .then =>
+        filteredActions = filterSpy.args[0][0]
+        expect(filteredActions.length).toBe(1)
+        expect(filteredActions[0].action).toBe('removePrice')
+
         @client.productProjections
           .staged(true)
           .where("key=\"#{_testProduct.key}\"")
@@ -264,10 +270,9 @@ describe 'Price Importer integration tests', ->
       .then (res) ->
         product = res.body.results[0]
         expect(product).toBeTruthy()
-        expect(product.masterVariant.prices.length).toBe(3)
+        expect(product.masterVariant.prices.length).toBe(4)
       .then ->
         done()
       .catch (err) ->
         done(_.prettify err)
-
   , 30000
