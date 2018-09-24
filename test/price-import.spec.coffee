@@ -258,7 +258,6 @@ describe 'PriceImport', ->
       .finally -> done()
 
     it 'should generate change actions', (done) ->
-
       existingProduct =
         version: 1
         masterVariant:
@@ -278,15 +277,14 @@ describe 'PriceImport', ->
 
       @import._createOrUpdate([ productsToProcess ], [ existingProduct ])
       .then =>
-
         actual = updateStub.update.mostRecentCall.args[0]
         expected =
           version: productsToProcess.version
           actions: [
             {
               action: "changePrice",
-              priceId: @priceDe.id
-              price: _.omit(changedPrice, 'id')
+              priceId: @priceDe.id,
+              price: changedPrice
             }
           ]
 
