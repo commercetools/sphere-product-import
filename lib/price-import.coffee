@@ -15,19 +15,7 @@ class PriceImport extends ProductImport
   constructor: (@logger, options = {}) ->
     super @logger, options
 
-    disabledActionGroups = [
-      'base',
-      'meta',
-      'references',
-      'attributes',
-      'images',
-      'variants',
-      'categories',
-      'categoryOrderHints',
-    ]
     actionGroups = [{ type: 'prices', group: 'white' }]
-      .concat(disabledActionGroups.map (type) -> {type, group: 'black'})
-
     @syncProducts = createSyncProducts(actionGroups)
     @batchSize = options.batchSize or 30
     @repeater = new Repeater
