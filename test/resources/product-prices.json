@@ -1,0 +1,31 @@
+{
+  "prices": [
+    {
+      "country": "DE",
+      "value": {
+        "centAmount": 1111,
+        "currencyCode": "EUR",
+        "type": "centPrecision"
+      }
+    },
+    {
+      "country": "IT",
+      "value": {
+        "centAmount": 1111,
+        "currencyCode": "EUR",
+        "type": "centPrecision",
+        "fractionDigits": 2
+      }
+    },
+    {
+      "country": "LT",
+      "value": {
+        "centAmount": 1111,
+        "currencyCode": "EUR",
+        "type": "centPrecision",
+        "fractionDigits": 2
+      }
+    }
+  ],
+  "sku": "sku12"
+}
