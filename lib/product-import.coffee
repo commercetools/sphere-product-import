@@ -187,7 +187,7 @@ class ProductImport
 
         Promise.resolve(@_summary)
     , { concurrency: 1 } # run 1 batch at a time
-    .then =>
+    .tap =>
       if @variantReassignmentOptions.enabled
         @_summary.variantReassignment = @reassignmentService.statistics
 

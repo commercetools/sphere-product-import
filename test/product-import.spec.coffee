@@ -568,7 +568,9 @@ describe 'ProductImport unit tests', ->
       @import.ensureEnums = false
       @import.defaultAttributesService = null
       @import._processBatches(sampleProducts)
-      .then ->
+      .then (summaryArray) ->
+        expect(summaryArray.length).toEqual(1)
+        expect(summaryArray[0].created).toBeDefined()
         done()
       .catch (err) ->
         done(err)
