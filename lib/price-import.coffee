@@ -41,6 +41,7 @@ class PriceImport extends ProductImport
       predicate = @_createProductFetchBySkuQueryPredicate skus
       @client.productProjections
       .where predicate
+      .perPage(@batchSize)
       .staged true
       .all()
       .fetch()
