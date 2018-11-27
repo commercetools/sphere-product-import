@@ -392,6 +392,50 @@ describe 'Product Importer integration tests', ->
       @import = new ProductImport logger, reassignmentConfig
       done()
 
+    it 'should run reassignments in series using mutex lock', (done) ->
+      promiseResolvers = []
+      spyOn(@import.reassignmentService, 'execute').andCallFake ->
+        new Promise (resolve) ->
+          promiseResolvers.push(resolve)
+
+      mockProductType =
+        masterVariant:
+          sku: 'SKU-test-reassignment-concurrency'
+
+      expect(@import.reassignmentLock.isLocked()).toEqual(false)
+
+      #call reassignment two times and wrap to Bluebirds promise
+      reassignmentPromise1 = Promise.resolve(@import._runReassignmentForProduct(mockProductType))
+      reassignmentPromise2 = Promise.resolve(@import._runReassignmentForProduct(mockProductType))
+
+      # let reassignments to try to acquire lock
+      setTimeout =>
+        expect(@import.reassignmentLock.isLocked()).toEqual(true)
+
+        # only one reassignment should be called for now
+        expect(promiseResolvers.length).toEqual(1)
+        # first reassignment promise should be still pending
+        expect(reassignmentPromise1.isPending()).toEqual(true)
+
+        # resolve first reassignment
+        promiseResolvers[0]()
+
+        reassignmentPromise1
+          .then () =>
+            expect(@import.reassignmentLock.isLocked()).toEqual(true)
+
+            expect(reassignmentPromise2.isPending()).toEqual(true)
+            expect(promiseResolvers.length).toEqual(2)
+            # resolve second reassignment
+            promiseResolvers[1]()
+            # wait for second reassignment to finish
+            reassignmentPromise2
+          .then () =>
+            expect(@import.reassignmentLock.isLocked()).toEqual(false)
+            done()
+          .catch (err) =>
+            done(_.prettify err)
+
 #   Reassignment before:
 #   existing product "foo" with productType 1
 #   new product draft "reassigned-product" with productType 2
