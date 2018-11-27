@@ -1,7 +1,7 @@
-debug = require('debug')('sphere-product-import')
 _ = require 'underscore'
-Mutex require 'await-mutex'
 _.mixin require 'underscore-mixins'
+debug = require('debug')('sphere-product-import')
+Mutex = require('await-mutex').default
 Promise = require 'bluebird'
 slugify = require 'underscore.string/slugify'
 {SphereClient, ProductSync} = require 'sphere-node-sdk'
@@ -305,19 +305,21 @@ class ProductImport
     @_resolveReference(@client.productTypes, 'productType', { id: name }, "name=\"#{name}\"")
 
   _runReassignmentForProduct: (product) ->
-    debug 'Locking reassignment'
+    @logger.info(
+      "Running reassignment for a product with masterVariant.sku \"#{product.masterVariant.sku}\" - locking"
+    )
     @reassignmentLock.lock()
     .then (unlock) =>
       @reassignmentService.execute([product], @_cache.productType)
-        .tap ->
-          debug 'Unlocking reassignment'
-          unlock()
-        .catch (err) ->
+        .finally =>
+          @logger.info(
+            "Finished reassignment for a product with masterVariant.sku \"#{product.masterVariant.sku}\" - unlocking"
+          )
+
           debug 'Unlocking reassignment'
           unlock()
 
   _updateProduct: (prodToProcess, existingProducts, productIsPrepared) ->
-    originalProdToProcess = _.deepClone(prodToProcess)
     existingProduct = existingProducts[0]
     newProductTypeId = null
 
@@ -339,13 +341,15 @@ class ProductImport
           .filterActions (action) =>
             @filterActions(action, existingProduct, preparedProduct)
 
+        hasProductTypeChanged = newProductTypeId != existingProduct.productType.id
+
         # do not proceed if there are no update actions
-        if not synced.shouldUpdate()
+        if not hasProductTypeChanged and not synced.shouldUpdate()
           return Promise.resolve statusCode: 304
 
         updateRequest = synced.getUpdatePayload()
         shouldRunReassignment = existingProducts.length > 1 or
-          newProductTypeId != existingProduct.productType.id or
+          hasProductTypeChanged or
           updateRequest.actions.find (action) =>
             action.action in @reassignmentTriggerActions
 
@@ -359,7 +363,7 @@ class ProductImport
               )
 
             # run createOrUpdate again the original prodToProcess object
-            @_createOrUpdateProduct(originalProdToProcess)
+            @_createOrUpdateProduct(preparedProduct)
           )
         else
           @_updateInBatches(synced.getUpdateId(), updateRequest)
@@ -405,20 +409,18 @@ class ProductImport
       @_cleanVariantAttributes variant
 
   _createOrUpdateProduct: (product, existingProducts) ->
-    existingProductsPromise = Promise.resolve(existingProducts)
-    if not existingProducts
-      existingProductsPromise = @_getExistingProductsForSkus(@_extractUniqueSkus([product]))
-        .then (_existingProducts) ->
-          existingProducts = _existingProducts
-
-    existingProductsPromise
-      .then =>
-        @_filterAttributes(product)
-      .then (prodToProcess) =>
-        if existingProducts.length
-          @_updateProductRepeater(prodToProcess, existingProducts)
+    Promise.resolve(existingProducts)
+      # if the existing products were not fetched, load them from API
+      .then (existingProducts) =>
+        if existingProducts
+          existingProducts
         else
-          @_prepareNewProduct(prodToProcess)
+          @_getExistingProductsForSkus(@_extractUniqueSkus([product]))
+      .then (existingProducts) =>
+        if existingProducts.length
+          @_updateProductRepeater(product, existingProducts)
+        else
+          @_prepareNewProduct(product)
             .then (product) =>
               @client.products.create(product)
 
@@ -427,8 +429,9 @@ class ProductImport
 
     posts = _.map productsToProcess, (product) =>
       # will filter out duplicate attributes
-      Promise.resolve()
-        .then () =>
+      @_filterAttributes(product)
+        .then (product) =>
+          # should be inside of a Promise because it throws error in case of duplicate fields
           @_cleanDuplicateAttributes(product)
           matchingExistingProducts = @_getProductsMatchingByProductSkus(product, existingProducts)
           @_createOrUpdateProduct(product, matchingExistingProducts)
@@ -712,8 +715,7 @@ class ProductImport
             if _.size(result.body.results) > 1
               @logger.warn "Found more than 1 #{refKey} for #{ref.id}"
             @_cache[refKey][ref.id] = result.body.results[0]
-            if refKey is 'productType'
-              @_cache[refKey][result.body.results[0].id] = result.body.results[0]
+            @_cache[refKey][result.body.results[0].id] = result.body.results[0]
             resolve(result.body.results[0].id)
 
 module.exports = ProductImport
