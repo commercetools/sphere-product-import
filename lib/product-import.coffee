@@ -52,6 +52,8 @@ class ProductImport
         (error) => @_handleErrorResponse(error),
         @variantReassignmentOptions.retainExistingData)
 
+    @reassignmentTriggerActions = ['removeVariant']
+
     @_configErrorHandling(options)
     @_resetCache()
     @_resetSummary()
@@ -153,19 +155,6 @@ class ProductImport
         if filteredProductsLength
           @logger.warn "Filtering out #{filteredProductsLength} product(s) which do not have SKU"
           @_summary.productsWithMissingSKU += filteredProductsLength
-
-        if (@variantReassignmentOptions.enabled)
-          @logger.debug 'execute reassignment process'
-
-          @reassignmentService.execute(productsToProcess, @_cache.productType)
-          .then((res) =>
-            # if there are products which failed during reassignment, remove them from processing
-            if(res.badRequestSKUs.length)
-              @logger.warn(
-                "Removing #{res.badRequestSKUs} skus from processing due to a reassignment error"
-              )
-              productsToProcess = @_filterOutProductsBySkus(productsToProcess, res.badRequestSKUs)
-          )
       .then () =>
         @_getExistingProductsForSkus(@_extractUniqueSkus(productsToProcess))
       .then (queriedEntries) =>
@@ -173,9 +162,9 @@ class ProductImport
           debug 'Ensuring default attributes'
           @_ensureDefaultAttributesInProducts(productsToProcess, queriedEntries)
           .then ->
-            Promise.resolve(queriedEntries)
+            queriedEntries
         else
-          Promise.resolve(queriedEntries)
+          queriedEntries
       .then (queriedEntries) =>
         @_createOrUpdate productsToProcess, queriedEntries
       .then (results) =>
@@ -253,7 +242,7 @@ class ProductImport
       @logger.error "Error callback has to be a function!"
 
   _handleFulfilledResponse: (res) =>
-    switch res.value().statusCode
+    switch res.value()?.statusCode
       when 201 then @_summary.created++
       when 200 then @_summary.updated++
 
@@ -282,33 +271,43 @@ class ProductImport
             skus.push(variant.sku)
     return _.uniq(skus,false)
 
-
   _isExistingEntry: (prodToProcess, existingProducts) ->
     prodToProcessSkus = @_extractUniqueSkus([prodToProcess])
     _.find existingProducts, (existingEntry) =>
       existingProductSkus =  @_extractUniqueSkus([existingEntry])
       matchingSkus = _.intersection(prodToProcessSkus,existingProductSkus)
-      if matchingSkus.length > 0
-        true
-      else
-        false
+      matchingSkus.length > 0
 
-  _updateProductRepeater: (prodToProcess, existingProduct) ->
+  _getProductsMatchingByProductSkus: (prodToProcess, existingProducts) ->
+    prodToProcessSkus = @_extractUniqueSkus([prodToProcess])
+    _.filter existingProducts, (existingEntry) =>
+      existingProductSkus =  @_extractUniqueSkus([existingEntry])
+      matchingSkus = _.intersection(prodToProcessSkus,existingProductSkus)
+      matchingSkus.length > 0
+
+  _updateProductRepeater: (prodToProcess, existingProducts) ->
     repeater = new Repeater {attempts: 5}
     repeater.execute =>
-      @_updateProduct(prodToProcess, existingProduct)
+      @_updateProduct(prodToProcess, existingProducts)
     , (e) =>
       if e.statusCode isnt 409 # concurrent modification
         return Promise.reject e
 
-      @logger.warn "Recovering from 409 concurrentModification error on product '#{existingProduct.id}'"
+      @logger.warn "Recovering from 409 concurrentModification error on product '#{existingProducts[0].id}'"
 
       Promise.resolve => # next task must be a function
-        @client.productProjections.staged(true).byId(existingProduct.id).fetch()
+        @client.productProjections.staged(true).byId(existingProducts[0].id).fetch()
         .then (result) =>
-          @_updateProduct(prodToProcess, result.body, true)
+          @_updateProduct(prodToProcess, [result.body], true)
 
-  _updateProduct: (prodToProcess, existingProduct, productIsPrepared) ->
+  _getProductTypeIdByName: (name) ->
+    @_resolveReference(@client.productTypes, 'productType', { id: name }, "name=\"#{name}\"")
+
+  _updateProduct: (prodToProcess, existingProducts, productIsPrepared) ->
+    originalProdToProcess = _.deepClone(prodToProcess)
+    existingProduct = existingProducts[0]
+    newProductTypeId = null
+
     @_fetchSameForAllAttributesOfProductType(prodToProcess.productType)
     .then (sameForAllAttributes) =>
       productPromise = Promise.resolve(prodToProcess)
@@ -317,14 +316,38 @@ class ProductImport
         productPromise = @_prepareUpdateProduct(prodToProcess, existingProduct)
 
       productPromise
+      .tap (preparedProduct) =>
+        # resolve productType id from cache
+        @_getProductTypeIdByName(preparedProduct.productType.id)
+        .then (id) =>
+          newProductTypeId = id
       .then (preparedProduct) =>
         synced = @sync.buildActions(preparedProduct, existingProduct, sameForAllAttributes)
           .filterActions (action) =>
             @filterActions(action, existingProduct, preparedProduct)
-        if synced.shouldUpdate()
-          @_updateInBatches(synced.getUpdateId(), synced.getUpdatePayload())
+
+        # do not proceed if there are no update actions
+        if not synced.shouldUpdate()
+          return Promise.resolve statusCode: 304
+
+        updateRequest = synced.getUpdatePayload()
+        shouldRunReassignment = updateRequest.actions.find (action) =>
+          action.action in @reassignmentTriggerActions
+
+        if @variantReassignmentOptions.enabled and (shouldRunReassignment or newProductTypeId != existingProduct.productType.id)
+          @reassignmentService.execute([preparedProduct], @_cache.productType)
+          .then((res) =>
+            # if the product which failed during reassignment, remove it from processing
+            if(res.badRequestSKUs.length)
+              return @logger.warn(
+                "Removing #{res.badRequestSKUs} skus from processing due to a reassignment error"
+              )
+
+            # run createOrUpdate again the original prodToProcess object
+            @_createOrUpdateProduct(originalProdToProcess)
+          )
         else
-          Promise.resolve statusCode: 304
+          @_updateInBatches(synced.getUpdateId(), updateRequest)
 
   _updateInBatches: (id, updateRequest) ->
     latestVersion = updateRequest.version
@@ -366,21 +389,34 @@ class ProductImport
     prodToProcess.variants.forEach (variant) =>
       @_cleanVariantAttributes variant
 
+  _createOrUpdateProduct: (product, existingProducts) ->
+    existingProductsPromise = Promise.resolve(existingProducts)
+    if not existingProducts
+      existingProductsPromise = @_getExistingProductsForSkus(@_extractUniqueSkus([product]))
+        .then (_existingProducts) ->
+          existingProducts = _existingProducts
+
+    existingProductsPromise
+      .then =>
+        @_filterAttributes(product)
+      .then (prodToProcess) =>
+        if existingProducts.length
+          @_updateProductRepeater(prodToProcess, existingProducts)
+        else
+          @_prepareNewProduct(prodToProcess)
+            .then (product) =>
+              @client.products.create(product)
+
   _createOrUpdate: (productsToProcess, existingProducts) ->
     debug 'Products to process: %j', {toProcess: productsToProcess, existing: existingProducts}
 
     posts = _.map productsToProcess, (product) =>
-      @_filterAttributes(product)
-      .then (prodToProcess) =>
-        # will filter out duplicate attributes
-        @_cleanDuplicateAttributes(prodToProcess)
-        existingProduct = @_isExistingEntry(prodToProcess, existingProducts)
-        if existingProduct?
-          @_updateProductRepeater(prodToProcess, existingProduct)
-        else
-          @_prepareNewProduct(prodToProcess)
-          .then (product) =>
-            @client.products.create(product)
+      # will filter out duplicate attributes
+      Promise.resolve()
+        .then () =>
+          @_cleanDuplicateAttributes(product)
+          matchingExistingProducts = @_getProductsMatchingByProductSkus(product, existingProducts)
+          @_createOrUpdateProduct(product, matchingExistingProducts)
 
     debug 'About to send %s requests', _.size(posts)
     Promise.settle(posts)
@@ -393,7 +429,6 @@ class ProductImport
           resolve(filteredProduct)
       else
         resolve(product)
-
 
   # updateActions are of the form:
   # { productTypeId: [{updateAction},{updateAction},...],

@@ -183,7 +183,6 @@ sampleDefaultAttributes =
 describe 'ProductImport unit tests', ->
 
   beforeEach ->
-
     @logger = new ExtendedLogger
       additionalFields:
         project_key: 'productImporterTests'
@@ -444,7 +443,6 @@ describe 'ProductImport unit tests', ->
   describe '::_createOrUpdate', ->
 
     it 'should create a new product and update an existing product', (done) ->
-
       samplePrice =
         country: 'DE'
         value:
@@ -453,7 +451,6 @@ describe 'ProductImport unit tests', ->
         validFrom: '2012-06-30T22:00:00.000Z'
         validUntil: '2099-12-30T23:00:00.000Z'
 
-
       newProduct = _.deepClone(sampleNewPreparedProduct)
       newProduct.name = { en: "My new product" }
       newProduct.masterVariant = _.deepClone(sampleMasterVariant)
@@ -461,12 +458,14 @@ describe 'ProductImport unit tests', ->
       newProduct.variants[0].prices = [samplePrice]
 
       existingProduct1 = _.deepClone(newProduct)
+      existingProduct1.name = { en: "Existing Product 1" }
       existingProduct1.id = "existing_id1"
       existingProduct1.masterVariant.sku = "9876_1"
       existingProduct1.variants[0].sku = "9876_1_1"
       existingProduct1.variants[1].sku = "9876_1_2"
 
       existingProduct2 = _.deepClone(newProduct)
+      existingProduct2.name = { en: "Existing Product 2" }
       existingProduct2.id = "existing_id2"
       existingProduct2.masterVariant.sku = "9876_2"
       existingProduct2.variants[0].sku = "9876_2_1"
@@ -501,7 +500,7 @@ describe 'ProductImport unit tests', ->
       spyOn(@import, "_fetchSameForAllAttributesOfProductType").andCallFake -> Promise.resolve([])
       spyOn(@import.client._rest, 'POST').andCallFake (endpoint, payload, callback) ->
         callback(null, {statusCode: 200}, {})
-      @import._createOrUpdate([newProduct,updateProduct],existingProducts)
+      @import._createOrUpdate([newProduct, updateProduct], existingProducts)
       .then =>
         expect(@import._prepareNewProduct).toHaveBeenCalled()
         expect(@import.client._rest.POST.calls[0].args[1]).toEqual newProduct
@@ -549,6 +548,12 @@ describe 'ProductImport unit tests', ->
       .catch done
 
     it 'should skip product with non-existing category', (done) ->
+      sampleProducts.forEach (product) =>
+        product.productType = {
+          id: 'testProductType'
+        }
+      @import._cache.productType[sampleProducts[0].productType.id] = sampleProducts[0].productType
+
       existingProducts = _.deepClone(sampleProducts)
       existingProducts[1].masterVariant.sku = 'a'
 
