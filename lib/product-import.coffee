@@ -1,5 +1,6 @@
 debug = require('debug')('sphere-product-import')
 _ = require 'underscore'
+Mutex require 'await-mutex'
 _.mixin require 'underscore-mixins'
 Promise = require 'bluebird'
 slugify = require 'underscore.string/slugify'
@@ -48,10 +49,10 @@ class ProductImport
     @publishingStrategy = options.publishingStrategy or false
     @variantReassignmentOptions = options.variantReassignmentOptions or {}
     if @variantReassignmentOptions.enabled
+      @reassignmentLock = new Mutex()
       @reassignmentService = new Reassignment(@client, @logger,
         (error) => @_handleErrorResponse(error),
         @variantReassignmentOptions.retainExistingData)
-
     @reassignmentTriggerActions = ['removeVariant']
 
     @_configErrorHandling(options)
@@ -303,6 +304,18 @@ class ProductImport
   _getProductTypeIdByName: (name) ->
     @_resolveReference(@client.productTypes, 'productType', { id: name }, "name=\"#{name}\"")
 
+  _runReassignmentForProduct: (product) ->
+    debug 'Locking reassignment'
+    @reassignmentLock.lock()
+    .then (unlock) =>
+      @reassignmentService.execute([product], @_cache.productType)
+        .tap ->
+          debug 'Unlocking reassignment'
+          unlock()
+        .catch (err) ->
+          debug 'Unlocking reassignment'
+          unlock()
+
   _updateProduct: (prodToProcess, existingProducts, productIsPrepared) ->
     originalProdToProcess = _.deepClone(prodToProcess)
     existingProduct = existingProducts[0]
@@ -337,7 +350,7 @@ class ProductImport
             action.action in @reassignmentTriggerActions
 
         if @variantReassignmentOptions.enabled and shouldRunReassignment
-          @reassignmentService.execute([preparedProduct], @_cache.productType)
+          @_runReassignmentForProduct preparedProduct
           .then((res) =>
             # if the product which failed during reassignment, remove it from processing
             if(res.badRequestSKUs.length)
