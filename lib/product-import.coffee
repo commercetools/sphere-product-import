@@ -319,6 +319,19 @@ class ProductImport
           debug 'Unlocking reassignment'
           unlock()
 
+  _runReassignmentBeforeCreateOrUpdate: (product) ->
+    @_runReassignmentForProduct product
+    .then((res) =>
+      # if the product which failed during reassignment, remove it from processing
+      if(res.badRequestSKUs.length)
+        return @logger.error(
+          "Removing product with SKUs \"#{res.badRequestSKUs}\" from processing due to a reassignment error"
+        )
+
+      # run createOrUpdate again the original prodToProcess object
+      @_createOrUpdateProduct(product)
+    )
+
   _updateProduct: (prodToProcess, existingProducts, productIsPrepared) ->
     existingProduct = existingProducts[0]
     newProductTypeId = null
@@ -348,23 +361,16 @@ class ProductImport
           return Promise.resolve statusCode: 304
 
         updateRequest = synced.getUpdatePayload()
+        # more than one existing product
         shouldRunReassignment = existingProducts.length > 1 or
+          # or productType changed
           hasProductTypeChanged or
+          # or there is some listed update action for reassignment
           updateRequest.actions.find (action) =>
             action.action in @reassignmentTriggerActions
 
         if @variantReassignmentOptions.enabled and shouldRunReassignment
-          @_runReassignmentForProduct preparedProduct
-          .then((res) =>
-            # if the product which failed during reassignment, remove it from processing
-            if(res.badRequestSKUs.length)
-              return @logger.warn(
-                "Removing #{res.badRequestSKUs} skus from processing due to a reassignment error"
-              )
-
-            # run createOrUpdate again the original prodToProcess object
-            @_createOrUpdateProduct(preparedProduct)
-          )
+          @_runReassignmentBeforeCreateOrUpdate(prodToProcess)
         else
           @_updateInBatches(synced.getUpdateId(), updateRequest)
 
@@ -408,21 +414,33 @@ class ProductImport
     prodToProcess.variants.forEach (variant) =>
       @_cleanVariantAttributes variant
 
-  _createOrUpdateProduct: (product, existingProducts) ->
+  _canErrorBeFixedByReassignment: (err) ->
+    # if at least one error has code DuplicateField with field containing SKU or SLUG
+    (err?.body?.errors or []).find (error) ->
+      error.code == 'DuplicateField' and (error.field.indexOf 'slug' >= 0 or error.field.indexOf 'sku' >= 0)
+
+  _createOrUpdateProduct: (prodToProcess, existingProducts) ->
     Promise.resolve(existingProducts)
       # if the existing products were not fetched, load them from API
       .then (existingProducts) =>
         if existingProducts
           existingProducts
         else
-          @_getExistingProductsForSkus(@_extractUniqueSkus([product]))
+          @_getExistingProductsForSkus(@_extractUniqueSkus([prodToProcess]))
       .then (existingProducts) =>
         if existingProducts.length
-          @_updateProductRepeater(product, existingProducts)
+          @_updateProductRepeater(prodToProcess, existingProducts)
         else
-          @_prepareNewProduct(product)
+          @_prepareNewProduct(prodToProcess)
             .then (product) =>
               @client.products.create(product)
+      .catch (err) =>
+        # if the error can't be handled by reassignment or it is not enabled at all
+        if not @variantReassignmentOptions.enabled or not @_canErrorBeFixedByReassignment(err)
+          throw err
+
+
+        @_runReassignmentBeforeCreateOrUpdate(prodToProcess)
 
   _createOrUpdate: (productsToProcess, existingProducts) ->
     debug 'Products to process: %j', {toProcess: productsToProcess, existing: existingProducts}
@@ -507,7 +525,6 @@ class ProductImport
         .then (updatedProductType) =>
           @_cache.productType[productTypeId] = updatedProductType.body
           @_summary.productTypeUpdated++
-
 
   _updateEnumUpdateActions: (enumUpdateActions, updateActions) ->
     if enumUpdateActions[updateActions.productTypeId]

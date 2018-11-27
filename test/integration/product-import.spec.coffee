@@ -511,7 +511,7 @@ describe 'Product Importer integration tests', ->
 #   Reassignment after:
 #   1 new anonymized product "duplicate-slug-product-{randomSlug}": sku1
 #   existing product "duplicate-slug-product": sku987
-    xit 'should handle duplicate slug when creating new product', (done) ->
+    it 'should handle duplicate slug when creating new product', (done) ->
       productDraft1 = createProduct()[0]
       productDraft1.slug =
         en: 'duplicate-slug-product'
@@ -549,23 +549,23 @@ describe 'Product Importer integration tests', ->
         expect(@import._summary.variantReassignment.succeeded).toEqual(1)
         expect(@import._summary.variantReassignment.transactionRetries).toEqual(0)
         expect(@import._summary.variantReassignment.badRequestErrors).toEqual(0)
-        expect(@import._summary.variantReassignment.processedSkus).toEqual([ 'sku1', 'sku2' ])
+        expect(@import._summary.variantReassignment.processedSkus).toEqual([ 'sku987' ])
         expect(@import._summary.variantReassignment.badRequestSKUs).toEqual([])
         expect(@import._summary.variantReassignment.anonymizedSlug.length).toEqual(1)
 
         @fetchProducts(@productType.id)
       .then ({ body: { results } }) =>
         expect(results.length).toEqual(2)
-
         anonymizedProduct = _.find results, (p) => p.slug.ctsd
         expect(anonymizedProduct.variants.length).toEqual(0)
-        expect(anonymizedProduct.masterVariant.sku).toEqual('sku3')
+        expect(anonymizedProduct.masterVariant.sku).toEqual('sku1')
+        expect(anonymizedProduct.name.en).toEqual('foo')
 
-        reassignedProductNoCategory = _.find results, (p) => !p.slug.ctsd
-        expect(reassignedProductNoCategory.slug.en).toEqual('reassigned-product')
-        expect(reassignedProductNoCategory.masterVariant.sku).toEqual('sku1')
-        expect(reassignedProductNoCategory.variants.length).toEqual(1)
-        expect(reassignedProductNoCategory.variants[0].sku).toEqual('sku2')
+        reassignedProduct = _.find results, (p) => !p.slug.ctsd
+        expect(reassignedProduct.slug.en).toEqual('duplicate-slug-product')
+        expect(reassignedProduct.name.en).toEqual('reassigned-product')
+        expect(reassignedProduct.masterVariant.sku).toEqual('sku987')
+        expect(reassignedProduct.variants.length).toEqual(0)
 
         done()
       .catch (err) =>
