@@ -530,13 +530,13 @@ describe 'Product Importer integration tests', ->
 #   ---
 #   Reassignment after:
 #   existing product with sku1, sku2
-    xit 'should handle duplicate skus in multiple products', (done) ->
+    it 'should handle duplicate skus in multiple products', (done) ->
       # generate 2 products with SKU1, SKU2
       productDrafts = [
         createProduct()[0],
         createProduct()[1]
       ].map((draft, index) =>
-        draft.masterVariant.sku = "SKU#{index + 1}"
+        draft.masterVariant.sku = "sku#{index + 1}"
         draft.variants = []
         draft.categories = []
         draft.productType.id = @productType.id
@@ -555,15 +555,15 @@ describe 'Product Importer integration tests', ->
           name:
             en: 'reassigned-product'
           slug:
-            en: 'reasigned-product',
+            en: 'reassigned-product',
           masterVariant:
-            sku: 'SKU1',
+            sku: 'sku1',
             prices: [],
             images: [],
             attributes: [],
             assets: []
           variants: [{
-            sku: 'SKU2',
+            sku: 'sku2',
             prices: [],
             images: [],
             attributes: [],
@@ -573,7 +573,7 @@ describe 'Product Importer integration tests', ->
         }
         @import.performStream([importProductDraft], Promise.resolve)
       .then =>
-        expect(@import._summary.variantReassignment.anonymized).toEqual(1)
+        expect(@import._summary.variantReassignment.anonymized).toEqual(0)
         expect(@import._summary.variantReassignment.productTypeChanged).toEqual(0)
         expect(@import._summary.variantReassignment.processed).toEqual(1)
         expect(@import._summary.variantReassignment.succeeded).toEqual(1)
@@ -581,22 +581,18 @@ describe 'Product Importer integration tests', ->
         expect(@import._summary.variantReassignment.badRequestErrors).toEqual(0)
         expect(@import._summary.variantReassignment.processedSkus).toEqual([ 'sku1', 'sku2' ])
         expect(@import._summary.variantReassignment.badRequestSKUs).toEqual([])
-        expect(@import._summary.variantReassignment.anonymizedSlug.length).toEqual(1)
+        expect(@import._summary.variantReassignment.anonymizedSlug.length).toEqual(0)
 
         @fetchProducts(@productType.id)
       .then ({ body: { results } }) =>
-        expect(results.length).toEqual(2)
+        expect(results.length).toEqual(1)
 
-        anonymizedProduct = _.find results, (p) => p.slug.ctsd
-        expect(anonymizedProduct.variants.length).toEqual(0)
-        expect(anonymizedProduct.masterVariant.sku).toEqual('sku3')
-
-        reassignedProductNoCategory = _.find results, (p) => !p.slug.ctsd
-        expect(reassignedProductNoCategory.slug.en).toEqual('reassigned-product')
-        expect(reassignedProductNoCategory.masterVariant.sku).toEqual('sku1')
-        expect(reassignedProductNoCategory.variants.length).toEqual(1)
-        expect(reassignedProductNoCategory.variants[0].sku).toEqual('sku2')
-
+        reassignedProduct = results[0]
+        expect(reassignedProduct.slug.cts).toEqual(undefined)
+        expect(reassignedProduct.slug.en).toEqual('reassigned-product')
+        expect(reassignedProduct.masterVariant.sku).toEqual('sku1')
+        expect(reassignedProduct.variants.length).toEqual(1)
+        expect(reassignedProduct.variants[0].sku).toEqual('sku2')
         done()
       .catch (err) =>
         done(_.prettify err)

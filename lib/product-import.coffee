@@ -331,10 +331,12 @@ class ProductImport
           return Promise.resolve statusCode: 304
 
         updateRequest = synced.getUpdatePayload()
-        shouldRunReassignment = updateRequest.actions.find (action) =>
-          action.action in @reassignmentTriggerActions
+        shouldRunReassignment = existingProducts.length > 1 or
+          newProductTypeId != existingProduct.productType.id or
+          updateRequest.actions.find (action) =>
+            action.action in @reassignmentTriggerActions
 
-        if @variantReassignmentOptions.enabled and (shouldRunReassignment or newProductTypeId != existingProduct.productType.id)
+        if @variantReassignmentOptions.enabled and shouldRunReassignment
           @reassignmentService.execute([preparedProduct], @_cache.productType)
           .then((res) =>
             # if the product which failed during reassignment, remove it from processing
