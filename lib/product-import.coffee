@@ -315,8 +315,6 @@ class ProductImport
           @logger.info(
             "Finished reassignment for a product with masterVariant.sku \"#{product.masterVariant.sku}\" - unlocking"
           )
-
-          debug 'Unlocking reassignment'
           unlock()
 
   _runReassignmentBeforeCreateOrUpdate: (product) ->
@@ -334,45 +332,35 @@ class ProductImport
 
   _updateProduct: (prodToProcess, existingProducts, productIsPrepared) ->
     existingProduct = existingProducts[0]
-    newProductTypeId = null
+    Promise.all([
+      @_fetchSameForAllAttributesOfProductType(prodToProcess.productType),
+      if productIsPrepared then prodToProcess else @_prepareUpdateProduct(prodToProcess, existingProduct),
+      @_getProductTypeIdByName(prodToProcess.productType.id)
+    ])
+    .then ([sameForAllAttributes, preparedProduct, newProductTypeId]) =>
+      synced = @sync.buildActions(preparedProduct, existingProduct, sameForAllAttributes)
+        .filterActions (action) =>
+          @filterActions(action, existingProduct, preparedProduct)
 
-    @_fetchSameForAllAttributesOfProductType(prodToProcess.productType)
-    .then (sameForAllAttributes) =>
-      productPromise = Promise.resolve(prodToProcess)
+      hasProductTypeChanged = newProductTypeId != existingProduct.productType.id
 
-      if not productIsPrepared
-        productPromise = @_prepareUpdateProduct(prodToProcess, existingProduct)
+      # do not proceed if there are no update actions
+      if not hasProductTypeChanged and not synced.shouldUpdate()
+        return Promise.resolve statusCode: 304
 
-      productPromise
-      .tap (preparedProduct) =>
-        # resolve productType id from cache
-        @_getProductTypeIdByName(preparedProduct.productType.id)
-        .then (id) =>
-          newProductTypeId = id
-      .then (preparedProduct) =>
-        synced = @sync.buildActions(preparedProduct, existingProduct, sameForAllAttributes)
-          .filterActions (action) =>
-            @filterActions(action, existingProduct, preparedProduct)
+      updateRequest = synced.getUpdatePayload()
+      # more than one existing product
+      shouldRunReassignment = existingProducts.length > 1 or
+        # or productType changed
+        hasProductTypeChanged or
+        # or there is some listed update action for reassignment
+        updateRequest.actions.find (action) =>
+          action.action in @reassignmentTriggerActions
 
-        hasProductTypeChanged = newProductTypeId != existingProduct.productType.id
-
-        # do not proceed if there are no update actions
-        if not hasProductTypeChanged and not synced.shouldUpdate()
-          return Promise.resolve statusCode: 304
-
-        updateRequest = synced.getUpdatePayload()
-        # more than one existing product
-        shouldRunReassignment = existingProducts.length > 1 or
-          # or productType changed
-          hasProductTypeChanged or
-          # or there is some listed update action for reassignment
-          updateRequest.actions.find (action) =>
-            action.action in @reassignmentTriggerActions
-
-        if @variantReassignmentOptions.enabled and shouldRunReassignment
-          @_runReassignmentBeforeCreateOrUpdate(prodToProcess)
-        else
-          @_updateInBatches(synced.getUpdateId(), updateRequest)
+      if @variantReassignmentOptions.enabled and shouldRunReassignment
+        @_runReassignmentBeforeCreateOrUpdate(prodToProcess)
+      else
+        @_updateInBatches(synced.getUpdateId(), updateRequest)
 
   _updateInBatches: (id, updateRequest) ->
     latestVersion = updateRequest.version
@@ -423,10 +411,7 @@ class ProductImport
     Promise.resolve(existingProducts)
       # if the existing products were not fetched, load them from API
       .then (existingProducts) =>
-        if existingProducts
-          existingProducts
-        else
-          @_getExistingProductsForSkus(@_extractUniqueSkus([prodToProcess]))
+        existingProducts or @_getExistingProductsForSkus(@_extractUniqueSkus([prodToProcess]))
       .then (existingProducts) =>
         if existingProducts.length
           @_updateProductRepeater(prodToProcess, existingProducts)
@@ -438,7 +423,6 @@ class ProductImport
         # if the error can't be handled by reassignment or it is not enabled at all
         if not @variantReassignmentOptions.enabled or not @_canErrorBeFixedByReassignment(err)
           throw err
-
 
         @_runReassignmentBeforeCreateOrUpdate(prodToProcess)
 
