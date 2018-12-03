@@ -416,6 +416,7 @@ ddescribe 'Product Importer integration tests', ->
         expect(promiseResolvers.length).toEqual(1)
         # first reassignment promise should be still pending
         expect(reassignmentPromise1.isPending()).toEqual(true)
+        expect(reassignmentPromise2.isPending()).toEqual(true)
 
         # resolve first reassignment
         promiseResolvers[0]()
