@@ -272,13 +272,6 @@ class ProductImport
             skus.push(variant.sku)
     return _.uniq(skus,false)
 
-  _isExistingEntry: (prodToProcess, existingProducts) ->
-    prodToProcessSkus = @_extractUniqueSkus([prodToProcess])
-    _.find existingProducts, (existingEntry) =>
-      existingProductSkus =  @_extractUniqueSkus([existingEntry])
-      matchingSkus = _.intersection(prodToProcessSkus,existingProductSkus)
-      matchingSkus.length > 0
-
   _getProductsMatchingByProductSkus: (prodToProcess, existingProducts) ->
     prodToProcessSkus = @_extractUniqueSkus([prodToProcess])
     _.filter existingProducts, (existingEntry) =>
@@ -361,9 +354,10 @@ class ProductImport
             action.action in @reassignmentTriggerActions
 
         if shouldRunReassignment
-          @_runReassignmentBeforeCreateOrUpdate(prodToProcess)
-      else
-        @_updateInBatches(synced.getUpdateId(), updateRequest)
+          return @_runReassignmentBeforeCreateOrUpdate(prodToProcess)
+
+      # if reassignment is off or if there are no actions which triggers reassignment, run normal update
+      @_updateInBatches(synced.getUpdateId(), updateRequest)
 
   _updateInBatches: (id, updateRequest) ->
     latestVersion = updateRequest.version

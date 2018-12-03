@@ -149,7 +149,7 @@ config =
   clientConfig: ClientConfig
   errorLimit: 0
 
-ddescribe 'Product Importer integration tests', ->
+describe 'Product Importer integration tests', ->
 
   beforeEach (done) ->
     @import = new ProductImport logger, config

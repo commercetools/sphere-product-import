@@ -235,7 +235,7 @@ describe 'ProductImport unit tests', ->
       predicate = @import._createProductFetchBySkuQueryPredicate(skus)
       expect(predicate).toEqual 'masterVariant(sku in ("a","b","c","d","e")) or variants(sku in ("a","b","c","d","e"))'
 
-  describe '::_isExistingEntry', ->
+  describe '::_getProductsMatchingByProductSkus', ->
 
     it 'should detect existing entries', ->
       existingProduct = sampleProducts[2]
