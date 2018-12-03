@@ -322,9 +322,10 @@ class ProductImport
     .then((res) =>
       # if the product which failed during reassignment, remove it from processing
       if(res.badRequestSKUs.length)
-        return @logger.error(
+        @logger.error(
           "Removing product with SKUs \"#{res.badRequestSKUs}\" from processing due to a reassignment error"
         )
+        return
 
       # run createOrUpdate again the original prodToProcess object
       @_createOrUpdateProduct(product)
@@ -420,11 +421,11 @@ class ProductImport
             .then (product) =>
               @client.products.create(product)
       .catch (err) =>
-        # if the error can't be handled by reassignment or it is not enabled at all
-        if not @variantReassignmentOptions.enabled or not @_canErrorBeFixedByReassignment(err)
+        # if the error can be handled by reassignment and it is enabled
+        if @variantReassignmentOptions.enabled and @_canErrorBeFixedByReassignment(err)
+          @_runReassignmentBeforeCreateOrUpdate(prodToProcess)
+        else
           throw err
-
-        @_runReassignmentBeforeCreateOrUpdate(prodToProcess)
 
   _createOrUpdate: (productsToProcess, existingProducts) ->
     debug 'Products to process: %j', {toProcess: productsToProcess, existing: existingProducts}
