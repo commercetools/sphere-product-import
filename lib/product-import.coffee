@@ -346,20 +346,22 @@ class ProductImport
       hasProductTypeChanged = newProductTypeId != existingProduct.productType.id
 
       # do not proceed if there are no update actions
-      if not hasProductTypeChanged and not synced.shouldUpdate()
+      if not ((hasProductTypeChanged and @variantReassignmentOptions.enabled) or synced.shouldUpdate())
         return Promise.resolve statusCode: 304
 
       updateRequest = synced.getUpdatePayload()
-      # more than one existing product
-      shouldRunReassignment = existingProducts.length > 1 or
-        # or productType changed
-        hasProductTypeChanged or
-        # or there is some listed update action for reassignment
-        updateRequest.actions.find (action) =>
-          action.action in @reassignmentTriggerActions
 
-      if @variantReassignmentOptions.enabled and shouldRunReassignment
-        @_runReassignmentBeforeCreateOrUpdate(prodToProcess)
+      if @variantReassignmentOptions.enabled
+        # more than one existing product
+        shouldRunReassignment = existingProducts.length > 1 or
+          # or productType changed
+          hasProductTypeChanged or
+          # or there is some listed update action for reassignment
+          updateRequest.actions.find (action) =>
+            action.action in @reassignmentTriggerActions
+
+        if shouldRunReassignment
+          @_runReassignmentBeforeCreateOrUpdate(prodToProcess)
       else
         @_updateInBatches(synced.getUpdateId(), updateRequest)
 
