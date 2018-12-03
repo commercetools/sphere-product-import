@@ -50,10 +50,10 @@ class ProductImport
     @variantReassignmentOptions = options.variantReassignmentOptions or {}
     if @variantReassignmentOptions.enabled
       @reassignmentLock = new Mutex()
+      @reassignmentTriggerActions = ['removeVariant']
       @reassignmentService = new Reassignment(@client, @logger,
         (error) => @_handleErrorResponse(error),
         @variantReassignmentOptions.retainExistingData)
-    @reassignmentTriggerActions = ['removeVariant']
 
     @_configErrorHandling(options)
     @_resetCache()

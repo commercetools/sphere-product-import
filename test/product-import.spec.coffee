@@ -240,9 +240,9 @@ describe 'ProductImport unit tests', ->
     it 'should detect existing entries', ->
       existingProduct = sampleProducts[2]
       newProduct = sampleProducts[0]
-      expect(@import._isExistingEntry(existingProduct,sampleProductProjectionResponse)).toBeDefined()
-      expect(@import._isExistingEntry(existingProduct,sampleProductProjectionResponse).masterVariant.sku).toEqual "e"
-      expect(@import._isExistingEntry(newProduct,sampleProductProjectionResponse)).toBeUndefined()
+      expect(@import._getProductsMatchingByProductSkus(existingProduct,sampleProductProjectionResponse).length).toEqual(1)
+      expect(@import._getProductsMatchingByProductSkus(existingProduct,sampleProductProjectionResponse)[0].masterVariant.sku).toEqual "e"
+      expect(@import._getProductsMatchingByProductSkus(newProduct,sampleProductProjectionResponse).length).toEqual(0)
 
   describe '::_resolveReference', ->
 
