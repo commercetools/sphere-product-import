@@ -517,7 +517,7 @@ ddescribe 'Product Importer integration tests', ->
         ensureResource(@client.productTypes, "name=\"#{bigProductType.name}\"", bigProductType),
         ensureResource(@client.products, "masterData(staged(slug(en=\"#{productDraft1.slug.en}\")))", productDraft1)
       ])
-      .then ([_bigProductType, existingProduct]) =>
+      .then ([_bigProductType]) =>
         productType2 = _bigProductType
         importProductDraft = _.deepClone(productDraft1)
         # change productType
