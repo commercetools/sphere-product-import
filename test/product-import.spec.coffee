@@ -484,12 +484,14 @@ describe 'ProductImport unit tests', ->
       expectedUpdateActions =
         actions: [
           action: 'addVariant'
+          id: "9"
           sku: '9876_2_3'
           attributes: [
             name: 'attribute1'
             value: 'attribute1_value3'
           ],
           prices: []
+          images: []
         ],
         version: 1
 
