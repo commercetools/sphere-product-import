@@ -279,10 +279,10 @@ class ProductImport
       matchingSkus = _.intersection(prodToProcessSkus,existingProductSkus)
       matchingSkus.length > 0
 
-  _updateProductRepeater: (prodToProcess, existingProducts) ->
+  _updateProductRepeater: (prodToProcess, existingProducts, reassignmentRetries) ->
     repeater = new Repeater {attempts: 5}
     repeater.execute =>
-      @_updateProduct(prodToProcess, existingProducts)
+      @_updateProduct(prodToProcess, existingProducts, false, reassignmentRetries)
     , (e) =>
       if e.statusCode isnt 409 # concurrent modification
         return Promise.reject e
@@ -292,7 +292,7 @@ class ProductImport
       Promise.resolve => # next task must be a function
         @client.productProjections.staged(true).byId(existingProducts[0].id).fetch()
         .then (result) =>
-          @_updateProduct(prodToProcess, [result.body], true)
+          @_updateProduct(prodToProcess, [result.body], true, reassignmentRetries)
 
   _getProductTypeIdByName: (name) ->
     @_resolveReference(@client.productTypes, 'productType', { id: name }, "name=\"#{name}\"")
@@ -310,7 +310,12 @@ class ProductImport
           )
           unlock()
 
-  _runReassignmentBeforeCreateOrUpdate: (product) ->
+  _runReassignmentBeforeCreateOrUpdate: (product, reassignmentRetries = 0) ->
+    if reassignmentRetries > 5
+      return Promise.reject(
+        new Error('Error - too many reassignment retries')
+      )
+
     @_runReassignmentForProduct product
     .then((res) =>
       # if the product which failed during reassignment, remove it from processing
@@ -321,10 +326,10 @@ class ProductImport
         return
 
       # run createOrUpdate again the original prodToProcess object
-      @_createOrUpdateProduct(product)
+      @_createOrUpdateProduct(product, null, ++reassignmentRetries)
     )
 
-  _updateProduct: (prodToProcess, existingProducts, productIsPrepared) ->
+  _updateProduct: (prodToProcess, existingProducts, productIsPrepared, reassignmentRetries) ->
     existingProduct = existingProducts[0]
     Promise.all([
       @_fetchSameForAllAttributesOfProductType(prodToProcess.productType),
@@ -343,7 +348,6 @@ class ProductImport
         return Promise.resolve statusCode: 304
 
       updateRequest = synced.getUpdatePayload()
-
       if @variantReassignmentOptions.enabled
         # more than one existing product
         shouldRunReassignment = existingProducts.length > 1 or
@@ -354,7 +358,7 @@ class ProductImport
             action.action in @reassignmentTriggerActions
 
         if shouldRunReassignment
-          return @_runReassignmentBeforeCreateOrUpdate(prodToProcess)
+          return @_runReassignmentBeforeCreateOrUpdate(prodToProcess, reassignmentRetries)
 
       # if reassignment is off or if there are no actions which triggers reassignment, run normal update
       @_updateInBatches(synced.getUpdateId(), updateRequest)
@@ -404,22 +408,22 @@ class ProductImport
     (err?.body?.errors or []).find (error) ->
       error.code == 'DuplicateField' and (error.field.indexOf 'slug' >= 0 or error.field.indexOf 'sku' >= 0)
 
-  _createOrUpdateProduct: (prodToProcess, existingProducts) ->
+  _createOrUpdateProduct: (prodToProcess, existingProducts, reassignmentRetries = 0) ->
     Promise.resolve(existingProducts)
       # if the existing products were not fetched, load them from API
       .then (existingProducts) =>
         existingProducts or @_getExistingProductsForSkus(@_extractUniqueSkus([prodToProcess]))
       .then (existingProducts) =>
         if existingProducts.length
-          @_updateProductRepeater(prodToProcess, existingProducts)
+          @_updateProductRepeater(prodToProcess, existingProducts, reassignmentRetries)
         else
           @_prepareNewProduct(prodToProcess)
             .then (product) =>
               @client.products.create(product)
       .catch (err) =>
         # if the error can be handled by reassignment and it is enabled
-        if @variantReassignmentOptions.enabled and @_canErrorBeFixedByReassignment(err)
-          @_runReassignmentBeforeCreateOrUpdate(prodToProcess)
+        if reassignmentRetries <= 5 and @variantReassignmentOptions.enabled and @_canErrorBeFixedByReassignment(err)
+          @_runReassignmentBeforeCreateOrUpdate(prodToProcess, reassignmentRetries)
         else
           throw err
 

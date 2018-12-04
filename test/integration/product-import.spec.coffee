@@ -437,6 +437,43 @@ describe 'Product Importer integration tests', ->
           .catch (err) =>
             done(_.prettify err)
 
+    it 'should repeat reassignment only 6 times before it fails', (done) ->
+      _productDraft = {
+        productType:
+          typeId: 'product-type'
+          id: @productType.name
+        "name": {
+          "en": "reassigned-product"
+        },
+        "slug": {
+          "en": "reassigned-product"
+        },
+        "masterVariant": {
+          "sku": "DUPLICATE_SKU",
+          "prices": [],
+          "images": [],
+          "attributes": [],
+          "assets": []
+        },
+        "variants": [{
+          "sku": "DUPLICATE_SKU", # invalid - duplicate sku
+          "prices": [],
+          "images": [],
+          "attributes": [],
+          "assets": []
+        }],
+        "searchKeywords": {}
+      }
+      reassignmentSpy = spyOn(@import, '_runReassignmentForProduct').andCallThrough()
+
+      @import.performStream([_productDraft], Promise.resolve)
+      .then =>
+        expect(@import._summary.failed).toEqual(1)
+        expect(reassignmentSpy.calls.length).toEqual(6)
+        done()
+      .catch (err) =>
+        done(_.prettify err)
+
 #   Reassignment before:
 #   existing product "foo" with productType 1
 #   new product draft "reassigned-product" with productType 2
