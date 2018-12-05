@@ -38,7 +38,7 @@
     "test": "grunt test"
   },
   "dependencies": {
-    "@commercetools/sync-actions": "^2.0.0",
+    "@commercetools/sync-actions": "^2.2.1",
     "await-mutex": "^1.0.2",
     "bluebird": "^3.0.0",
     "commercetools-node-variant-reassignment": "^1.1.1",
@@ -46,7 +46,7 @@
     "debug": "^4.1.0",
     "fs-extra": "3.0.1",
     "serialize-error": "^2.1.0",
-    "sphere-node-sdk": "git://github.com/sphereio/sphere-node-sdk.git#271-product-sync-with-change-master-variant-compiled",
+    "sphere-node-sdk": "^2.2.0",
     "sphere-node-utils": "^1.0.0",
     "underscore": "1.9.1",
     "underscore-mixins": "0.1.4",
