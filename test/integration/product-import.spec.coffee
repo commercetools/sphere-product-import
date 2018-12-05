@@ -150,10 +150,14 @@ config =
   errorLimit: 0
 
 describe 'Product Importer integration tests', ->
+  originalTimeout = null
 
   beforeEach (done) ->
     @import = new ProductImport logger, config
     @client = @import.client
+
+    originalTimeout = jasmine.DEFAULT_TIMEOUT_INTERVAL
+    jasmine.DEFAULT_TIMEOUT_INTERVAL = 60000
 
     @fetchProducts = (productTypeId) =>
       @client.productProjections.staged(true)
@@ -175,6 +179,8 @@ describe 'Product Importer integration tests', ->
 
   afterEach (done) ->
     logger.info 'About to cleanup...'
+    jasmine.DEFAULT_TIMEOUT_INTERVAL = originalTimeout
+    
     cleanProducts(logger, @client)
       .then => cleanup(logger, @client.productTypes, @productType.id)
       .then => cleanup(logger, @client.customerGroups, @customerGroup.id)
