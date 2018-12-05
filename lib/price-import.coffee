@@ -132,7 +132,7 @@ class PriceImport extends ProductImport
     debug 'Products to process: %j', {toProcess: productsToProcess, existing: existingProducts}
 
     posts = _.map productsToProcess, (prodToProcess) =>
-      existingProduct = @_isExistingEntry(prodToProcess, existingProducts)
+      existingProduct = @_getProductsMatchingByProductSkus(prodToProcess, existingProducts)[0]
 
       if existingProduct?
         actions = @syncProducts.buildActions(prodToProcess, existingProduct)
