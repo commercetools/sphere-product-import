@@ -222,7 +222,7 @@ class ProductImport
 
   _errorLogger: (res, logger) =>
     if @_summary.failed < @errorLimit or @errorLimit is 0
-      logger.error res, "Skipping product due to an error"
+      logger.error(util.inspect(res, false, 3, true), "Skipping product due to an error")
     else if !@errorLimitHasBeenCommunicated
       @errorLimitHasBeenCommunicated = true
       logger.warn "
