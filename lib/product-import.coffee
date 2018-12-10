@@ -312,8 +312,9 @@ class ProductImport
 
   _runReassignmentBeforeCreateOrUpdate: (product, reassignmentRetries = 0) ->
     if reassignmentRetries > 5
+      masterSku = product.masterVariant.sku
       return Promise.reject(
-        new Error('Error - too many reassignment retries')
+        new Error("Error - too many reassignment retries for a product with masterVariant.sku \"#{masterSku}\"")
       )
 
     @_runReassignmentForProduct product
