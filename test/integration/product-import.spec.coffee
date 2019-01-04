@@ -480,6 +480,66 @@ describe 'Product Importer integration tests', ->
       .catch (err) =>
         done(_.prettify err)
 
+    it 'should query a long list of SKUs and fetch one existing product', (done) ->
+      skus = [1..1000].map (i) -> "LONG_SKU_1"
+      requestSizeBuffer = 300 # the extra space for additional headers in the GET request
+
+      spySkuDivide = null
+      spySdkRest = null
+      spyCreateSkuPredicate = null
+
+      ensureResource(@client.productTypes, "name=\"#{bigProductType.name}\"", bigProductType)
+        .then (_productType) =>
+          productDraft = createProduct()[0]
+          productDraft.productType.id = _productType.name
+          productDraft.masterVariant.sku = skus[0]
+
+          @import.performStream([productDraft], _.noop)
+        .then () =>
+          spySkuDivide = spyOn(@import.commonUtils, '_separateSkusChunksIntoSmallerChunks')
+            .andCallThrough()
+
+          spyCreateSkuPredicate = spyOn(@import, '_createProductFetchBySkuQueryPredicate')
+            .andCallThrough()
+
+          spySdkRest = spyOn(@import.client.productProjections._rest, '_doRequest')
+            .andCallThrough()
+
+          @import._getExistingProductsForSkus(skus)
+        .then (res) ->
+          # should divide only once whole batch of 1000 skus
+          expect(spySkuDivide.calls.length).toEqual(1)
+          expect(spySkuDivide.calls[0].args[0].length).toEqual(1000)
+
+          # batch of 1000 skus should be divided into smaller chunks
+          expect(spyCreateSkuPredicate.calls.length).toEqual(5)
+          expect(spyCreateSkuPredicate.calls[0].args[0].length).toEqual(211)
+
+          # fetching method should return existing product only once
+          expect(res.length).toEqual(1)
+
+          expect(spySdkRest.argsForCall.length).toEqual(5) # there were 5 GET requests
+
+          # loop through all GET calls
+          spySdkRest.argsForCall.forEach (callArgs) ->
+            headers = Object
+              .keys(callArgs[0].headers)
+              .map (key) -> "#{key}: #{callArgs[0].headers[key]}"
+              .join('\n')
+
+            request = [
+              'GET',
+              callArgs[0].uri,
+              headers
+            ].join('\n')
+
+            # Limit for http GET requests on CTP API is 15kb - see:
+            # https://docs.commercetools.com/http-api#disallowed-requests
+            expect(request.length + requestSizeBuffer).toBeLessThan(15 * 1024)
+          done()
+        .catch (err) =>
+          done(_.prettify err)
+
 #   Reassignment before:
 #   existing product "foo" with productType 1
 #   new product draft "reassigned-product" with productType 2

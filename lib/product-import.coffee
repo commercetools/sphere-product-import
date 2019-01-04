@@ -217,7 +217,9 @@ class ProductImport
       , { concurrency: 30 })
       .then (results) ->
         debug 'Fetched products: %j', results
-        resolve(_.flatten(results))
+
+        uniqueProducts = _.uniq(_.flatten(results), (product) -> product.id)
+        resolve(uniqueProducts)
       .catch (err) -> reject(err)
 
   _errorLogger: (res, logger) =>
