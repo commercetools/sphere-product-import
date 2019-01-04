@@ -514,9 +514,10 @@ describe 'ProductImport unit tests', ->
   describe '::_processBatches', ->
 
     it 'should process list of products in batches', (done) ->
-      existingProducts = _.deepClone(sampleProducts)
-      delete existingProducts[1]
-      delete existingProducts[2]
+      existingProducts = [
+        _.deepClone(sampleProducts[0])
+      ]
+      existingProducts[0].id = 1
 
       # create product without SKU
       sampleProducts.push
@@ -646,7 +647,7 @@ describe 'ProductImport unit tests', ->
 
     it 'should accumulate the results of split queries', (done) ->
       spyOn(@import.client.productProjections, 'fetch').andReturn({
-        then: (fn) -> fn({ body: { results: ['result1', 'result2'] } })
+        then: (fn) -> fn({ body: { results: [{ id: 'result1' }, { id: 'result2' }] } })
       })
       skus = []
       for i in [1..10000]
@@ -655,19 +656,13 @@ describe 'ProductImport unit tests', ->
         skus,
         @import._getWhereQueryLimit()
       )
-      expectedResult = _.flatten(_.map(chunks, ->
-        return ['result1', 'result2']
-      ))
       # the number of requests should be the same as the number of chunks
       @import._getExistingProductsForSkus(skus)
       .then (products) ->
-
-        actual = products
-        expected = expectedResult
-
-        expect(actual).toEqual(expected)
+        expect(products).toEqual([{ id: 'result1' }, { id: 'result2' }])
         done()
-      .finally -> done()
+      .catch (err) ->
+        done(err)
 
     it 'should query for all given SKUs', (done) ->
       spyOn(@import.client.productProjections, 'fetch').andReturn({
