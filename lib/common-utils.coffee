@@ -24,16 +24,15 @@ class CommonUtils
   ###
   _separateSkusChunksIntoSmallerChunks: (skus, queryLimit) ->
     whereQuery = "
-      masterVariant(sku in ()) or variants(sku in ())
+      masterVariant(sku IN ()) or variants(sku IN ())
     "
     fixBytes = Buffer.byteLength(encodeURIComponent(whereQuery),'utf-8')
     availableSkuBytes = queryLimit - fixBytes
     getBytesOfChunk = (chunk) ->
+      chunk = chunk.map((sku) => JSON.stringify(sku))
       # use two sku lists since we have to query for masterVariant and variant
       # with the same list of skus
-      skuString = encodeURIComponent(
-        "\"#{chunk.join('","')}\"\"#{chunk.join('","')}\""
-      )
+      skuString = encodeURIComponent("#{chunk}\"\"#{chunk}")
       return Buffer.byteLength(skuString,'utf-8')
     # the skusChunk is now small enough to fit in a query
     # now we split the skus array in chunks of the size of the skusChunk
