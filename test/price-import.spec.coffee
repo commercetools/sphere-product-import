@@ -12,6 +12,7 @@ mockPrice = (options = {}) ->
     currencyCode: options.currency || "EUR",
     centAmount: options.amount || 4200
   country: options.country || "DE"
+  customerGroup: options.customerGroup || { typeId: "customer-group", "id": cuid() }
 
 addPriceAction =
   action: 'addPrice'
@@ -140,6 +141,44 @@ describe 'PriceImport', ->
       expected = [ addPriceAction ]
 
       expect(actual).toEqual(expected)
+      done()
+
+  describe '_removeEmptyPriceFields', ->
+  
+    it 'should remove empty object fields', (done) ->
+      pricesWithEmptyFields = [
+        mockPrice({customerGroup: { typeId: "customer-group",id: "" } }),
+        mockPrice({country: 'SE', currency: "SEK", amount: 2000}),
+        mockPrice({currency: "SEK", amount: 2000}),
+      ]
+      pricesWithEmptyFields[0].country = ''
+      pricesWithEmptyFields[0].value.centAmount = '' ## make sure we do not remove when centAmount is empty
+      pricesWithEmptyFields[2].country = ''
+      
+      _removeEmptyPriceFields = @import._removeEmptyPriceFields
+      cleanedUpPrices = pricesWithEmptyFields.map (price) -> _removeEmptyPriceFields(price)
+
+      expect(cleanedUpPrices[0]).toEqual(jasmine.objectContaining({
+        value: { currencyCode: 'EUR', centAmount: '' }
+      }))
+      expect(Object.keys(cleanedUpPrices[0])).toNotContain('country')
+      expect(Object.keys(cleanedUpPrices[0])).toNotContain('customerGroup')
+
+      expect(cleanedUpPrices[1]).toEqual(jasmine.objectContaining({
+        value: { currencyCode: 'SEK', centAmount: 2000 },
+        country: 'SE',
+        customerGroup: jasmine.objectContaining({ typeId: 'customer-group' })
+      }))
+
+      expect(cleanedUpPrices[2]).toEqual(jasmine.objectContaining({
+        value: { currencyCode: 'SEK', centAmount: 2000 },
+        customerGroup: jasmine.objectContaining({ typeId: 'customer-group' })
+      }))
+      expect(cleanedUpPrices[2]).toEqual(jasmine.objectContaining({
+        value: { currencyCode: 'SEK', centAmount: 2000 },
+        customerGroup: jasmine.objectContaining({ typeId: 'customer-group' })
+      }))
+      expect(Object.keys(cleanedUpPrices[2])).toNotContain('country')
       done()
 
   describe '_createOrUpdate', ->
