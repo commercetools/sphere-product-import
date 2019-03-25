@@ -87,9 +87,9 @@ class PriceImport extends ProductImport
     , {concurrency: 1}
 
   _removeEmptyPriceFields: (price) =>
-    return Object.entries(price).reduce ((acc, [key,value]) ->
+    return _.pairs(price).reduce ((acc, [key,value]) ->
       ## make sure we keep empty centAmounts for deletion (they are inside value)
-      if value == "" || (key != 'value' && typeof value == 'object' && Object.values(value).includes(""))
+      if value == "" || (key != 'value' && typeof value == 'object' && _.values(value).includes(""))
         value = null
       return Object.assign acc, if key and value then "#{key}": value else null
     ), {}
