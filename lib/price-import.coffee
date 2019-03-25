@@ -86,9 +86,18 @@ class PriceImport extends ProductImport
       @_preparePrice priceToProcess
     , {concurrency: 1}
 
+  _removeEmptyPriceFields: (price) =>
+    return Object.entries(price).reduce ((acc, [key,value]) ->
+      ## make sure we keep empty centAmounts for deletion (they are inside value)
+      if value == "" || (key != 'value' && typeof value == 'object' && Object.values(value).includes(""))
+        value = null
+      return Object.assign acc, if key and value then "#{key}": value else null
+    ), {}
+
   _preparePrice: (priceToProcess) =>
     resolvedPrices = []
     Promise.map priceToProcess.prices, (price) =>
+      price = @_removeEmptyPriceFields(price)
       @_resolvePriceReferences(price)
       .then (resolved) ->
         resolvedPrices.push(resolved)
