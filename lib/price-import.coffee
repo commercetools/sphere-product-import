@@ -21,6 +21,7 @@ class PriceImport extends ProductImport
     @repeater = new Repeater
     @preventRemoveActions = options.preventRemoveActions || false
     @deleteOnEmpty = options.deleteOnEmpty || false
+    @removeEmptyValues = options.removeEmptyValues || false
 
   _resetSummary: ->
     @_summary =
@@ -86,9 +87,9 @@ class PriceImport extends ProductImport
       @_preparePrice priceToProcess
     , {concurrency: 1}
 
-  _removeEmptyPriceFields: (price) =>
+  _removeEmptyPriceValues: (price) =>
     return _.pairs(price).reduce ((acc, [key,value]) ->
-      ## make sure we keep empty centAmounts for deletion (they are inside value)
+      ## make sure we keep empty centAmount for deletion (they are inside value)
       if value == "" || (key != 'value' && typeof value == 'object' && _.values(value).includes(""))
         value = null
       return Object.assign acc, if key and value then "#{key}": value else null
@@ -97,7 +98,8 @@ class PriceImport extends ProductImport
   _preparePrice: (priceToProcess) =>
     resolvedPrices = []
     Promise.map priceToProcess.prices, (price) =>
-      price = @_removeEmptyPriceFields(price)
+      if @removeEmptyValues
+        price = @_removeEmptyPriceValues(price)
       @_resolvePriceReferences(price)
       .then (resolved) ->
         resolvedPrices.push(resolved)

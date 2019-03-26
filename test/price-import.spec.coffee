@@ -143,20 +143,20 @@ describe 'PriceImport', ->
       expect(actual).toEqual(expected)
       done()
 
-  describe '_removeEmptyPriceFields', ->
+  describe '_removeEmptyPriceValues', ->
   
-    it 'should remove empty object fields', (done) ->
-      pricesWithEmptyFields = [
+    it 'should remove empty object params', (done) ->
+      pricesWithEmptyValues = [
         mockPrice({customerGroup: { typeId: "customer-group",id: "" } }),
         mockPrice({country: 'SE', currency: "SEK", amount: 2000}),
         mockPrice({currency: "SEK", amount: 2000}),
       ]
-      pricesWithEmptyFields[0].country = ''
-      pricesWithEmptyFields[0].value.centAmount = '' ## make sure we do not remove when centAmount is empty
-      pricesWithEmptyFields[2].country = ''
+      pricesWithEmptyValues[0].country = ''
+      pricesWithEmptyValues[0].value.centAmount = '' ## make sure we do not remove when centAmount is empty
+      pricesWithEmptyValues[2].country = ''
       
-      _removeEmptyPriceFields = @import._removeEmptyPriceFields
-      cleanedUpPrices = pricesWithEmptyFields.map (price) -> _removeEmptyPriceFields(price)
+      _removeEmptyPriceValues = @import._removeEmptyPriceValues
+      cleanedUpPrices = pricesWithEmptyValues.map (price) -> _removeEmptyPriceValues(price)
 
       expect(cleanedUpPrices[0]).toEqual(jasmine.objectContaining({
         value: { currencyCode: 'EUR', centAmount: '' }
