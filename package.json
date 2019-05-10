@@ -62,7 +62,7 @@
     "grunt-contrib-coffee": "github:daern91/grunt-contrib-coffee",
     "grunt-contrib-concat": "1.0.1",
     "grunt-contrib-watch": "^1.1.0",
-    "grunt-shell": "2.1.0",
+    "grunt-shell": "3.0.1",
     "jasmine-node": "github:daern91/jasmine-node",
     "randomstring": "1.1.5",
     "sinon": "^5.1.0",
