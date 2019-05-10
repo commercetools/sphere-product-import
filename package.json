@@ -65,7 +65,7 @@
     "grunt-shell": "2.1.0",
     "jasmine-node": "github:daern91/jasmine-node",
     "randomstring": "1.1.5",
-    "sinon": "^5.1.0",
+    "sinon": "^7.0.0",
     "sphere-coffeelint": "git://github.com/sphereio/sphere-coffeelint.git#master"
   },
   "keywords": [
