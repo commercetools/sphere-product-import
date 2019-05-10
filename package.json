@@ -45,7 +45,7 @@
     "cuid": "^2.0.0",
     "debug": "^4.1.0",
     "fs-extra": "7.0.1",
-    "serialize-error": "^2.1.0",
+    "serialize-error": "^4.0.0",
     "sphere-node-sdk": "^2.2.1",
     "sphere-node-utils": "^1.0.0",
     "underscore": "1.9.1",
