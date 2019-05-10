@@ -44,7 +44,7 @@
     "commercetools-node-variant-reassignment": "^1.1.4",
     "cuid": "^2.0.0",
     "debug": "^4.1.0",
-    "fs-extra": "3.0.1",
+    "fs-extra": "7.0.1",
     "serialize-error": "^2.1.0",
     "sphere-node-sdk": "^2.2.1",
     "sphere-node-utils": "^1.0.0",
