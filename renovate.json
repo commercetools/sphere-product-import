@@ -5,6 +5,7 @@
     ":automergeMinor",
     "group:allNonMajor",
     ":prHourlyLimitNone",
-    ":prConcurrentLimitNone"
+    ":prConcurrentLimitNone",
+    "schedule:weekly"
   ]
 }
