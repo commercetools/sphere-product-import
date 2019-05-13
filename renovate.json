@@ -6,6 +6,8 @@
     "group:allNonMajor",
     ":prHourlyLimitNone",
     ":prConcurrentLimitNone",
+    ":automergeBranchMergeCommit",
+    ":enableVulnerabilityAlerts",
     "schedule:weekly"
   ]
 }
