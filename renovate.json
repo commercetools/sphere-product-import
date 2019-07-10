@@ -9,5 +9,8 @@
     ":automergeBranchMergeCommit",
     ":enableVulnerabilityAlerts",
     "schedule:weekly"
-  ]
+  ],
+  "lockFileMaintenance": {
+    "enabled": true
+  }
 }
