@@ -719,6 +719,8 @@ class ProductImport
           else
             if _.size(result.body.results) > 1
               @logger.warn "Found more than 1 #{refKey} for #{ref.id}"
+            if _.isEmpty(result.body.results)
+              reject "Inconsistency between body.count and body.results.length. Result is #{JSON.stringify(result)}"
             @_cache[refKey][ref.id] = result.body.results[0]
             @_cache[refKey][result.body.results[0].id] = result.body.results[0]
             resolve(result.body.results[0].id)
