@@ -505,7 +505,6 @@ describe 'ProductImport unit tests', ->
         callback(null, {statusCode: 200}, {})
       @import.beforeCreateOrUpdateCallback = (prodToProcess) ->
         beforeCreateOrUpdateCallbackCalled = true
-        return prodToProcess
       @import._createOrUpdate([newProduct, updateProduct], existingProducts)
       .then =>
         expect(@import._prepareNewProduct).toHaveBeenCalled()
