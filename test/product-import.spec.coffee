@@ -443,7 +443,8 @@ describe 'ProductImport unit tests', ->
   describe '::_createOrUpdate', ->
 
     it 'should create a new product and update an existing product', (done) ->
-      beforeCreateOrUpdateCallbackCalled = false
+      beforeCreateCallbackCalled = false
+      beforeUpdateCallbackCalled = false
       samplePrice =
         country: 'DE'
         value:
@@ -503,14 +504,17 @@ describe 'ProductImport unit tests', ->
       spyOn(@import, "_fetchSameForAllAttributesOfProductType").andCallFake -> Promise.resolve([])
       spyOn(@import.client._rest, 'POST').andCallFake (endpoint, payload, callback) ->
         callback(null, {statusCode: 200}, {})
-      @import.beforeCreateOrUpdateCallback = (prodToProcess) ->
-        beforeCreateOrUpdateCallbackCalled = true
+      @import.beforeCreateCallback = () ->
+        beforeCreateCallbackCalled = true
+      @import.beforeUpdateCallback = () ->
+        beforeUpdateCallbackCalled = true
       @import._createOrUpdate([newProduct, updateProduct], existingProducts)
       .then =>
         expect(@import._prepareNewProduct).toHaveBeenCalled()
         expect(@import.client._rest.POST.calls[0].args[1]).toEqual newProduct
         expect(@import.client._rest.POST.calls[1].args[1]).toEqual expectedUpdateActions
-        expect(beforeCreateOrUpdateCallbackCalled).toEqual true
+        expect(beforeCreateCallbackCalled).toEqual true
+        expect(beforeUpdateCallbackCalled).toEqual true
         done()
       .catch done
 

@@ -23,7 +23,8 @@ class ProductImport
     if options.blackList and ProductSync.actionGroups
       @sync.config @_configureSync(options.blackList)
     @errorCallback = options.errorCallback or @_errorLogger
-    @beforeCreateOrUpdateCallback = options.beforeCreateOrUpdateCallback
+    @beforeCreateCallback = options.beforeCreateCallback or Promise.resolve
+    @beforeUpdateCallback = options.beforeUpdateCallback or Promise.resolve
     @ensureEnums = options.ensureEnums or false
     @filterUnknownAttributes = options.filterUnknownAttributes or false
     @ignoreSlugUpdates = options.ignoreSlugUpdates or false
@@ -365,7 +366,9 @@ class ProductImport
           return @_runReassignmentBeforeCreateOrUpdate(prodToProcess, reassignmentRetries)
 
       # if reassignment is off or if there are no actions which triggers reassignment, run normal update
-      @_updateInBatches(synced.getUpdateId(), updateRequest)
+      return Promise.resolve(@beforeUpdateCallback(existingProducts, prodToProcess, updateRequest))
+        .then () =>
+          @_updateInBatches(synced.getUpdateId(), updateRequest)
 
   _updateInBatches: (id, updateRequest) ->
     latestVersion = updateRequest.version
@@ -418,17 +421,13 @@ class ProductImport
       .then (existingProducts) =>
         existingProducts or @_getExistingProductsForSkus(@_extractUniqueSkus([prodToProcess]))
       .then (existingProducts) =>
-        if (@beforeCreateOrUpdateCallback)
-          return Promise.resolve(@beforeCreateOrUpdateCallback(prodToProcess, existingProducts))
-            .then () ->
-              return existingProducts
-        else
-          return existingProducts
-      .then (existingProducts) =>
         if existingProducts.length
           @_updateProductRepeater(prodToProcess, existingProducts, reassignmentRetries)
         else
           @_prepareNewProduct(prodToProcess)
+            .then (product) =>
+              return Promise.resolve(@beforeCreateCallback(product))
+                .then () -> product
             .then (product) =>
               @client.products.create(product)
       .catch (err) =>

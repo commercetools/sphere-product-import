@@ -39,9 +39,12 @@ Note that this tool can import only products which have at least one variant wit
         * the product that should be updated
         * the product that is being imported
       * an _array_ of update actions that should be ignored
-    * beforeCreateOrUpdateCallback: fn(prodToProcess, existingProducts)
+    * beforeCreateCallback: fn(prodToProcess)
       * prodToProcess are products from the external source that are ready to be synced
+    * beforeUpdateCallback: fn(existingProducts, prodToProcess, updateRequest)
       * existingProducts are products currently in CTP that have matching SKUs with prodToProcess
+      * prodToProcess are products from the external source that are ready to be synced
+      * updateRequest contains `updateRequest.version` with the current product version and `updateRequest.actions` with all update actions
     * variantReassignmentOptions
       * enabled: when set to `true`, [reassignment module](https://github.com/commercetools/commercetools-node-variant-reassignment) will run before product import.
 
