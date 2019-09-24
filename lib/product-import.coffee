@@ -419,7 +419,12 @@ class ProductImport
         existingProducts or @_getExistingProductsForSkus(@_extractUniqueSkus([prodToProcess]))
       .then (existingProducts) =>
         if (@beforeCreateOrUpdateCallback)
-          @beforeCreateOrUpdateCallback(prodToProcess, existingProducts)
+          return Promise.resolve(@beforeCreateOrUpdateCallback(prodToProcess, existingProducts))
+            .then () ->
+              return existingProducts
+        else
+          return existingProducts
+      .then (existingProducts) =>
         if existingProducts.length
           @_updateProductRepeater(prodToProcess, existingProducts, reassignmentRetries)
         else
