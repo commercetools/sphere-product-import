@@ -23,6 +23,7 @@ class ProductImport
     if options.blackList and ProductSync.actionGroups
       @sync.config @_configureSync(options.blackList)
     @errorCallback = options.errorCallback or @_errorLogger
+    @beforeCreateOrUpdateCallback = options.beforeCreateOrUpdateCallback
     @ensureEnums = options.ensureEnums or false
     @filterUnknownAttributes = options.filterUnknownAttributes or false
     @ignoreSlugUpdates = options.ignoreSlugUpdates or false
@@ -416,6 +417,13 @@ class ProductImport
       # if the existing products were not fetched, load them from API
       .then (existingProducts) =>
         existingProducts or @_getExistingProductsForSkus(@_extractUniqueSkus([prodToProcess]))
+      .then (existingProducts) =>
+        if (@beforeCreateOrUpdateCallback)
+          return Promise.resolve(@beforeCreateOrUpdateCallback(prodToProcess, existingProducts))
+            .then () ->
+              return existingProducts
+        else
+          return existingProducts
       .then (existingProducts) =>
         if existingProducts.length
           @_updateProductRepeater(prodToProcess, existingProducts, reassignmentRetries)
