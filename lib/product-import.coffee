@@ -426,7 +426,7 @@ class ProductImport
         else
           @_prepareNewProduct(prodToProcess)
             .then (product) =>
-              return Promise.resolve(@beforeCreateCallback(product))
+             Promise.resolve(@beforeCreateCallback(product))
                 .then () -> product
             .then (product) =>
               @client.products.create(product)
