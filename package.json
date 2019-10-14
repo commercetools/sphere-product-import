@@ -38,7 +38,7 @@
     "test": "grunt test"
   },
   "dependencies": {
-    "@commercetools/sync-actions": "^3.0.0",
+    "@commercetools/sync-actions": "^4.0.0",
     "await-mutex": "^1.0.2",
     "bluebird": "^3.0.0",
     "commercetools-node-variant-reassignment": "^1.1.4",
