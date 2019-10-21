@@ -7,7 +7,7 @@ _.mixin require 'underscore-mixins'
 Promise = require 'bluebird'
 slugify = require 'underscore.string/slugify'
 {Repeater} = require 'sphere-node-utils'
-serializeError = require 'serialize-error'
+{serializeError} = require 'serialize-error'
 ProductImport = require './product-import'
 
 class PriceImport extends ProductImport
