@@ -343,7 +343,6 @@ class ProductImport
       @_getProductTypeIdByName(prodToProcess.productType.id)
     ])
     .then ([sameForAllAttributes, preparedProduct, newProductTypeId]) =>
-      console.log('@matchVariantsByAttr', @matchVariantsByAttr)
       synced = @sync.buildActions(preparedProduct, existingProduct, sameForAllAttributes, @matchVariantsByAttr)
         .filterActions (action) =>
           @filterActions(action, existingProduct, preparedProduct)
