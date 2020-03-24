@@ -514,7 +514,7 @@ describe 'Product Importer integration tests', ->
 
           # batch of 1000 skus should be divided into smaller chunks
           expect(spyCreateSkuPredicate.calls.length).toEqual(5)
-          expect(spyCreateSkuPredicate.calls[0].args[0].length).toEqual(212)
+          expect(spyCreateSkuPredicate.calls[0].args[0].length).toEqual(211)
 
           # fetching method should return existing product only once
           expect(res.length).toEqual(1)
