@@ -158,7 +158,7 @@ describe 'Product import integration tests', ->
     .then =>
       expect(@import._summary.created).toBe 1
       expect(@import._summary.updated).toBe 1
-      expect(@import.sync.buildActions).toHaveBeenCalledWith(jasmine.any(Object), jasmine.any(Object), ['sample_attribute_1'])
+      expect(@import.sync.buildActions).toHaveBeenCalledWith(jasmine.any(Object), jasmine.any(Object), ['sample_attribute_1'], undefined)
       predicate = "masterVariant(sku=#{JSON.stringify(sampleImport.products[0].masterVariant.sku)})"
       @client.productProjections.where(predicate).staged(true).fetch()
     .then (result) ->

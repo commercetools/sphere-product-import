@@ -49,6 +49,7 @@ class ProductImport
     # possible values:
     # always, publishedOnly, stagedAndPublishedOnly
     @publishingStrategy = options.publishingStrategy or false
+    @matchVariantsByAttr = options.matchVariantsByAttr or undefined
     @variantReassignmentOptions = options.variantReassignmentOptions or {}
     if @variantReassignmentOptions.enabled
       @reassignmentLock = new Mutex()
@@ -342,7 +343,8 @@ class ProductImport
       @_getProductTypeIdByName(prodToProcess.productType.id)
     ])
     .then ([sameForAllAttributes, preparedProduct, newProductTypeId]) =>
-      synced = @sync.buildActions(preparedProduct, existingProduct, sameForAllAttributes)
+      console.log('@matchVariantsByAttr', @matchVariantsByAttr)
+      synced = @sync.buildActions(preparedProduct, existingProduct, sameForAllAttributes, @matchVariantsByAttr)
         .filterActions (action) =>
           @filterActions(action, existingProduct, preparedProduct)
 

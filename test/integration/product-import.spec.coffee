@@ -147,7 +147,8 @@ logger = new ExtendedLogger
 
 config =
   clientConfig: ClientConfig
-  errorLimit: 0
+  errorLimit: 0,
+  matchVariantsByAttr: 'sku'
 
 describe 'Product Importer integration tests', ->
   originalTimeout = null
@@ -180,7 +181,7 @@ describe 'Product Importer integration tests', ->
   afterEach (done) ->
     logger.info 'About to cleanup...'
     jasmine.DEFAULT_TIMEOUT_INTERVAL = originalTimeout
-    
+
     cleanProducts(logger, @client)
       .then => cleanup(logger, @client.productTypes, @productType.id)
       .then => cleanup(logger, @client.customerGroups, @customerGroup.id)
