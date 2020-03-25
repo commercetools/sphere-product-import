@@ -47,6 +47,7 @@ Note that this tool can import only products which have at least one variant wit
       * updateRequest contains `updateRequest.version` with the current product version and `updateRequest.actions` with all update actions
     * variantReassignmentOptions
       * enabled: when set to `true`, [reassignment module](https://github.com/commercetools/commercetools-node-variant-reassignment) will run before product import.
+    * matchVariantsByAttr: an option to specify a variant attribute that will be used for finding a matching variant in a product. By default variants are matched first by sku, then by key and then id. 
 
 #### Sample configuration object for cli:
 
@@ -65,7 +66,8 @@ Note that this tool can import only products which have at least one variant wit
       ],
       "errorCallback": function(err, logger) {
         logger.error("Error:", err.reason().message)
-      }
+      },
+      "matchVariantsByAttr": "sku"
     }
 
 ### Sample Inputs
