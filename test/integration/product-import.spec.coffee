@@ -393,6 +393,40 @@ describe 'Product Importer integration tests', ->
         expect(product.variants[0].attributes.length).toBe(635)
         done()
 
+  it 'should update a correct product', (done) ->
+    oldAttrValue = 1
+    newAttrValue = 2
+
+    productType = null
+    productDraft1 = _.deepClone(createProduct()[0])
+    productDraft1.productType.id = bigProductType.name
+    productDraft1.masterVariant.attributes = [ { name: 'attr_1', value: oldAttrValue} ]
+    productDraft1.categories = []
+
+    productDraft2 = _.deepClone(createProduct()[1])
+    productDraft2.productType.id = bigProductType.name
+    productDraft2.categories = []
+
+    productDraft3 = _.deepClone(createProduct()[2])
+    productDraft3.productType.id = bigProductType.name
+    productDraft3.categories = []
+
+    ensureResource(@client.productTypes, "name=\"#{bigProductType.name}\"", bigProductType)
+    .then (_productType) =>
+      productType = _productType
+      @import.performStream([productDraft1, productDraft2, productDraft3], _.noop)
+    .then () =>
+      productDraftClone = _.deepClone(productDraft1)
+      productDraftClone.masterVariant.attributes = [ {name: 'attr_1', value: newAttrValue } ]
+      @import.performStream([productDraft2, productDraftClone, productDraft3], _.noop)
+    .then =>
+      @fetchProducts(productType.id)
+    .then (result) ->
+      expect(result.body.results.length).toBe(3)
+      product1 = result.body.results.find((p) -> p.masterVariant.sku == productDraft1.masterVariant.sku)
+      expect(product1.masterVariant.attributes[0].value).toBe(newAttrValue)
+      done()
+
   describe 'product variant reassignment', ->
     beforeEach (done) ->
       reassignmentConfig = _.extend config, { variantReassignmentOptions: { enabled: true } }
