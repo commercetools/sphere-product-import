@@ -354,6 +354,7 @@ class ProductImport
         return Promise.resolve statusCode: 304
 
       updateRequest = synced.getUpdatePayload()
+      updateId = synced.getUpdateId()
       if @variantReassignmentOptions.enabled
         # more than one existing product
         shouldRunReassignment = existingProducts.length > 1 or
@@ -369,7 +370,7 @@ class ProductImport
       # if reassignment is off or if there are no actions which triggers reassignment, run normal update
       return Promise.resolve(@beforeUpdateCallback(existingProducts, prodToProcess, updateRequest))
         .then () =>
-          @_updateInBatches(synced.getUpdateId(), updateRequest)
+          @_updateInBatches(updateId, updateRequest)
 
   _updateInBatches: (id, updateRequest) ->
     latestVersion = updateRequest.version
