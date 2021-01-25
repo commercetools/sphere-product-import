@@ -41,7 +41,7 @@
     "@commercetools/sync-actions": "^4.0.0",
     "await-mutex": "^1.0.2",
     "bluebird": "^3.0.0",
-    "commercetools-node-variant-reassignment": "^1.1.4",
+    "commercetools-node-variant-reassignment": "^1.1.5",
     "cuid": "^2.0.0",
     "debug": "^4.1.0",
     "fs-extra": "8.1.0",
