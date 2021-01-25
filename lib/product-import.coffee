@@ -56,7 +56,8 @@ class ProductImport
       @reassignmentTriggerActions = ['removeVariant']
       @reassignmentService = new Reassignment(@client, @logger,
         (error) => @_handleErrorResponse(error),
-        @variantReassignmentOptions.retainExistingData)
+        @variantReassignmentOptions.retainExistingData,
+        @variantReassignmentOptions.allowedLocales)
 
     @_configErrorHandling(options)
     @_resetCache()
