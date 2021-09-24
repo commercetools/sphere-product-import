@@ -12,14 +12,9 @@ jobs:
         uses: softprops/turnstyle@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Use Node.js 8.x
-          uses: actions/setup-node@v1
-          with:
-            node-version: '8.x'
-      - run: create_config.sh
-      - run: npm test
       - name: Use Node.js 10.x
         uses: actions/setup-node@v1
         with:
           node-version: '10.x'
+      - run: create_config.sh
       - run: npm test
