@@ -17,5 +17,5 @@ jobs:
         with:
           node-version: '10.x'
       - run: ./create_config.sh
-      - run: npm install grunt |
+      - run: npm install grunt-cli |
              npm test
