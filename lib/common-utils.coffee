@@ -1,6 +1,7 @@
 debug = require('debug')('sphere-product-import-common-utils')
 _ = require 'underscore'
 _.mixin require 'underscore-mixins'
+packageJson = require './../package.json'
 
 class CommonUtils
 
@@ -61,5 +62,17 @@ class CommonUtils
     else
       @logger.warn 'unknown publishing strategy ' + publishingStrategy
       return false
+
+  extendUserAgent: (clientConfig) ->
+    userAgentPrefix = "#{packageJson.name}/#{packageJson.version}"
+
+    if not clientConfig.user_agent
+      clientConfig.user_agent = userAgentPrefix
+
+    if not clientConfig.user_agent.startsWith(userAgentPrefix)
+      clientConfig.user_agent = "#{userAgentPrefix} ( #{clientConfig.user_agent} )"
+
+    clientConfig
+
 
 module.exports = CommonUtils
