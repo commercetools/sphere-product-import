@@ -1,16 +1,10 @@
 {
-  "extends": [
-    "config:base",
-    ":preserveSemverRanges",
-    ":automergeMinor",
-    "group:allNonMajor",
-    ":prHourlyLimitNone",
-    ":prConcurrentLimitNone",
-    ":automergeBranchMergeCommit",
-    ":enableVulnerabilityAlerts",
-    "schedule:weekly"
-  ],
-  "lockFileMaintenance": {
-    "enabled": true
-  }
+  "extends": ["config:base", ":disableDependencyDashboard"],
+  "automerge": true,
+  "schedule": ["every weekend"],
+  "groupName": "all",
+  "docker": {
+    "enabled":  false
+  },
+  "prConcurrentLimit": 10
 }
