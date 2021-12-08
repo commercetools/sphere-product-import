@@ -2,34 +2,27 @@
   "name": "sphere-product-import",
   "description": "Manage product data",
   "version": "2.0.7",
-  "homepage": "https://github.com/sphereio/sphere-product-import",
-  "private": false,
+  "homepage": "https://github.com/commercetools/sphere-product-import",
   "author": {
-    "name": "Nicola Molinari",
-    "email": "nicola.molinari@commercetools.de"
+    "name": "commercetools Professional Services",
+    "email": "ps-dev@commercetools.com"
   },
-  "maintainers": [
-    {
-      "name": "Panshul Gupta",
-      "email": "panshul.gupta@commercetools.de"
-    }
-  ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/sphereio/sphere-product-import.git"
+    "url": "https://github.com/commercetools/sphere-product-import.git"
   },
   "bugs": {
-    "url": "https://github.com/sphereio/sphere-product-import/issues"
+    "url": "https://github.com/commercetools/sphere-product-import/issues"
   },
   "licenses": [
     {
       "type": "MIT",
-      "url": "https://github.com/sphereio/sphere-product-import/blob/master/LICENSE-MIT"
+      "url": "https://github.com/commercetools/sphere-product-import/blob/master/LICENSE-MIT"
     }
   ],
   "main": "./dist",
   "engines": {
-    "node": ">= 8.0.0"
+    "node": ">=10"
   },
   "scripts": {
     "build": "grunt build",
@@ -66,13 +59,6 @@
     "jasmine-node": "github:daern91/jasmine-node",
     "randomstring": "1.1.5",
     "sinon": "^9.0.0",
-    "sphere-coffeelint": "git://github.com/sphereio/sphere-coffeelint.git#master"
-  },
-  "keywords": [
-    "sphere",
-    "sphereio",
-    "product",
-    "import",
-    "export"
-  ]
+    "sphere-coffeelint": "git://github.com/commercetools/sphere-coffeelint.git#master"
+  }
 }
