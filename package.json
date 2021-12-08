@@ -59,6 +59,6 @@
     "jasmine-node": "3.0.0",
     "randomstring": "1.1.5",
     "sinon": "^9.0.0",
-    "sphere-coffeelint": "git://github.com/commercetools/sphere-coffeelint.git#master"
+    "sphere-coffeelint": "git://github.com/spherio/sphere-coffeelint.git#master"
   }
 }
