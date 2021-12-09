@@ -47,7 +47,6 @@
     "underscore.string": "3.3.5"
   },
   "devDependencies": {
-    "coffeescript": "2.6.1",
     "coffee-errors": "0.8.6",
     "grunt": "1.4.1",
     "grunt-cli": "1.4.3",
