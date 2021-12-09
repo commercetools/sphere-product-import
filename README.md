@@ -4,11 +4,11 @@
 
 [![NPM](https://nodei.co/npm/sphere-product-import.png?downloads=true)](https://www.npmjs.org/package/sphere-product-import)
 
-[![Build Status](https://secure.travis-ci.org/sphereio/sphere-product-import.png?branch=master)](http://travis-ci.org/sphereio/sphere-product-import) [![NPM version](https://badge.fury.io/js/sphere-product-import.png)](http://badge.fury.io/js/sphere-product-import)
+[![Build Status](https://github.com/commercetools/sphere-product-import/workflows/CI/badge.svg?branch=master)](https://github.com/commercetools/sphere-product-import/actions) [![NPM version](https://badge.fury.io/js/sphere-product-import.png)](http://badge.fury.io/js/sphere-product-import)
 
 This library provides different modules to manage commercetools product data.
 
-> To use those modules please refer to the [`sphere-node-cli`](https://github.com/sphereio/sphere-node-cli).
+> To use those modules please refer to the [`sphere-node-cli`](https://github.com/commercetools/sphere-node-cli).
   
 ## Modules
 

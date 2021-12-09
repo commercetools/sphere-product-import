@@ -1,35 +1,29 @@
 {
   "name": "sphere-product-import",
   "description": "Manage product data",
-  "version": "2.0.7",
-  "homepage": "https://github.com/sphereio/sphere-product-import",
+  "version": "2.1.0",
+  "homepage": "https://github.com/commercetools/sphere-product-import",
   "private": false,
   "author": {
-    "name": "Nicola Molinari",
-    "email": "nicola.molinari@commercetools.de"
+    "name": "commercetools Professional Services",
+    "email": "ps-dev@commercetools.com"
   },
-  "maintainers": [
-    {
-      "name": "Panshul Gupta",
-      "email": "panshul.gupta@commercetools.de"
-    }
-  ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/sphereio/sphere-product-import.git"
+    "url": "https://github.com/commercetools/sphere-product-import.git"
   },
   "bugs": {
-    "url": "https://github.com/sphereio/sphere-product-import/issues"
+    "url": "https://github.com/commercetools/sphere-product-import/issues"
   },
   "licenses": [
     {
       "type": "MIT",
-      "url": "https://github.com/sphereio/sphere-product-import/blob/master/LICENSE-MIT"
+      "url": "https://github.com/commercetools/sphere-product-import/blob/master/LICENSE-MIT"
     }
   ],
   "main": "./dist",
   "engines": {
-    "node": ">= 8.0.0"
+    "node": ">=10"
   },
   "scripts": {
     "build": "grunt build",
@@ -59,20 +53,12 @@
     "grunt-cli": "1.3.2",
     "grunt-coffeelint": "0.0.16",
     "grunt-contrib-clean": "2.0.0",
-    "grunt-contrib-coffee": "github:daern91/grunt-contrib-coffee",
+    "grunt-contrib-coffee": "2.1.0",
     "grunt-contrib-concat": "1.0.1",
     "grunt-contrib-watch": "^1.1.0",
     "grunt-shell": "3.0.1",
-    "jasmine-node": "github:daern91/jasmine-node",
+    "jasmine-node": "3.0.0",
     "randomstring": "1.1.5",
-    "sinon": "^9.0.0",
-    "sphere-coffeelint": "git://github.com/sphereio/sphere-coffeelint.git#master"
-  },
-  "keywords": [
-    "sphere",
-    "sphereio",
-    "product",
-    "import",
-    "export"
-  ]
+    "sinon": "^9.0.0"
+  }
 }

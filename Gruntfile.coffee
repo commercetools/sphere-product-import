@@ -15,7 +15,7 @@ module.exports = (grunt) ->
         "*/\n"
 
     coffeelint:
-      options: grunt.file.readJSON('node_modules/sphere-coffeelint/coffeelint.json')
+      options: grunt.file.readJSON('coffeelint.json')
       default: ['Gruntfile.coffee', 'lib/**/*.coffee', 'test/**/*.coffee']
 
     clean:
