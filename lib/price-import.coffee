@@ -12,9 +12,9 @@ ProductImport = require './product-import'
 
 class PriceImport extends ProductImport
 
-  constructor: (@logger, options = {}) ->
-    super @logger, options
-
+  constructor: (logger, options = {}) ->
+    super logger, options
+    @logger = logger
     actionGroups = [{ type: 'prices', group: 'white' }]
     @syncProducts = createSyncProducts(actionGroups)
     @batchSize = options.batchSize or 30
