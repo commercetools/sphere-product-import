@@ -1,5 +1,3 @@
-![commercetools logo](https://cdn.rawgit.com/commercetools/press-kit/master/PNG/72DPI/CT%20logo%20horizontal%20RGB%2072dpi.png)
-
 # Product Import
 
 [![NPM](https://nodei.co/npm/sphere-product-import.png?downloads=true)](https://www.npmjs.org/package/sphere-product-import)
