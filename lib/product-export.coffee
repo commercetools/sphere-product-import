@@ -4,11 +4,13 @@ _.mixin require 'underscore-mixins'
 Promise = require 'bluebird'
 slugify = require 'underscore.string/slugify'
 {SphereClient} = require 'sphere-node-sdk'
+CommonUtils = require './common-utils'
 
 class ProductExport
 
   constructor: (@logger, options = {}) ->
-    @client = new SphereClient options
+    @commonUtils = new CommonUtils @logger
+    @client = new SphereClient @commonUtils.extendUserAgent options
 
   # `cb` should return a Promise
   processStream: (cb) ->

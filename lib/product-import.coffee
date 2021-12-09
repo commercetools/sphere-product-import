@@ -31,10 +31,10 @@ class ProductImport
     @batchSize = options.batchSize or 30
     @failOnDuplicateAttr = options.failOnDuplicateAttr or false
     @logOnDuplicateAttr = if options.logOnDuplicateAttr? then options.logOnDuplicateAttr else true
-    @client = new SphereClient options.clientConfig
+    @commonUtils = new CommonUtils @logger
+    @client = new SphereClient @commonUtils.extendUserAgent options.clientConfig
     @enumValidator = new EnumValidator @logger
     @unknownAttributesFilter = new UnknownAttributesFilter @logger
-    @commonUtils = new CommonUtils @logger
     @filterActions = if _.isFunction(options.filterActions)
       options.filterActions
     else if _.isArray(options.filterActions)

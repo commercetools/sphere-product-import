@@ -5,11 +5,13 @@ Promise = require 'bluebird'
 slugify = require 'underscore.string/slugify'
 {SphereClient} = require 'sphere-node-sdk'
 {Repeater} = require 'sphere-node-utils'
+CommonUtils = require './common-utils'
 
 class ProductDiscountImport
 
   constructor: (@logger, options = {}) ->
-    @client = new SphereClient options.clientConfig
+    @commonUtils = new CommonUtils @logger
+    @client = new SphereClient @commonUtils.extendUserAgent options.clientConfig
     @language = 'en'
     @_resetSummary()
 
