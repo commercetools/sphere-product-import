@@ -1,5 +1,5 @@
 # Sphere Product Importer
-Accepts a list of products in a valid [JSON Schema](https://github.com/sphereio/sphere-json-schemas/tree/master/schema). Processes them in batches (of default: 30 products).
+Accepts a list of products in a valid [JSON Schema](https://github.com/commercetools/sphere-json-schemas/tree/master/schema). Processes them in batches (of default: 30 products).
  Assumes the following to be existing in the concerned project:
  * `Product Types` with correct names used by the products to be imported
   * All the attributes should be existing with the correct types
@@ -34,7 +34,7 @@ Note that this tool can import only products which have at least one variant wit
     * errorCallback: when set to a custom function, all log messages will be sent to this function. Otherwise, a default logger function will be used
     * defaultAttributes: a list of attributes to be added to all variants if not existing
     * filterActions: can be one of the following:
-      * a _function_ that gets called for each action, that the product sync returns. See [here](https://github.com/sphereio/sphere-node-sdk/blob/master/src/coffee/sync/base-sync.coffee#L96) for an example filter. It get's passed the following arguments:
+      * a _function_ that gets called for each action, that the product sync returns. See [here](https://github.com/commercetools/sphere-node-sdk/blob/master/src/coffee/sync/base-sync.coffee#L96) for an example filter. It get's passed the following arguments:
         * the action that should be performed
         * the product that should be updated
         * the product that is being imported
@@ -170,7 +170,7 @@ Multiple attribute values for a Set < Enum / Lenum > may be specified as individ
 Attributes of type set should have their values as an array even if there is only a single value.
 
 #### Sample Products
- A sample JSON which the importer accepts can be found [here](https://github.com/sphereio/sphere-product-import/blob/master/samples/sample-products.json).
+ A sample JSON which the importer accepts can be found [here](https://github.com/commercetools/sphere-product-import/blob/master/samples/sample-products.json).
 All components of Products in the JSON should be in compliance with the [SPHERE.IO API docs](http://dev.sphere.io/http-api-projects-products.html).
 Please refer to the official [SPHERE.IO API docs](http://dev.sphere.io/http-api-projects-products.html) for missing samples in the JSON sample provided above.
 

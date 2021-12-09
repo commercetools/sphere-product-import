@@ -1,16 +1,16 @@
 {
-  "extends": [
-    "config:base",
-    ":preserveSemverRanges",
-    ":automergeMinor",
-    "group:allNonMajor",
-    ":prHourlyLimitNone",
-    ":prConcurrentLimitNone",
-    ":automergeBranchMergeCommit",
-    ":enableVulnerabilityAlerts",
-    "schedule:weekly"
-  ],
-  "lockFileMaintenance": {
-    "enabled": true
-  }
+  "extends": ["config:base", ":dependencyDashboard"],
+  "automerge": true,
+  "schedule": ["every weekend"],
+  "groupName": "all",
+  "docker": {
+    "enabled":  false
+  },
+  "prConcurrentLimit": 10,
+  "packageRules": [
+    {
+      "matchPackageNames": ["serialize-error"],
+      "allowedVersions": "< 9.0.0"
+    }
+  ]
 }
