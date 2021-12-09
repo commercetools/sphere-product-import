@@ -66,10 +66,6 @@ accurate comments, etc.) and any other requirements (such as test coverage).
 After submitting a PR, assign yourself the PR and add part of the NodeJS team in the reviewers section.
 
 ## Releases
-Releasing a new version is completely automated using the Grunt task `grunt release`.
+To release the changes to the npm, you need to ["create a new release"](https://github.com/commercetools/sphere-product-import/releases/new) with Github,
+describe the change log in the new release and publish it.
 
-```javascript
-grunt release // patch release
-grunt release:minor // minor release
-grunt release:major // major release
-```
