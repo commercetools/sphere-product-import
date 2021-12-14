@@ -558,7 +558,7 @@ describe 'ProductImport unit tests', ->
         done()
       .catch done
 
-    it 'should skip nulls in returned products', (done) ->
+    it 'should skip nulls in returned products and not fail the process', (done) ->
       existingProducts = [
         _.deepClone(sampleProducts[0]),
         null,
@@ -585,13 +585,7 @@ describe 'ProductImport unit tests', ->
       @import.defaultAttributesService = null
       @import._processBatches(sampleProducts)
       .then =>
-        expect(@import._summary).toEqual
-          productsWithMissingSKU: 3
-          created: 1
-          updated: 1
-          failed: 0
-          productTypeUpdated: 0
-          errorDir: path.join(__dirname,'../errors')
+        expect(@import._summary.failed).toEqual(0)
         done()
       .catch done
 
