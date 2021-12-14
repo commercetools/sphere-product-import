@@ -222,7 +222,7 @@ class ProductImport
       .then (results) ->
         debug 'Fetched products: %j', results
 
-        uniqueProducts = _.uniq(_.flatten(results), (product) -> product.id)
+        uniqueProducts = _.uniq(_.compact(_.flatten(results)), (product) -> product.id)
         resolve(uniqueProducts)
       .catch (err) -> reject(err)
 
