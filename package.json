@@ -1,7 +1,7 @@
 {
   "name": "sphere-product-import",
   "description": "Manage product data",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "homepage": "https://github.com/commercetools/sphere-product-import",
   "private": false,
   "author": {
