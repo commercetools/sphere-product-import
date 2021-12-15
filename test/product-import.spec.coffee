@@ -558,6 +558,37 @@ describe 'ProductImport unit tests', ->
         done()
       .catch done
 
+    it 'should skip nulls in returned products and not fail the process', (done) ->
+      existingProducts = [
+        _.deepClone(sampleProducts[0]),
+        null,
+        undefined
+      ]
+      existingProducts[0].id = 1
+
+      # create product without SKU
+      sampleProducts.push
+        categories: [
+          {
+            typeId: 'category'
+            id: sampleProducts[0].categories[0].id
+          }
+        ]
+        masterVariant: {}
+
+      spyOn(@import, "_extractUniqueSkus").andCallThrough()
+      spyOn(@import, "_createProductFetchBySkuQueryPredicate").andCallThrough()
+      spyOn(@import.client.productProjections,"fetch").andCallFake -> Promise.resolve({body: {results: existingProducts}})
+      spyOn(@import, "_createOrUpdate").andCallFake -> Promise.settle([Promise.resolve({statusCode: 201}), Promise.resolve({statusCode: 200})])
+      spyOn(@import, "_ensureProductTypesInMemory").andCallFake -> Promise.resolve()
+      @import.ensureEnums = false
+      @import.defaultAttributesService = null
+      @import._processBatches(sampleProducts)
+      .then =>
+        expect(@import._summary.failed).toEqual(0)
+        done()
+      .catch done
+
     it 'should skip product with non-existing category', (done) ->
       sampleProducts.forEach (product) =>
         product.productType = {
