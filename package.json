@@ -1,7 +1,7 @@
 {
   "name": "sphere-product-import",
   "description": "Manage product data",
-  "version": "2.1.1",
+  "version": "2.1.2",
   "homepage": "https://github.com/commercetools/sphere-product-import",
   "private": false,
   "author": {
@@ -35,7 +35,7 @@
     "@commercetools/sync-actions": "4.9.6",
     "await-mutex": "1.0.2",
     "bluebird": "3.7.2",
-    "commercetools-node-variant-reassignment": "1.1.5",
+    "commercetools-node-variant-reassignment": "1.2.1",
     "cuid": "2.1.8",
     "debug": "4.3.3",
     "fs-extra": "10.0.0",
