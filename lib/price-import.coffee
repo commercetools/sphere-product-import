@@ -109,8 +109,13 @@ class PriceImport extends ProductImport
       Promise.resolve(priceToProcess)
 
   _resolvePriceReferences: (price) =>
+    customerGroupPredicate = "name=\"#{price.customerGroup?.id}\""
+
+    if not price.customerGroup?.id and price.customerGroup?.key
+      customerGroupPredicate = "key=\"#{price.customerGroup?.key}\""
+
     Promise.all [
-      @_resolveReference(@client.customerGroups, 'customerGroup', price.customerGroup, "name=\"#{price.customerGroup?.id}\"")
+      @_resolveReference(@client.customerGroups, 'customerGroup', price.customerGroup, customerGroupPredicate)
       @_resolveReference(@client.channels, 'channel', price.channel, "key=\"#{price.channel?.id}\"")
     ]
     .spread (customerGroupId, channelId) ->
