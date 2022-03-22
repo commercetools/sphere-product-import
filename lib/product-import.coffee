@@ -723,7 +723,7 @@ class ProductImport
         request = service.where(predicate)
         if refKey is 'product'
           request.staged(true)
-        @_fetchReference(request, refKey, ref, predicate,)
+        @_fetchReference(request, refKey, ref, predicate, 0)
         .then (results) =>
           @_cache[refKey][ref.id] = results[0]
           @_cache[refKey][results[0].id] = results[0]
@@ -748,6 +748,6 @@ class ProductImport
             if (_.isArray(result.body.results))
               return result.body.results
             else
-              @_fetchReference(request, refKey, ref, predicate, count++)
+              @_fetchReference(request, refKey, ref, predicate, count + 1)
 
 module.exports = ProductImport
