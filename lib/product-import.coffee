@@ -44,6 +44,7 @@ class ProductImport
     # default web server url limit in bytes
     # count starts after protocol (eg. https:// does not count)
     @urlLimit = 8192
+    @retryLimit = 10
     if options.defaultAttributes
       @defaultAttributesService = new EnsureDefaultAttributes @logger, options.defaultAttributes
     # possible values:
@@ -710,7 +711,7 @@ class ProductImport
         .then (result) -> resolve(result.filter (c) -> c)
         .catch (err) -> reject(err)
 
-  _resolveReference: (service, refKey, ref, predicate) ->
+  _resolveReference: (service, refKey, ref, predicate) =>
     new Promise (resolve, reject) =>
       if not ref
         resolve()
@@ -722,17 +723,31 @@ class ProductImport
         request = service.where(predicate)
         if refKey is 'product'
           request.staged(true)
-        request.fetch()
+        @_fetchReference(request, refKey, ref, predicate,)
+        .then (results) =>
+          @_cache[refKey][ref.id] = results[0]
+          @_cache[refKey][results[0].id] = results[0]
+          resolve(results[0].id)
+        .catch (err) ->
+          reject(err)
+
+
+  _fetchReference: (request, refKey, ref, predicate, count) =>
+    if count == @retryLimit
+      throw new Error("Won't retry again because of a reached limit #{@retryLimit}.")
+    else
+      request.fetch()
         .then (result) =>
           if result.body.count is 0
-            reject "Didn't find any match while resolving #{refKey} (#{predicate})"
+            throw new Error("Didn't find any match while resolving #{refKey} (#{predicate})")
           else
             if _.size(result.body.results) > 1
               @logger.warn "Found more than 1 #{refKey} for #{ref.id}"
             if _.isEmpty(result.body.results)
-              reject "Inconsistency between body.count and body.results.length. Result is #{JSON.stringify(result)}"
-            @_cache[refKey][ref.id] = result.body.results[0]
-            @_cache[refKey][result.body.results[0].id] = result.body.results[0]
-            resolve(result.body.results[0].id)
+              throw new Error("Inconsistency between body.count and body.results.length. Result is #{JSON.stringify(result)}")
+            if (_.isArray(result.body.results))
+              return result.body.results
+            else
+              @_fetchReference(request, refKey, ref, predicate, count++)
 
 module.exports = ProductImport

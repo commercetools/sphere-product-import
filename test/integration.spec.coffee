@@ -372,7 +372,7 @@ describe 'Product import integration tests', ->
     @import.errorCallback = (err, logger) ->
       errorLogger = logger
       errorCount += 1
-      error = err.toString()
+      error = err.message.toString()
 
     @import._processBatches([product])
     .then =>
