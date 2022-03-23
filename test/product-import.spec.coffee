@@ -305,6 +305,22 @@ describe 'ProductImport unit tests', ->
         expect(err).toBe 'Missing taxCategory'
         done()
 
+    it 'should retry 10 times until failure', (done) ->
+      @import._resetCache()
+      retryCount = 0
+      spyOn(@import.client.productTypes, "fetch").andCallFake () ->
+        retryCount++
+        Promise.resolve(body: { count: 1, results: JSON.stringify(sampleProductTypeResponse.body.results) })
+      productTypeRef = { id: 'AGS'}
+      @import._resolveReference(@import.client.productTypes, 'productType', productTypeRef, "name=\"#{productTypeRef.id}\"")
+      .then () =>
+        done('should fail')
+      .catch (err) =>
+        expect(@import.client.productTypes.fetch).toHaveBeenCalled()
+        expect(err.message).toBe "Won't retry again because of a reached limit 10."
+        expect(retryCount).toBe 10
+        done()
+
   describe '::_resolveProductCategories', ->
 
     it 'should resolve a list of categories', (done) ->
