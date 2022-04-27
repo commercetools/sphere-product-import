@@ -48,7 +48,7 @@
   },
   "devDependencies": {
     "coffee-errors": "0.8.6",
-    "grunt": "1.4.1",
+    "grunt": "1.5.2",
     "grunt-cli": "1.4.3",
     "grunt-coffeelint": "0.0.16",
     "grunt-contrib-clean": "2.0.0",
