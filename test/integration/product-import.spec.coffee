@@ -10,6 +10,8 @@ Promise = require 'bluebird'
 ClientConfig = require '../../config'
 { deleteProductById } = require './test-helper'
 package_json = require '../../package.json'
+{getApiRoot} = require '../../lib/client'
+test = require '../../lib/client'
 
 jasmine.getEnv().defaultTimeoutInterval = 30000
 
@@ -204,7 +206,14 @@ describe 'Product Importer integration tests', ->
       service.byId(id).delete(result.body.version)
 
   it 'should handle an empty import', (done) ->
-    @import.performStream([], -> {})
+    newClient = getApiRoot(config.clientConfig.config)
+    newClient.productProjections()
+    .get({
+      queryArgs: { where: 'published=true', limit: 200 }
+    })
+    .execute()
+    .then (response) =>
+      @import.performStream([], -> {})
     .then =>
       @fetchProducts(@productType.id)
     .then (result) ->
