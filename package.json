@@ -32,7 +32,10 @@
     "test": "grunt test"
   },
   "dependencies": {
-    "@commercetools/sync-actions": "4.9.6",
+    "@commercetools/platform-sdk": "^2.6.0",
+    "@commercetools/sdk-client-v2": "^1.4.0",
+    "@commercetools/sync-actions": "^4.10.1",
+    "isomorphic-fetch": "^3.0.0",
     "await-mutex": "1.0.2",
     "bluebird": "3.7.2",
     "commercetools-node-variant-reassignment": "1.2.1",
